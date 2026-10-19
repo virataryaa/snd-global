@@ -30,12 +30,13 @@ INK, AXIS, GRID = "#0f172a", "#64748b", "rgba(15,23,42,0.06)"
 
 CSS = """
 <style>
-.snd-wrap { background: #ffffff; border: 1px solid #e6e9f0; border-radius: 12px; padding: 4px 6px 8px; margin-bottom: 14px;
-            box-shadow: 0 1px 2px rgba(15,23,42,.04); overflow-x: auto; }
-table.snd { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 12.5px; color: #0f172a;
+.snd-wrap { background: #ffffff; border: 1px solid #e6e9f0; border-radius: 12px; padding: 3px 5px 6px; margin-bottom: 12px;
+            box-shadow: 0 1px 2px rgba(15,23,42,.04); overflow-x: auto; width: fit-content; max-width: 100%; }
+table.snd { border-collapse: separate; border-spacing: 0; width: auto; font-size: 12px; color: #0f172a;
             font-variant-numeric: tabular-nums; letter-spacing: .005em; }
-table.snd td, table.snd th { padding: 3px 12px; text-align: right; white-space: nowrap; line-height: 1.35; }
-table.snd td.lbl { text-align: left; color: #475569; padding-left: 14px; min-width: 190px; }
+table.snd td, table.snd th { padding: 2px 9px; text-align: right; white-space: nowrap; line-height: 1.3; }
+table.snd td { min-width: 46px; }
+table.snd td.lbl { text-align: left; color: #475569; padding-left: 12px; min-width: 150px; }
 table.snd td { border: 0; border-bottom: 1px solid #f1f3f7; }
 table.snd th { border: 0; }
 /* title strip + context line */
@@ -43,10 +44,10 @@ table.snd tr.meta td { color: #64748b; font-size: 11.5px; border-bottom: 0; padd
 table.snd tr.meta td.lbl { color: #94a3b8; }
 /* commodity header: label left, a thin accent rule under it */
 table.snd tr.comm th { text-align: left; font-size: 12px; font-weight: 700; color: #ffffff; letter-spacing: .12em; text-transform: uppercase;
-                       padding: 7px 14px; background: linear-gradient(90deg, #0a1d4d 0%, #0a2463 100%); }
-table.snd tr.gap td { border: 0; height: 12px; padding: 0; }
+                       padding: 5px 12px; background: linear-gradient(90deg, #0a1d4d 0%, #0a2463 100%); }
+table.snd tr.gap td { border: 0; height: 8px; padding: 0; }
 /* year header */
-table.snd th.y { font-size: 11.5px; font-weight: 600; color: #0a2463; padding: 6px 12px; background: #eef2fb; border-bottom: 1px solid #dbe4f7; }
+table.snd th.y { font-size: 11px; font-weight: 600; color: #0a2463; padding: 4px 9px; background: #eef2fb; border-bottom: 1px solid #dbe4f7; }
 table.snd th.y.fc { background: #dbe4f7; }
 table.snd th.y.first { text-align: left; }
 table.snd td.fc { background: #f6f8fd; }
@@ -59,6 +60,10 @@ table.snd tr.soft td { color: #64748b; }
 table.snd tr.soft td.lbl { color: #94a3b8; }
 table.snd tr.sep td { border: 0; height: 6px; padding: 0; }
 table.snd td.neg { color: #c0392b; }
+table.snd td.ed { cursor: text; }
+table.snd td.ed:hover { box-shadow: inset 0 0 0 1px #9db3e6; background: #f3f6fd; }
+table.snd td.ed:focus { outline: none; box-shadow: inset 0 0 0 2px #0a2463; background: #ffffff; }
+table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
 table.snd td.note { position: relative; cursor: help; }
 table.snd td.note::after { content: ""; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 6px 6px 0;
                            border-color: transparent #a855f7 transparent transparent; }
@@ -141,7 +146,7 @@ def fpct(v, dec=1):
     return "" if pd.isna(v) else f"{v * 100:.{dec}f}%"
 
 
-def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo) -> str:
+def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None) -> str:
     """The sheet's layout, quietly: Brazil Combo line, then Arabica / Robusta / Global blocks."""
     ncol = len(shown) + 1
 
@@ -169,6 +174,13 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo) -> str:
             if nt:
                 cls.append("note")
                 title = f" title='{html.escape(nt, quote=True)}'"
+            if edit and comm and item:                                   # an input cell: typed over in place
+                k = f"{comm}|{item}|{y}"
+                b = edit["base"].get(k)
+                cls.append("ed")
+                if k in edit["changed"]:
+                    cls.append("chg")
+                title += f" data-k='{html.escape(k, quote=True)}' data-base='{'' if b is None or pd.isna(b) else b}'"
             cells += f"<td class='{' '.join(cls)}'{title}>{fmt(v)}</td>"
         return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>"
 
@@ -247,80 +259,49 @@ def charts(a, r, glob, shown):
         st.plotly_chart(_style(fig), width="stretch", key="c_glob")
 
 
-# ── Edit view: the main table, with the inputs editable ────────────────────────────────────────────────────
-def calc_table(comm, fr, glob, shown, meta) -> str:
-    """The calculated rows of one commodity, shown under its editable inputs (they move as you type)."""
-    shaded = star = is_estimate
-
-    def tr(label, vals, kind, fmt, neg=False):
-        cells = "".join(f"<td class='{'fc ' if shaded(y) else ''}{'neg' if neg and pd.notna(vals[y]) and vals[y] < -0.049 else ''}'>{fmt(vals[y])}</td>"
-                        for y in shown)
-        return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>"
-
-    head = "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if shaded(y) else ''}'>{y}{'*' if star(y) else ''}</th>" for y in shown) + "</tr>"
-    rows = [tr("Production", fr.loc["Production"], "b", fnum), tr("Consumption %", fr.loc["Consumption %"], "soft", fpct),
-            tr("Balance", fr.loc["Balance"], "bal", fnum, True), tr("End season stock", fr.loc["End Season Stock"], "", fnum),
-            tr("S/U", fr.loc["S/U"], "soft", lambda v: fpct(v, 1 if comm == "Arabica" else 0))]
-    if comm == "Robusta":
-        rows.append(tr("Robusta demand share", glob.loc["Robusta demand share"], "soft", lambda v: fpct(v, 0)))
-    return f"<div class='snd-wrap' style='border-radius:0 0 8px 8px;margin-top:0'><table class='snd'>{head}{''.join(rows)}</table></div>"
+# ── Edit view: the styled table itself, typed over in place ────────────────────────────────────────────────
+def _undo():
+    st.session_state["snd_epoch"] = st.session_state.get("snd_epoch", 0) + 1
+    try:
+        st.session_state["snd_tbl"] = {}
+    except Exception:
+        pass
 
 
-def render_edit(df, meta, years, shown, editable):
-    """Edit mode: each commodity's inputs as an editable grid in the table's layout; the calculated rows below it follow the edits live.
-    One Save for both commodities."""
-    live = df
-    changes_all, keys = [], []
-    grids = {}
-    for comm in ORIGINS:
-        items = ORIGINS[comm] + ["Consumption"]
-        d = df[df["commodity"] == comm].pivot_table(index="item", columns="year", values="value", aggfunc="sum").reindex(index=items, columns=shown)
-        g = d.map(_fmt)
-        st.markdown(f"<div class='snd-bar'>{comm}</div>", unsafe_allow_html=True)
-        cols = {y: st.column_config.TextColumn(f"{y}{'*' if is_estimate(y) else ''}", alignment="right", width=86) for y in shown}
-        cols["_index"] = st.column_config.TextColumn("", width=120)
-        key = f"snd_edit_{comm}_{len(shown)}"
-        keys.append(key)
-        after = st.data_editor(g, column_config=cols, disabled=not editable, width="stretch", row_height=28,
-                               height=len(g) * 28 + 40, key=key)
-        grids[comm] = (g, after)
-        try:
-            ch = [(comm, it, y, _num(g.loc[it, y]), _num(after.loc[it, y])) for it in items for y in shown
-                  if _num(g.loc[it, y]) != _num(after.loc[it, y])]
-        except ValueError:
-            st.error("Numbers only.")
-            return
-        changes_all += ch
-        live = _apply_changes(live, ch)
-        fr = block(live, meta, comm, years)
-        grids[comm] += (fr,)
-        glob = global_block(grids["Arabica"][2], fr, years) if comm == "Robusta" else None
-        st.markdown(calc_table(comm, fr, glob, shown, meta), unsafe_allow_html=True)   # calculated rows under their grid, from the edits
-    if any(c[4] is not None and c[4] < 0 for c in changes_all):
-        st.error("Values cannot be negative.")
-        changes_all = []
+def render_edit(df, meta, notes, years, shown, editable):
+    """Edit mode: the same table, with the input cells (origins, consumption) editable in place. The calculated rows are rebuilt from the
+    edits and sent back to the table, so they move as you type. One Save for everything."""
+    import tableedit
+    epoch = st.session_state.setdefault("snd_epoch", 0)
+    edits = st.session_state.get("snd_tbl") or {}
+    base = {f"{c}|{it}|{y}": float(v) for c, it, y, v in zip(df["commodity"], df["item"], df["year"], df["value"])}
+    changes = [(k.split("|")[0], k.split("|")[1], k.split("|")[2], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
+    live = _apply_changes(df, changes)
+    a, r = block(live, meta, "Arabica", years), block(live, meta, "Robusta", years)
+    glob = global_block(a, r, years)
+    table = snd_table(live, meta, notes, years, shown, {"Arabica": a, "Robusta": r}, glob, a.loc["Brazil"] + r.loc["Brazil"],
+                      edit=dict(base=base, changed=set(edits)))
+    tableedit.editable_table(table, tableedit.css_of(CSS), "snd_tbl", epoch, editable)
     if not editable:
         st.markdown("<div class='card-desc'>Read-only: add github_token in Secrets to edit.</div>", unsafe_allow_html=True)
         return
-    bc = st.columns([1, 1, 6], vertical_alignment="center")
-    save = bc[0].button("Save", type="primary", disabled=not changes_all, width="stretch", key="snd_save")
-    if bc[1].button("Undo", disabled=not changes_all, width="stretch", key="snd_undo"):
-        for k in keys:
-            st.session_state.pop(k, None)
-        st.rerun()
-    if changes_all:
-        bc[2].markdown(f"<div class='card-desc' style='margin:0'>{len(changes_all)} unsaved cell(s) - the rows under each grid already show the result.</div>",
-                       unsafe_allow_html=True)
+    bad = any(c[4] is not None and c[4] < 0 for c in changes)
+    if bad:
+        st.error("Values cannot be negative.")
+    bc = st.columns([1, 1, 8], vertical_alignment="center")
+    save = bc[0].button("Save", type="primary", disabled=(not changes) or bad, width="stretch", key="snd_save")
+    bc[1].button("Undo", disabled=not changes, width="stretch", key="snd_undo", on_click=_undo)
+    if changes:
+        bc[2].markdown(f"<div class='card-desc' style='margin:0'>{len(changes)} unsaved change(s)</div>", unsafe_allow_html=True)
     if save:
         try:
             with st.spinner("Saving..."):
-                _save_inputs(changes_all)
+                _save_inputs(changes)
         except (gh.GitHubError, Exception) as ex:
             st.error(f"GitHub save failed: {ex}")
         else:
-            for k in keys:
-                st.session_state.pop(k, None)
-            st.session_state["en_flash"] = f"Saved {len(changes_all)} change(s)."
+            _undo()
+            st.session_state["en_flash"] = f"Saved {len(changes)} change(s)."
             st.rerun()
 
 
@@ -341,7 +322,7 @@ def render():
     st.markdown("<div class='snd-head'><span class='t'>Coffee SnD</span><span class='s'>Jul–Jun · million 60 kg bags · * estimate"
                 + (" · editing inputs" if mode == "Edit" else "") + "</span></div>", unsafe_allow_html=True)
     if mode == "Edit":
-        render_edit(df, meta, years, shown, gh.enabled())
+        render_edit(df, meta, notes, years, shown, gh.enabled())
         return
     st.markdown(snd_table(df, meta, notes, years, shown, {"Arabica": a, "Robusta": r}, glob, combo), unsafe_allow_html=True)
     charts(a, r, glob, shown)

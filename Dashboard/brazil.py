@@ -131,23 +131,43 @@ LAYOUT = {
 }
 
 
-def block_html(title, fr, shown, notes_for=None) -> str:
+EDITABLE = {
+    "Arabica": {"Production": "Arabica production", "Exports": "Arabica exports", "Consumption": "Arabica consumption"},
+    "Conillon": {"Production": "Conillon production", "Green Exports": "Green exports", "Soluble Exports": "Soluble exports",
+                 "Consumption": "Conillon consumption", "Demand as % of total": "Conillon demand %",
+                 "Overall Consumption Brazil": "Overall consumption"},
+    "Overall Brazil": {},
+}
+
+
+def block_html(title, fr, shown, edit=None) -> str:
     ncol = len(shown) + 1
     out = [f"<tr class='comm'><th colspan='{ncol}'>{title}</th></tr>",
            "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if snd.is_estimate(y) else ''}'>{short(y)}{'*' if snd.is_estimate(y) else ''}</th>"
                                                     for y in shown) + "</tr>"]
     for label, kind, fmt in LAYOUT[title]:
         neg = label == "Stock Change"
-        cells = "".join(f"<td class='{'fc ' if snd.is_estimate(y) else ''}{'neg' if neg and pd.notna(fr.loc[label, y]) and fr.loc[label, y] < -0.049 else ''}'>"
-                        f"{fmt(fr.loc[label, y])}</td>" for y in shown)
+        series = EDITABLE[title].get(label) if edit else None
+
+        def cell(y):
+            cls = ("fc " if snd.is_estimate(y) else "") + ("neg" if neg and pd.notna(fr.loc[label, y]) and fr.loc[label, y] < -0.049 else "")
+            attrs = ""
+            if series:                                                   # an input cell: typed over in place
+                k = f"{series}|{y}"
+                b = edit["base"].get(k)
+                cls += " ed" + (" chg" if k in edit["changed"] else "")
+                attrs = (f" data-k='{k}' data-base='{'' if b is None or pd.isna(b) else b}'"
+                         + (" data-pct='1'" if series in PCT_SERIES else ""))
+            return f"<td class='{cls.strip()}'{attrs}>{fmt(fr.loc[label, y])}</td>"
+        cells = "".join(cell(y) for y in shown)
         out.append(f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>")
     return "".join(out)
 
 
-def full_table(A, C, O, shown) -> str:
+def full_table(A, C, O, shown, edit=None) -> str:
     gap = f"<tr class='gap'><td colspan='{len(shown) + 1}'></td></tr>"
-    return (f"<div class='snd-wrap'><table class='snd'>{block_html('Arabica', A, shown)}{gap}{block_html('Conillon', C, shown)}{gap}"
-            f"{block_html('Overall Brazil', O, shown)}</table></div>")
+    return (f"<div class='snd-wrap'><table class='snd'>{block_html('Arabica', A, shown, edit)}{gap}{block_html('Conillon', C, shown, edit)}{gap}"
+            f"{block_html('Overall Brazil', O, shown, edit)}</table></div>")
 
 
 # ── AgriAcies format ──────────────────────────────────────────────────────────
@@ -278,6 +298,47 @@ def _save_controls(changes, keys, prefix):
 
 
 # ── Page ──────────────────────────────────────────────────────────────────────
+def _undo():
+    st.session_state["br_epoch"] = st.session_state.get("br_epoch", 0) + 1
+    try:
+        st.session_state["br_tbl"] = {}
+    except Exception:
+        pass
+
+
+def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
+    """Edit mode: the table itself, input cells typed over in place; the calculated rows follow the edits. One Save."""
+    import tableedit
+    epoch = st.session_state.setdefault("br_epoch", 0)
+    edits = st.session_state.get("br_tbl") or {}
+    base = {f"{s}|{y}": float(eff[s][y]) for s in SERIES for y in years if pd.notna(eff[s][y])}
+    changes = [(k.split("|")[0], k.split("|")[1], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
+    A, C, O, _eff = compute(_apply(inp, changes), etg_a, etg_r, years, meta)
+    table = full_table(A, C, O, years, edit=dict(base=base, changed=set(edits)))
+    tableedit.editable_table(table, tableedit.css_of(snd.CSS), "br_tbl", epoch, editable)
+    if not editable:
+        st.markdown("<div class='card-desc'>Read-only: add github_token in Secrets to edit.</div>", unsafe_allow_html=True)
+        return
+    bad = any(c[3] is not None and c[3] < 0 for c in changes)
+    if bad:
+        st.error("Values cannot be negative.")
+    bc = st.columns([1, 1, 8], vertical_alignment="center")
+    save = bc[0].button("Save", type="primary", disabled=(not changes) or bad, width="stretch", key="br_save")
+    bc[1].button("Undo", disabled=not changes, width="stretch", key="br_undo", on_click=_undo)
+    if changes:
+        bc[2].markdown(f"<div class='card-desc' style='margin:0'>{len(changes)} unsaved change(s)</div>", unsafe_allow_html=True)
+    if save:
+        try:
+            with st.spinner("Saving..."):
+                _save(changes)
+        except (gh.GitHubError, Exception) as ex:
+            st.error(f"GitHub save failed: {ex}")
+        else:
+            _undo()
+            st.session_state["en_flash"] = f"Saved {len(changes)} change(s)."
+            st.rerun()
+
+
 def render():
     st.markdown(snd.CSS, unsafe_allow_html=True)
     inp, meta, agri, years = load()
@@ -297,19 +358,7 @@ def render():
         return
     A, C, O, eff = compute(inp, etg_a, etg_r, years, meta)
     if mode == "Edit":
-        editable = gh.enabled()
-        st.markdown("<div class='snd-bar'>Inputs</div>", unsafe_allow_html=True)
-        key = f"br_edit_{len(years)}"
-        g, after, changes = _editor({s: eff[s] for s in SERIES}, years, editable, key)
-        if changes is None:
-            return
-        if changes:                                                   # the tables below follow the edits
-            A, C, O, eff = compute(_apply(inp, changes), etg_a, etg_r, years, meta)
-        st.markdown(full_table(A, C, O, years), unsafe_allow_html=True)
-        if not editable:
-            st.markdown("<div class='card-desc'>Read-only: add github_token in Secrets to edit.</div>", unsafe_allow_html=True)
-        else:
-            _save_controls(changes, [key], "br")
+        edit_view(inp, meta, etg_a, etg_r, years, eff, gh.enabled())
         return
     st.markdown(full_table(A, C, O, shown), unsafe_allow_html=True)
 

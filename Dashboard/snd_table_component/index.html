@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style id="theme"></style>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; color: #0f172a; }
+  #root { padding: 2px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+/* A styled HTML table whose input cells (td.ed) are editable in place.
+   Streamlit sends {html, css, editable, epoch}; every committed edit is sent back as {key: number|null} for the cells that differ
+   from their saved value (data-base). The server recalculates the table and sends fresh html, so calculated rows move as you type. */
+var state = { epoch: null, edits: {}, css: null, editable: null };
+var lastHeight = 0;
+
+function post(m) { m.isStreamlitMessage = true; window.parent.postMessage(m, "*"); }
+function setHeight() { var h = document.documentElement.scrollHeight + 6; if (h !== lastHeight) { lastHeight = h; post({ type: "streamlit:setFrameHeight", height: h }); } }
+function send() { post({ type: "streamlit:setComponentValue", value: state.edits, dataType: "json" }); }
+
+window.addEventListener("message", function (ev) {
+  if (!ev.data || ev.data.type !== "streamlit:render") return;
+  var a = ev.data.args || {};
+  if (a.css !== state.css) { document.getElementById("theme").textContent = a.css || ""; state.css = a.css; }
+  var reset = a.epoch !== state.epoch;
+  if (reset) { state.epoch = a.epoch; state.edits = {}; }
+  draw(a);
+  if (reset) send();
+});
+
+var lastHtml = null;
+function draw(a) {
+  if (a.html === lastHtml && !!a.editable === state.editable) { return; }       // same table: do not touch the DOM (it would eat clicks)
+  lastHtml = a.html; state.editable = !!a.editable;
+  var active = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null;
+  document.getElementById("root").innerHTML = a.html || "";
+  if (a.editable) wire();
+  if (active) {
+    var again = document.querySelector('td.ed[data-k="' + active.replace(/"/g, '\\"') + '"]');
+    if (again) again.focus();
+  }
+  setHeight();
+}
+
+function wire() {
+  var cells = document.querySelectorAll("td.ed");
+  for (var i = 0; i < cells.length; i++) {
+    var td = cells[i];
+    td.contentEditable = "true";
+    td.spellcheck = false;
+    td.dataset.shown = td.textContent;
+    td.addEventListener("focus", function () {
+      var r = document.createRange(); r.selectNodeContents(this);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+    });
+    td.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); this.blur(); }
+      else if (e.key === "Escape") { this.textContent = this.dataset.shown; this.blur(); }
+    });
+    td.addEventListener("blur", function () { commit(this); });
+  }
+}
+
+function commit(td) {
+  var txt = td.textContent.trim().replace(/,/g, "").replace(/%$/, "");
+  if (txt === td.dataset.shown.trim().replace(/,/g, "").replace(/%$/, "")) { return; }          // untouched
+  var key = td.dataset.k, pct = td.dataset.pct === "1";
+  var val;
+  if (txt === "") { val = null; }
+  else {
+    var n = Number(txt);
+    if (isNaN(n)) { td.textContent = td.dataset.shown; return; }                                  // not a number: put it back
+    val = pct ? n / 100 : n;
+  }
+  var base = td.dataset.base === "" ? null : Number(td.dataset.base);
+  var same = (val === null && base === null) || (val !== null && base !== null && Math.abs(val - base) < 1e-9);
+  if (same) { delete state.edits[key]; } else { state.edits[key] = val; }
+  send();
+}
+
+post({ type: "streamlit:componentReady", apiVersion: 1 });
+setHeight();
+</script>
+</body>
+</html>
