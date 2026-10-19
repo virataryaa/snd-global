@@ -85,20 +85,6 @@ def _reset():
 
 
 # ── what-if ──────────────────────────────────────────────────────────────────────────────────────────────────
-def kpis(scope, ly, base, scen) -> str:
-    """Three tiles for the last crop year picked: stocks to use, balance, end stock - scenario value, base and the change."""
-    rows = [("Stocks to use", su, 100, "{:.1f}%", "{:+.1f}pp"), ("Balance", bal, 1, "{:+.1f}", "{:+.1f}"), ("End stock", stock, 1, "{:.1f}", "{:+.1f}")]
-    out = []
-    for label, fn, k, fmt, dfmt in rows:
-        b, s = float(fn(scope, *base)[ly]) * k, float(fn(scope, *scen)[ly]) * k
-        d = s - b
-        cls = "" if abs(d) < 0.05 else ("up" if d > 0 else "dn")
-        delta = "no change" if abs(d) < 0.05 else f"<b class='{cls}'>{dfmt.format(d)}</b>"
-        out.append(f"<div class='kpi'><div class='l'>{label} · {ly[2:]}</div><div class='v'>{fmt.format(s)}</div>"
-                   f"<div class='d'>base {fmt.format(b)} · {delta}</div></div>")
-    return "<div class='kpis'>" + "".join(out) + "</div>"
-
-
 def whatif(df, meta, years):
     est = [y for y in years if snd.is_estimate(y)] or years[-1:]
     opts = years[-6:]
@@ -119,7 +105,27 @@ def whatif(df, meta, years):
     first = years.index(min(sel, key=ystart))
     ys, ly = years[first:], max(sel, key=ystart)
 
-    left, right = st.columns([1.15, 1], gap="small")
+    # the result table (built first, shown next to the inputs)
+    def cell(new, old, fmt):
+        d = new - old
+        cls = "" if abs(d) < 0.0005 else ("up" if d > 0 else "dn")
+        dl = "" if abs(d) < 0.0005 else f"<span class='dl {cls}'>{('+' if d > 0 else '')}{fmt(d) if fmt is not fpct else format(d * 100, '.1f') + 'pp'}</span>"
+        return f"<td>{fmt(new)}{dl}</td>"
+
+    rows = []
+    for comm, i in (("Arabica", 0), ("Robusta", 1)):
+        if comm not in comms:
+            continue
+        b, s_ = base[i], scen[i]
+        for label, key, f in (("Balance", "Balance", fnum), ("End season stock", "End Season Stock", fnum), ("S/U", "S/U", fpct)):
+            rows.append(f"<tr class='{'bal' if key == 'Balance' else ''}'><td class='lbl'>{comm} {label.lower()}</td>"
+                        + "".join(cell(s_.loc[key, y], b.loc[key, y], f) for y in ys) + "</tr>")
+    if scope == "Combined":
+        rows.append("<tr class='bal'><td class='lbl'>Global balance</td>" + "".join(cell(scen[2].loc["Global Balance", y], base[2].loc["Global Balance", y], fnum) for y in ys) + "</tr>")
+        rows.append("<tr><td class='lbl'>Combined S/U</td>" + "".join(cell(scen[2].loc["Combined S/U", y], base[2].loc["Combined S/U", y], fpct) for y in ys) + "</tr>")
+    head = "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if y in sel else ''}'>{y}</th>" for y in ys) + "</tr>"
+
+    left, right = st.columns([1.25, 1], gap="small")
     with left, st.container(border=True):
         card("Change vs base, %")
         for comm in comms:
@@ -135,40 +141,23 @@ def whatif(df, meta, years):
                         col.number_input("Consumption", min_value=-10.0, max_value=10.0, step=0.5, format="%.1f", key=key)
                     else:
                         col.number_input(it, min_value=-50.0, max_value=50.0, step=1.0, format="%.0f", key=key)
-    with right:
-        st.markdown(kpis(scope, ly, base, scen), unsafe_allow_html=True)
-        short = [y[2:] for y in ys]
-        with st.container(border=True):
-            for title, fn, k, color, fmt, key in (("Stocks to use, %", su, 100, NAVY, ".1f", "sc_bar_su"), ("Balance, m bags", bal, 1, AMBER, ",.1f", "sc_bar_bal")):
-                fig = go.Figure()
-                fig.add_trace(go.Bar(x=short, y=(fn(scope, *base)[ys] * k).values, name="Base", marker_color="#c3cbe0", marker_line_width=0))
-                fig.add_trace(go.Bar(x=short, y=(fn(scope, *scen)[ys] * k).values, name="Scenario", marker_color=color, marker_line_width=0))
-                _fig(fig, height=150, fmt=fmt).update_layout(barmode="group", margin=dict(t=2, b=20, l=8, r=8), legend=dict(orientation="h", x=0, y=1.25, font=dict(size=10)))
-                card(title)
-                st.plotly_chart(fig, width="stretch", key=key)
+    with right, st.container(border=True):
+        card("Result")
+        st.markdown(f"<div class='snd-wrap' style='width:100%;margin:4px 0 0'><table class='snd' style='width:100%'>{head}{''.join(rows)}</table></div>",
+                    unsafe_allow_html=True)
 
-    # the result table
-    def cell(new, old, fmt):
-        d = new - old
-        cls = "" if abs(d) < 0.0005 else ("up" if d > 0 else "dn")
-        dl = "" if abs(d) < 0.0005 else f"<span class='dl {cls}'>{('+' if d > 0 else '')}{fmt(d) if fmt is not fpct else format(d * 100, '.1f') + 'pp'}</span>"
-        return f"<td>{fmt(new)}{dl}</td>"
-
-    rows = []
-    for comm, i in (("Arabica", 0), ("Robusta", 1)):
-        if comm not in comms:
-            continue
-        b, s = base[i], scen[i]
-        for label, key, f in (("Balance", "Balance", fnum), ("End season stock", "End Season Stock", fnum), ("S/U", "S/U", fpct)):
-            rows.append(f"<tr class='{'bal' if key == 'Balance' else ''}'><td class='lbl'>{comm} {label.lower()}</td>"
-                        + "".join(cell(s.loc[key, y], b.loc[key, y], f) for y in ys) + "</tr>")
-    if scope == "Combined":
-        rows.append("<tr class='bal'><td class='lbl'>Global balance</td>" + "".join(cell(scen[2].loc["Global Balance", y], base[2].loc["Global Balance", y], fnum) for y in ys) + "</tr>")
-        rows.append("<tr><td class='lbl'>Combined S/U</td>" + "".join(cell(scen[2].loc["Combined S/U", y], base[2].loc["Combined S/U", y], fpct) for y in ys) + "</tr>")
-    head = "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if y in sel else ''}'>{y}</th>" for y in ys) + "</tr>"
-    st.markdown("<div style='display:inline-block;max-width:100%'><div class='snd-bar'>Result</div>"
-                f"<div class='snd-wrap' style='border-radius:0 0 8px 8px;margin-top:0'><table class='snd'>{head}{''.join(rows)}</table></div></div>",
-                unsafe_allow_html=True)
+    short = [y[2:] for y in years]                                   # the charts show every crop year
+    c1, c2 = st.columns(2, gap="small")
+    for col, (title, fn, k, color, fmt, key) in zip((c1, c2), (("Stocks to use, %", su, 100, NAVY, ".1f", "sc_bar_su"),
+                                                              ("Balance, m bags", bal, 1, AMBER, ",.1f", "sc_bar_bal"))):
+        with col, st.container(border=True):
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=short, y=(fn(scope, *base)[years] * k).values, name="Base", marker_color="#c3cbe0", marker_line_width=0))
+            fig.add_trace(go.Bar(x=short, y=(fn(scope, *scen)[years] * k).values, name="Scenario", marker_color=color, marker_line_width=0,
+                                 text=[f"{v:.1f}" for v in (fn(scope, *scen)[years] * k).values], textposition="outside", textfont=dict(size=8.5)))
+            _fig(fig, height=260, fmt=fmt).update_layout(barmode="group", bargap=0.25, legend=dict(orientation="h", x=0, y=1.15, font=dict(size=10)))
+            card(title)
+            st.plotly_chart(fig, width="stretch", key=key)
 
 
 # ── sensitivity ──────────────────────────────────────────────────────────────────────────────────────────────
