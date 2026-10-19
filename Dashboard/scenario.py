@@ -112,68 +112,52 @@ def current_params() -> dict:
     return {"years": list(st.session_state.get("sc_years", [])), "pct": {k: v for k, v in pct.items() if abs(v) > 1e-9}}
 
 
-def cycle_pct(df, meta, years):
-    """Brazil Arabica on/off-year cycle: the production this year implied by last year's growth (fit on the actual years), as a percent change
-    against our own estimate. None when there is no estimate year or too little history."""
-    import brazil
-    cur = ystart(snd.current_crop_year())
-    inp, bmeta, _agri, byears = brazil.load()
-    ea, er = brazil.etg_brazil(byears)
-    prod = brazil.compute(inp, ea, er, byears, bmeta)[3]["Arabica production"]
-    g = prod.pct_change(fill_method=None) * 100
-    ys = [y for y in byears if ystart(y) < cur]
-    fit = _fit(g.shift(1)[ys].values, g[ys].values)
-    nxt = [y for y in byears if ystart(y) >= cur][:1]
-    if fit is None or not nxt or not np.isfinite(g[ys[-1]]):
-        return None
-    implied_growth = fit["slope"] * g[ys[-1]] + fit["icpt"]
-    implied = prod[ys[-1]] * (1 + implied_growth / 100)
-    return dict(year=nxt[0], implied=float(implied), ours=float(prod[nxt[0]]), pct=float((implied / prod[nxt[0]] - 1) * 100), r=fit["r"])
-
-
 # ── page ──────────────────────────────────────────────────────────────────────────────────────────────────
+SCOPES = ["Arabica", "Robusta", "Combined"]
+
+
+def _comms(scope):
+    return list(ORIGINS) if scope == "Combined" else [scope]
+
+
+def _su(scope, a, r, g):
+    return {"Arabica": a.loc["S/U"], "Robusta": r.loc["S/U"]}.get(scope, g.loc["Combined S/U"])
+
+
+def _bal(scope, a, r, g):
+    return {"Arabica": a.loc["Balance"], "Robusta": r.loc["Balance"]}.get(scope, g.loc["Global Balance"])
+
+
+def scoped(params, scope):
+    """Only the changes of the commodities in view count, so a hidden Robusta change cannot move an Arabica-only scenario."""
+    keep = tuple(f"{c}|" for c in _comms(scope))
+    return {"years": params.get("years", []), "pct": {k: v for k, v in params.get("pct", {}).items() if k.startswith(keep)}}
+
+
+def _load_saved(p):
+    load_params(p)
+    if p.get("scope") in SCOPES:
+        st.session_state["sc_scope"] = p["scope"]
+
+
 def render(df, meta, years):
     est = [y for y in years if snd.is_estimate(y)] or years[-1:]
     opts = years[-6:]
-    cyc = cycle_pct(df, meta, years)
     st.session_state.setdefault("sc_years", est[:2])
+    st.session_state.setdefault("sc_scope", "Combined")
 
-    # 1. presets, saved scenarios
-    with st.container(border=True):
-        card("Start from", "a preset or a saved scenario, then adjust below")
-        presets = {"Base (reset)": dict(years=est[:2], pct={}),
-                   "Brazil Arabica -10%": dict(years=est[:2], pct={"Arabica|Brazil": -10}),
-                   "Brazil Arabica +10%": dict(years=est[:2], pct={"Arabica|Brazil": 10}),
-                   "Demand +2%": dict(years=est[:2], pct={"Arabica|Consumption": 2, "Robusta|Consumption": 2}),
-                   "Demand -2%": dict(years=est[:2], pct={"Arabica|Consumption": -2, "Robusta|Consumption": -2}),
-                   "Vietnam -10%": dict(years=est[:2], pct={"Robusta|Vietnam": -10})}
-        if cyc:
-            presets = {f"Brazil at cycle crop ({cyc['implied']:.1f}m)":
-                       dict(years=[cyc["year"]], pct={"Arabica|Brazil": round(cyc["pct"], 1)}), **presets}
-        cols = st.columns(len(presets))
-        for i, (label, spec) in enumerate(presets.items()):
-            cols[i].button(label, key=f"sc_pre_{i}", on_click=load_params, args=(spec,), width="stretch")
-        saved = scenarios()
-        if saved:
-            lc = st.columns([3, 1, 1, 5], vertical_alignment="bottom")
-            pick = lc[0].selectbox("Saved scenarios", list(saved), key="sc_load_pick")
-            lc[1].button("Load", key="sc_load", on_click=load_params, args=(saved[pick],), width="stretch")
-            if lc[2].button("Delete", key="sc_del", width="stretch"):
-                try:
-                    delete_scenario(pick)
-                except (gh.GitHubError, Exception) as ex:
-                    st.error(f"Delete failed: {ex}")
-                else:
-                    st.rerun()
-
-    # 2. the inputs
-    sel = st.multiselect("Apply to crop years", opts, key="sc_years")
+    top = st.columns([2.2, 4, 3], vertical_alignment="bottom")
+    scope = top[0].radio("Commodity", SCOPES, horizontal=True, key="sc_scope")
+    sel = top[1].multiselect("Apply to crop years", opts, key="sc_years")
     if not sel:
         st.markdown("<div class='an-note'>Pick at least one crop year.</div>", unsafe_allow_html=True)
         return
+    comms = _comms(scope)
+
+    # the inputs, with save / load / reset underneath
     with st.container(border=True):
         card("Change vs base, %", "production by origin and consumption · applied to every year picked above · the stock roll carries it forward")
-        for comm in ORIGINS:
+        for comm in comms:
             st.markdown(f"<div class='sb-label' style='color:#64748b!important;margin:6px 0 2px'>{comm}</div>", unsafe_allow_html=True)
             cols = st.columns(len(ORIGINS[comm]) + 1, gap="small")
             for col, o in zip(cols, ORIGINS[comm]):
@@ -181,24 +165,36 @@ def render(df, meta, years):
                 col.number_input(o, min_value=-50.0, max_value=50.0, step=1.0, format="%.0f", key=_skey(f"{comm}|{o}"))
             st.session_state.setdefault(_skey(f"{comm}|Consumption"), 0.0)
             cols[-1].number_input("Consumption", min_value=-10.0, max_value=10.0, step=0.5, format="%.1f", key=_skey(f"{comm}|Consumption"))
-        sc = st.columns([3, 1, 6], vertical_alignment="bottom")
+        saved = scenarios()
+        sc = st.columns([2.6, 0.8, 0.8, 0.4, 2.2, 0.8, 0.8], vertical_alignment="bottom")
         name = sc[0].text_input("Name", key="sc_name", placeholder="Name this scenario to save it (e.g. Brazil 45m)", label_visibility="collapsed")
         if sc[1].button("Save", key="sc_save", disabled=not name.strip(), width="stretch"):
             try:
-                saved_name = save_scenario(name, current_params())
+                saved_name = save_scenario(name, dict(scoped(current_params(), scope), scope=scope))
             except (gh.GitHubError, Exception) as ex:
                 st.error(f"Save failed: {ex}")
             else:
                 st.session_state["en_flash"] = f"Saved scenario '{saved_name}'" + ("" if gh.enabled() else " for this session (add github_token to keep it)")
                 st.rerun()
+        sc[2].button("Reset", key="sc_reset", on_click=load_params, args=(dict(years=est[:2], pct={}),), width="stretch")
+        if saved:
+            pick = sc[4].selectbox("Saved", list(saved), key="sc_load_pick", label_visibility="collapsed")
+            sc[5].button("Load", key="sc_load", on_click=_load_saved, args=(saved[pick],), width="stretch")
+            if sc[6].button("Delete", key="sc_del", width="stretch"):
+                try:
+                    delete_scenario(pick)
+                except (gh.GitHubError, Exception) as ex:
+                    st.error(f"Delete failed: {ex}")
+                else:
+                    st.rerun()
 
-    params = current_params()
+    params = scoped(current_params(), scope)
     base_a, base_r, base_g = run(df, meta, years, {})
     sc_a, sc_r, sc_g = run(df, meta, years, params)
     first = years.index(min(sel, key=ystart))
     ys = years[first:]
 
-    # 3. result: the table and two bar charts
+    # result: the table and two bar charts
     def cell(new, old, fmt, pos_good=True):
         d = new - old
         cls = "" if abs(d) < 0.0005 else ("up" if (d > 0) == pos_good else "dn")
@@ -207,12 +203,17 @@ def render(df, meta, years):
 
     rows = []
     for comm, b, s in (("Arabica", base_a, sc_a), ("Robusta", base_r, sc_r)):
+        if comm not in comms:
+            continue
         for label, key, f in (("balance", "Balance", fnum), ("end season stock", "End Season Stock", fnum), ("S/U", "S/U", fpct)):
             rows.append(f"<tr class='{'bal' if key == 'Balance' else ''}'><td class='lbl'>{comm} {label}</td>"
                         + "".join(cell(s.loc[key, y], b.loc[key, y], f) for y in ys) + "</tr>")
-    rows.append("<tr class='bal'><td class='lbl'>Global balance</td>" + "".join(cell(sc_g.loc["Global Balance", y], base_g.loc["Global Balance", y], fnum) for y in ys) + "</tr>")
-    rows.append("<tr><td class='lbl'>Combined S/U</td>" + "".join(cell(sc_g.loc["Combined S/U", y], base_g.loc["Combined S/U", y], fpct) for y in ys) + "</tr>")
+    if scope == "Combined":
+        rows.append("<tr class='bal'><td class='lbl'>Global balance</td>" + "".join(cell(sc_g.loc["Global Balance", y], base_g.loc["Global Balance", y], fnum) for y in ys) + "</tr>")
+        rows.append("<tr><td class='lbl'>Combined S/U</td>" + "".join(cell(sc_g.loc["Combined S/U", y], base_g.loc["Combined S/U", y], fpct) for y in ys) + "</tr>")
     head = "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if y in sel else ''}'>{y}</th>" for y in ys) + "</tr>"
+    su_name = "Combined stocks to use" if scope == "Combined" else f"{scope} stocks to use"
+    bal_name = "Global balance" if scope == "Combined" else f"{scope} balance"
     left, right = st.columns([0.85, 1.3], gap="small")
     with left:
         st.markdown("<div class='snd-bar'>Scenario result (change vs base in small type)</div>"
@@ -220,27 +221,21 @@ def render(df, meta, years):
                     unsafe_allow_html=True)
     with right, st.container(border=True):
         short = [y[2:] for y in ys]
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=short, y=(base_g.loc["Combined S/U", ys] * 100).values, name="Base", marker_color="#c3cbe0", marker_line_width=0))
-        fig.add_trace(go.Bar(x=short, y=(sc_g.loc["Combined S/U", ys] * 100).values, name="Scenario", marker_color=NAVY, marker_line_width=0))
-        _fig(fig, height=165, fmt=".1f").update_layout(barmode="group", margin=dict(t=2, b=22, l=8, r=8), yaxis_ticksuffix="%")
-        card("Combined stocks to use", "% · base vs scenario")
-        st.plotly_chart(fig, width="stretch", key="sc_bar_su")
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=short, y=base_g.loc["Global Balance", ys].values, name="Base", marker_color="#c3cbe0", marker_line_width=0))
-        fig.add_trace(go.Bar(x=short, y=sc_g.loc["Global Balance", ys].values, name="Scenario", marker_color=AMBER, marker_line_width=0))
-        _fig(fig, height=165, fmt=",.1f").update_layout(barmode="group", margin=dict(t=2, b=22, l=8, r=8))
-        card("Global balance", "m bags · base vs scenario")
-        st.plotly_chart(fig, width="stretch", key="sc_bar_bal")
+        for title, b, s, col, fmt, pct, key in ((su_name, _su(scope, base_a, base_r, base_g), _su(scope, sc_a, sc_r, sc_g), NAVY, ".1f", True, "sc_bar_su"),
+                                                (bal_name, _bal(scope, base_a, base_r, base_g), _bal(scope, sc_a, sc_r, sc_g), AMBER, ",.1f", False, "sc_bar_bal")):
+            k = 100 if pct else 1
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=short, y=(b[ys] * k).values, name="Base", marker_color="#c3cbe0", marker_line_width=0))
+            fig.add_trace(go.Bar(x=short, y=(s[ys] * k).values, name="Scenario", marker_color=col, marker_line_width=0))
+            _fig(fig, height=165, fmt=fmt).update_layout(barmode="group", margin=dict(t=2, b=22, l=8, r=8), yaxis_ticksuffix="%" if pct else "")
+            card(title, ("%" if pct else "m bags") + " · base vs scenario")
+            st.plotly_chart(fig, width="stretch", key=key)
 
-    # 4. compare saved scenarios
-    compare_section(df, meta, years, saved, params, sel)
-
-    # 5. sensitivity and tornado
-    sensitivity_section(df, meta, years, sel, params)
+    compare_section(df, meta, years, saved, params, scope)
+    sensitivity_section(df, meta, years, sel, params, scope)
 
 
-def compare_section(df, meta, years, saved, params, sel):
+def compare_section(df, meta, years, saved, params, scope):
     if not saved and not params["pct"]:
         return
     with st.container(border=True):
@@ -257,63 +252,59 @@ def compare_section(df, meta, years, saved, params, sel):
             st.markdown("<div class='an-note'>Pick a saved scenario (or include the current inputs) to compare with the base.</div>", unsafe_allow_html=True)
             return
         M = pd.DataFrame({name: metrics(df, meta, years, p, y) for name, p in sets})
+        su_rows = [f"{c_} S/U" for c_ in _comms(scope)] + (["Combined S/U"] if scope == "Combined" else [])
+        bal_rows = [f"{c_} balance" for c_ in _comms(scope)] + (["Global balance"] if scope == "Combined" else [])
         l, r = st.columns(2, gap="small")
-        with l:
-            fig = go.Figure()
-            for i, name in enumerate(M.columns):
-                v = M.loc[["Arabica S/U", "Robusta S/U", "Combined S/U"], name] * 100
-                fig.add_trace(go.Bar(x=list(v.index), y=v.values, name=name, marker_color=COLORS[i % len(COLORS)], marker_line_width=0,
-                                     text=[f"{x:.1f}%" for x in v.values], textposition="outside", textfont=dict(size=10)))
-            _fig(fig, height=300, fmt=".1f").update_layout(barmode="group", yaxis_ticksuffix="%")
-            st.markdown(f"<div class='chart-head'>Stocks to use in {y}</div>", unsafe_allow_html=True)
-            st.plotly_chart(fig, width="stretch", key="sc_cmp_su")
-        with r:
-            fig = go.Figure()
-            for i, name in enumerate(M.columns):
-                v = M.loc[["Arabica balance", "Robusta balance", "Global balance"], name]
-                fig.add_trace(go.Bar(x=["Arabica", "Robusta", "Global"], y=v.values, name=name, marker_color=COLORS[i % len(COLORS)], marker_line_width=0,
-                                     text=[f"{x:+.1f}" for x in v.values], textposition="outside", textfont=dict(size=10)))
-            _fig(fig, height=300, fmt=",.1f").update_layout(barmode="group")
-            st.markdown(f"<div class='chart-head'>Balance in {y}, m bags</div>", unsafe_allow_html=True)
-            st.plotly_chart(fig, width="stretch", key="sc_cmp_bal")
-        for name, p in sets[1:]:
+        for col, rows_, pct, title, key in ((l, su_rows, True, f"Stocks to use in {y}", "sc_cmp_su"), (r, bal_rows, False, f"Balance in {y}, m bags", "sc_cmp_bal")):
+            with col:
+                fig = go.Figure()
+                for i, nm in enumerate(M.columns):
+                    v = M.loc[rows_, nm] * (100 if pct else 1)
+                    fig.add_trace(go.Bar(x=[x.replace(" S/U", "").replace(" balance", "") for x in v.index], y=v.values, name=nm,
+                                         marker_color=COLORS[i % len(COLORS)], marker_line_width=0,
+                                         text=[f"{x:.1f}%" if pct else f"{x:+.1f}" for x in v.values], textposition="outside", textfont=dict(size=10)))
+                _fig(fig, height=300, fmt=".1f" if pct else ",.1f").update_layout(barmode="group", yaxis_ticksuffix="%" if pct else "")
+                st.markdown(f"<div class='chart-head'>{title}</div>", unsafe_allow_html=True)
+                st.plotly_chart(fig, width="stretch", key=key)
+        for nm, p in sets[1:]:
             ch = ", ".join(f"{k.replace('|', ' ')} {v:+g}%" for k, v in p.get("pct", {}).items()) or "no change"
-            st.markdown(f"<div class='an-note'><b>{name}</b>: {ch} · years {', '.join(p.get('years', []))}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='an-note'><b>{nm}</b>: {ch} · years {', '.join(p.get('years', []))}</div>", unsafe_allow_html=True)
 
 
-def sensitivity_section(df, meta, years, sel, params):
-    last = max(sel, key=ystart)
-    first = min(sel, key=ystart)
+def sensitivity_section(df, meta, years, sel, params, scope):
+    last, first = max(sel, key=ystart), min(sel, key=ystart)
+    comm, origin = ("Robusta", "Vietnam") if scope == "Robusta" else ("Arabica", "Brazil")
+    metric = "Combined S/U" if scope == "Combined" else f"{scope} S/U"
     left, right = st.columns(2, gap="small")
     with left, st.container(border=True):
         y = first
-        base_v = float(df[(df["commodity"] == "Arabica") & (df["item"] == "Brazil") & (df["year"] == y)]["value"].iloc[0])
+        base_v = float(df[(df["commodity"] == comm) & (df["item"] == origin) & (df["year"] == y)]["value"].iloc[0])
         grid = [round(base_v + d, 1) for d in (-10, -5, 0, 5, 10) if base_v + d > 0]
         rows = []
         for v in grid:
             scen = df.copy()
-            scen.loc[(scen["commodity"] == "Arabica") & (scen["item"] == "Brazil") & (scen["year"] == y), "value"] = v
+            scen.loc[(scen["commodity"] == comm) & (scen["item"] == origin) & (scen["year"] == y), "value"] = v
             a, r, g = run(scen, meta, years, {})
-            rows.append((v, a.loc["S/U", y], g.loc["Combined S/U", y], g.loc["Global Balance", y]))
-        S = pd.DataFrame(rows, columns=["crop", "asu", "csu", "bal"])
-        fig = go.Figure(go.Bar(x=[f"{v:g}m" for v in S["crop"]], y=S["csu"] * 100, marker_color=[NAVY if abs(v - base_v) < 1e-9 else "#c3cbe0" for v in S["crop"]],
-                               marker_line_width=0, text=[f"{x:.1f}%" for x in S["csu"] * 100], textposition="outside", textfont=dict(size=10)))
+            rows.append((v, float(_su(scope, a, r, g)[y]), float(_bal(scope, a, r, g)[y])))
+        fig = go.Figure(go.Bar(x=[f"{v:g}m" for v, _s, _b in rows], y=[s_ * 100 for _v, s_, _b in rows],
+                               marker_color=[NAVY if abs(v - base_v) < 1e-9 else "#c3cbe0" for v, _s, _b in rows], marker_line_width=0,
+                               text=[f"{s_ * 100:.1f}%" for _v, s_, _b in rows], textposition="outside", textfont=dict(size=10)))
         _fig(fig, height=250, legend=False, fmt=".1f").update_layout(hovermode="closest", yaxis_ticksuffix="%")
-        card(f"If the Brazil Arabica crop in {y} were different", f"combined stocks to use in {y} · dark bar = our estimate ({base_v:g}m) · everything else unchanged")
+        card(f"If the {origin} {comm} crop in {y} were different", f"{metric} in {y} · dark bar = our estimate ({base_v:g}m) · everything else unchanged")
         st.plotly_chart(fig, width="stretch", key="sc_sens")
-        body = "".join(f"<tr><td class='lbl'>{v:g}m{' (ours)' if abs(v - base_v) < 1e-9 else ''}</td><td>{fpct(a, 1)}</td><td>{fpct(c, 1)}</td><td>{fnum(b)}</td></tr>"
-                       for v, a, c, b in S.itertuples(index=False))
-        st.markdown("<div class='snd-wrap' style='margin-top:4px'><table class='snd'><tr><th class='y first'>Brazil Arabica</th><th class='y'>Arabica S/U</th>"
-                    f"<th class='y'>Combined S/U</th><th class='y'>Global balance</th></tr>{body}</table></div>", unsafe_allow_html=True)
+        body = "".join(f"<tr><td class='lbl'>{v:g}m{' (ours)' if abs(v - base_v) < 1e-9 else ''}</td><td>{fpct(s_, 1)}</td><td>{fnum(b_)}</td></tr>" for v, s_, b_ in rows)
+        st.markdown(f"<div class='snd-wrap' style='margin-top:4px'><table class='snd'><tr><th class='y first'>{origin} {comm}</th><th class='y'>{metric}</th>"
+                    f"<th class='y'>{'Global' if scope == 'Combined' else scope} balance</th></tr>{body}</table></div>", unsafe_allow_html=True)
     with right, st.container(border=True):
         yrs = list(params.get("years") or sel)
-        base_su = run(df, meta, years, {})[2].loc["Combined S/U", last] * 100
+        base_su = float(_su(scope, *run(df, meta, years, {}))[last]) * 100
+        keys = [k for k in ALL_KEYS if k.split("|")[0] in _comms(scope)]
         bars = []
-        for k in ALL_KEYS:
+        for k in keys:
             shock = 2.0 if k.endswith("Consumption") else 10.0
-            lo = run(df, meta, years, {"years": yrs, "pct": {k: -shock}})[2].loc["Combined S/U", last] * 100 - base_su
-            hi = run(df, meta, years, {"years": yrs, "pct": {k: shock}})[2].loc["Combined S/U", last] * 100 - base_su
-            bars.append((k.replace("|", " "), lo, hi, shock))
+            lo = float(_su(scope, *run(df, meta, years, {"years": yrs, "pct": {k: -shock}}))[last]) * 100 - base_su
+            hi = float(_su(scope, *run(df, meta, years, {"years": yrs, "pct": {k: shock}}))[last]) * 100 - base_su
+            bars.append((k.replace("|", " ") if scope == "Combined" else k.split("|")[1], lo, hi))
         bars.sort(key=lambda b: max(abs(b[1]), abs(b[2])))
         bars = bars[-10:]
         fig = go.Figure()
@@ -321,10 +312,10 @@ def sensitivity_section(df, meta, years, sel, params):
                              marker_color=RED, marker_line_width=0))
         fig.add_trace(go.Bar(y=[b[0] for b in bars], x=[b[2] for b in bars], orientation="h", name="production +10% (consumption +2%)",
                              marker_color=NAVY, marker_line_width=0))
-        _fig(fig, height=330, fmt="+.2f").update_layout(barmode="relative", hovermode="closest", xaxis=dict(title=f"change in combined S/U in {last}, pp", showgrid=True,
-                                                                                                           gridcolor="rgba(15,23,42,0.06)", type="linear"),
+        _fig(fig, height=330, fmt="+.2f").update_layout(barmode="relative", hovermode="closest",
+                                                        xaxis=dict(title=f"change in {metric} in {last}, pp", showgrid=True, gridcolor="rgba(15,23,42,0.06)", type="linear"),
                                                         yaxis=dict(type="category", showgrid=False), legend=dict(orientation="h", x=0, y=1.18, font=dict(size=10)))
-        card("What moves stocks to use the most", f"each input shocked on its own, in {', '.join(y[2:] for y in yrs)} · the ten biggest")
+        card("What moves stocks to use the most", f"each input shocked on its own, in {', '.join(y_[2:] for y_ in yrs)} · the ten biggest")
         st.plotly_chart(fig, width="stretch", key="sc_tornado")
 
 

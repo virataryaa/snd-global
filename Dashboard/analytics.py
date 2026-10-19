@@ -199,8 +199,7 @@ def view_cycle(frames, years, meta):
             st.markdown("<div class='snd-wrap'><table class='snd'><tr><th class='y first'></th><th class='y'>m bags</th><th class='y'>growth</th></tr>"
                         f"{body}</table></div>", unsafe_allow_html=True)
             st.markdown(f"<div class='an-note'>After a {g[last]:+.0f}% year the pattern points to about {implied:.1f}m bags for {nxt[0]}; we have {prod[nxt[0]]:.1f}m "
-                        f"({prod[nxt[0]] - implied:+.1f}m above the cycle). Frost and drought can override it; treat it as a check on the number, not a forecast. "
-                        "Test it in Scenarios with the cycle-implied preset.</div>", unsafe_allow_html=True)
+                        f"({prod[nxt[0]] - implied:+.1f}m above the cycle). Frost and drought can override it; treat it as a check on the number, not a forecast.</div>", unsafe_allow_html=True)
 
 
 # ── Page ──────────────────────────────────────────────────────────────────────
