@@ -233,29 +233,76 @@ def _style(fig, height=230, fmt=",.1f", legend=True):
     return fig
 
 
+def _bars(fig, x, y, name, color, est, **kw):
+    fig.add_trace(go.Bar(x=x, y=y, name=name, marker=dict(color=color, opacity=[0.55 if e else 1 for e in est], line_width=0),
+                         hovertemplate=name + ": %{y:.1f}<extra></extra>", **kw))
+
+
+def _line(fig, x, y, name, color, right=False, pct=False, dash=None):
+    fig.add_trace(go.Scatter(x=x, y=y, name=name, mode="lines+markers", yaxis="y2" if right else "y", line=dict(color=color, width=2.2, dash=dash),
+                             marker=dict(size=5), hovertemplate=name + (": %{y:.1f}%" if pct else ": %{y:.1f}") + "<extra></extra>"))
+
+
+def _y2(fig, suffix="%"):
+    return fig.update_layout(yaxis2=dict(overlaying="y", side="right", showgrid=False, color=AXIS, ticksuffix=suffix, tickfont=dict(size=10)))
+
+
 def charts(a, r, glob, shown):
-    c1, c2, c3 = st.columns(3, gap="small")
-    short = {y: y[2:] for y in shown}                                # 2024/25 -> 24/25 on the axes
-    with c1, st.container(border=True):
+    """Global SnD visuals: supply mix, stocks, balance, demand, origins and stocks to use. Estimates are faded."""
+    x = [y[2:] for y in shown]                                        # 2024/25 -> 24/25 on the axes
+    est = [is_estimate(y) for y in shown]
+    rows = [st.columns(2, gap="small") for _ in range(3)]
+
+    with rows[0][0], st.container(border=True):
+        st.markdown("<div class='chart-head'>Production: Arabica and Robusta</div>", unsafe_allow_html=True)
+        fig = go.Figure()
+        _bars(fig, x, a.loc["Production", shown], "Arabica", NAVY, est)
+        _bars(fig, x, r.loc["Production", shown], "Robusta", AMBER, est)
+        _line(fig, x, r.loc["Production", shown] / glob.loc["Production Global", shown] * 100, "Robusta share (right)", RED, right=True, pct=True)
+        st.plotly_chart(_y2(_style(fig, 280).update_layout(barmode="stack")), width="stretch", key="c_prod")
+    with rows[0][1], st.container(border=True):
+        st.markdown("<div class='chart-head'>End season stocks</div>", unsafe_allow_html=True)
+        fig = go.Figure()
+        _bars(fig, x, a.loc["End Season Stock", shown], "Arabica", NAVY, est)
+        _bars(fig, x, r.loc["End Season Stock", shown], "Robusta", AMBER, est)
+        _line(fig, x, glob.loc["Combined S/U", shown] * 100, "Global S/U (right)", RED, right=True, pct=True)
+        st.plotly_chart(_y2(_style(fig, 280).update_layout(barmode="stack")), width="stretch", key="c_stock")
+
+    with rows[1][0], st.container(border=True):
         st.markdown("<div class='chart-head'>Balance</div>", unsafe_allow_html=True)
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=[short[y] for y in shown], y=a.loc["Balance", shown], name="Arabica", marker_color=NAVY, marker_line_width=0))
-        fig.add_trace(go.Bar(x=[short[y] for y in shown], y=r.loc["Balance", shown], name="Robusta", marker_color=AMBER, marker_line_width=0))
-        st.plotly_chart(_style(fig).update_layout(barmode="group"), width="stretch", key="c_bal")
-    with c2, st.container(border=True):
+        _bars(fig, x, a.loc["Balance", shown], "Arabica", NAVY, est)
+        _bars(fig, x, r.loc["Balance", shown], "Robusta", AMBER, est)
+        _line(fig, x, glob.loc["Global Balance", shown], "Global", RED)
+        st.plotly_chart(_style(fig, 280).update_layout(barmode="group"), width="stretch", key="c_bal")
+    with rows[1][1], st.container(border=True):
+        st.markdown("<div class='chart-head'>Consumption</div>", unsafe_allow_html=True)
+        fig = go.Figure()
+        _bars(fig, x, a.loc["Consumption", shown], "Arabica", NAVY, est)
+        _bars(fig, x, r.loc["Consumption", shown], "Robusta", AMBER, est)
+        _line(fig, x, glob.loc["Global demand chg", shown] * 100, "Growth (right)", RED, right=True, pct=True)
+        st.plotly_chart(_y2(_style(fig, 280).update_layout(barmode="stack")), width="stretch", key="c_cons")
+
+    with rows[2][0], st.container(border=True):
+        st.markdown("<div class='chart-head'>Production by origin</div>", unsafe_allow_html=True)
+        orig = {}
+        for comm, fr in (("Arabica", a), ("Robusta", r)):
+            for o in ORIGINS[comm]:
+                nm = o if o != "Others" else "Others"
+                orig[nm] = orig.get(nm, 0) + fr.loc[o, shown].fillna(0)
+        order = sorted([o for o in orig if o != "Others"], key=lambda o: -float(orig[o].sum())) + ["Others"]
+        pal = [NAVY, AMBER, TEAL, "#3e5c9a", "#d9a441", "#6fb7c4", "#8796c2", "#c9b38a", "#a8b3c7", "#cfd6e4", "#e3e7ef"]
+        fig = go.Figure()
+        for o, col in zip(order, pal + [GREY] * len(order)):
+            _bars(fig, x, orig[o], o, col, est)
+        st.plotly_chart(_style(fig, 300).update_layout(barmode="stack", legend=dict(font=dict(size=9.5), y=1.2)), width="stretch", key="c_orig")
+    with rows[2][1], st.container(border=True):
         st.markdown("<div class='chart-head'>Stocks to use</div>", unsafe_allow_html=True)
         fig = go.Figure()
-        for nm, ser, col in [("Arabica", a.loc["S/U", shown], NAVY), ("Robusta", r.loc["S/U", shown], AMBER),
-                             ("Combined", glob.loc["Combined S/U", shown], TEAL)]:
-            fig.add_trace(go.Scatter(x=[short[y] for y in shown], y=ser, name=nm, mode="lines+markers", line=dict(color=col, width=2.2)))
-        st.plotly_chart(_style(fig, fmt=".1%").update_layout(yaxis_tickformat=".0%"), width="stretch", key="c_su")
-    with c3, st.container(border=True):
-        st.markdown("<div class='chart-head'>Global production and consumption</div>", unsafe_allow_html=True)
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=[short[y] for y in shown], y=glob.loc["Production Global", shown], name="Production", marker_color="#c3cbe0"))
-        fig.add_trace(go.Scatter(x=[short[y] for y in shown], y=glob.loc["Consumption Global", shown], name="Consumption", mode="lines+markers",
-                                 line=dict(color=NAVY, width=2.4)))
-        st.plotly_chart(_style(fig), width="stretch", key="c_glob")
+        _line(fig, x, a.loc["S/U", shown] * 100, "Arabica", NAVY, pct=True)
+        _line(fig, x, r.loc["S/U", shown] * 100, "Robusta", AMBER, pct=True)
+        _line(fig, x, glob.loc["Combined S/U", shown] * 100, "Global", RED, pct=True)
+        st.plotly_chart(_style(fig, 300).update_layout(yaxis_ticksuffix="%"), width="stretch", key="c_su")
 
 
 # ── Edit view: the styled table itself, typed over in place ────────────────────────────────────────────────
@@ -346,7 +393,7 @@ def render():
     a, r = block(df, meta, "Arabica", years), block(df, meta, "Robusta", years)
     glob = global_block(a, r, years)
     combo = a.loc["Brazil"] + r.loc["Brazil"]
-    st.markdown("<div class='snd-head'><span class='t'>Coffee SnD</span><span class='s'>Jul–Jun · m bags · * estimate</span></div>", unsafe_allow_html=True)
+    st.markdown("<div class='snd-head'><span class='t'>Global SnD</span><span class='s'>Jul–Jun · m bags · * estimate</span></div>", unsafe_allow_html=True)
     if mode == "Edit":
         render_edit(df, meta, notes, years, shown, gh.enabled())
         return

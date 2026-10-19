@@ -108,10 +108,11 @@ with st.sidebar:
         section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Revisions"], index=0, label_visibility="collapsed", key="section")
 
 if section == "SnD":
-    if st.session_state.get("snd_page") == "Brazil":                     # old label
-        st.session_state["snd_page"] = "Brazil Internal SnD"
-    page = st.radio("Page", ["Coffee", "Brazil Internal SnD", "AgriAcies format"], horizontal=True, key="snd_page", label_visibility="collapsed")
-    if page == "Coffee":
+    _old = {"Brazil": "Brazil Internal SnD", "Coffee": "Global SnD"}           # old labels
+    if st.session_state.get("snd_page") in _old:
+        st.session_state["snd_page"] = _old[st.session_state["snd_page"]]
+    page = st.radio("Page", ["Global SnD", "Brazil Internal SnD", "AgriAcies format"], horizontal=True, key="snd_page", label_visibility="collapsed")
+    if page == "Global SnD":
         snd.render()
     else:
         brazil.render("Brazil SnD" if page == "Brazil Internal SnD" else "AgriAcies format")
