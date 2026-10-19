@@ -33,17 +33,27 @@ CSS = """
 """
 
 
-def _skey(k: str) -> str:
+UNITS = ["%", "m bags"]
+
+
+def _skey(k: str, unit: str = "%") -> str:
+    """Session key of one input box. Percent and m-bags changes keep separate boxes, so switching does not reinterpret a number."""
     comm, item = k.split("|")
+    if unit == "m bags":
+        return f"sc_bc_{comm}" if item == "Consumption" else f"sc_b_{comm}_{item}"
     return f"sc_c_{comm}" if item == "Consumption" else f"sc_p_{comm}_{item}"
 
 
 # ── the maths ──────────────────────────────────────────────────────────────────────────────────────────────
 def apply_params(df: pd.DataFrame, params: dict) -> pd.DataFrame:
-    pct, yrs = params.get("pct", {}), set(params.get("years", []))
-    f = [1 + pct.get(f"{c}|{it}", 0.0) / 100 if y in yrs else 1.0 for c, it, y in zip(df["commodity"], df["item"], df["year"])]
+    """params["pct"] scales the inputs (percent), params["abs"] adds to them (m bags); both only in params["years"]."""
+    pct, add, yrs = params.get("pct", {}), params.get("abs", {}), set(params.get("years", []))
+    keys = [f"{c}|{it}" for c, it in zip(df["commodity"], df["item"])]
+    on = np.array([y in yrs for y in df["year"]])
+    f = np.where(on, [1 + pct.get(k, 0.0) / 100 for k in keys], 1.0)
+    d = np.where(on, [add.get(k, 0.0) for k in keys], 0.0)
     out = df.copy()
-    out["value"] = out["value"].to_numpy() * np.array(f)
+    out["value"] = np.maximum(out["value"].to_numpy() * f + d, 0.0)
     return out
 
 
@@ -73,15 +83,17 @@ def stock(scope, a, r, g):
     return _pick(scope, a, r, g, "End Season Stock", "End Season Stock", "Combined End Season Stock")
 
 
-def current_params(sel, scope) -> dict:
+def current_params(sel, scope, unit="%") -> dict:
     keep = tuple(f"{c}|" for c in _comms(scope))
-    pct = {k: float(st.session_state.get(_skey(k), 0.0)) for k in ALL_KEYS if k.startswith(keep)}
-    return {"years": list(sel), "pct": {k: v for k, v in pct.items() if abs(v) > 1e-9}}
+    vals = {k: float(st.session_state.get(_skey(k, unit), 0.0)) for k in ALL_KEYS if k.startswith(keep)}
+    vals = {k: v for k, v in vals.items() if abs(v) > 1e-9}
+    return {"years": list(sel), ("pct" if unit == "%" else "abs"): vals}
 
 
 def _reset():
-    for k in ALL_KEYS:
-        st.session_state[_skey(k)] = 0.0
+    for unit in UNITS:
+        for k in ALL_KEYS:
+            st.session_state[_skey(k, unit)] = 0.0
 
 
 # ── what-if ──────────────────────────────────────────────────────────────────────────────────────────────────
@@ -91,15 +103,16 @@ def whatif(df, meta, years):
     st.session_state.setdefault("sc_years", est[:2])
     st.session_state.setdefault("sc_scope", "Combined")
 
-    bar = st.columns([2.4, 4.2, 1.2], vertical_alignment="bottom")
+    bar = st.columns([2.4, 1.5, 3.6, 1.1], vertical_alignment="bottom")
     scope = bar[0].radio("Commodity", SCOPES, horizontal=True, key="sc_scope")
-    sel = bar[1].multiselect("Apply to crop years", opts, key="sc_years")
-    bar[2].button("Reset", key="sc_reset", on_click=_reset, width="stretch")
+    unit = bar[1].radio("Change in", UNITS, horizontal=True, key="sc_unit")
+    sel = bar[2].multiselect("Apply to crop years", opts, key="sc_years")
+    bar[3].button("Reset", key="sc_reset", on_click=_reset, width="stretch")
     if not sel:
         st.markdown("<div class='an-note'>Pick at least one crop year.</div>", unsafe_allow_html=True)
         return
     comms = _comms(scope)
-    params = current_params(sel, scope)
+    params = current_params(sel, scope, unit)
     base = run(df, meta, years, {})
     scen = run(df, meta, years, params)
     first = years.index(min(sel, key=ystart))
@@ -127,7 +140,7 @@ def whatif(df, meta, years):
 
     left, right = st.columns([1.25, 1], gap="small")
     with left, st.container(border=True):
-        card("Change vs base, %")
+        card(f"Change vs base, {unit}")
         for comm in comms:
             if len(comms) > 1:
                 st.markdown(f"<div class='sb-label' style='color:#64748b!important;margin:8px 0 2px'>{comm}</div>", unsafe_allow_html=True)
@@ -135,9 +148,12 @@ def whatif(df, meta, years):
             for row in range(0, len(items), 4):
                 cols = st.columns(4, gap="small")
                 for col, it in zip(cols, items[row:row + 4]):
-                    key = _skey(f"{comm}|{it}")
+                    key = _skey(f"{comm}|{it}", unit)
                     st.session_state.setdefault(key, 0.0)
-                    if it == "Consumption":
+                    if unit == "m bags":                                 # absolute change in million bags
+                        lim = 20.0 if it == "Consumption" else 30.0
+                        col.number_input(it, min_value=-lim, max_value=lim, step=0.5, format="%.1f", key=key)
+                    elif it == "Consumption":
                         col.number_input("Consumption", min_value=-10.0, max_value=10.0, step=0.5, format="%.1f", key=key)
                     else:
                         col.number_input(it, min_value=-50.0, max_value=50.0, step=1.0, format="%.0f", key=key)
