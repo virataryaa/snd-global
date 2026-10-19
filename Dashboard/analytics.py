@@ -41,9 +41,9 @@ def card(title, desc=""):
     st.markdown(f"<div class='chart-head'>{title}</div>" + (f"<div class='card-desc'>{desc}</div>" if desc else ""), unsafe_allow_html=True)
 
 
-def _forecast_start(meta, comm):
-    f = meta.get("forecast_from", {}).get(comm)
-    return ystart(f) if f else 10 ** 6
+def _forecast_start(meta=None, comm=None):
+    """First crop year that has not finished yet (set by today's date): estimates from here on."""
+    return ystart(snd.current_crop_year())
 
 
 # ── 1. Balance bridge ───────────────────────────────────────────────────────────────────────────────────────
@@ -125,7 +125,7 @@ def view_su(frames, years, meta):
         spread = (su["Arabica"].reindex(xs) - su["Robusta"].reindex(xs)).dropna() * 100
         arb = hist.set_index("year")["arb_avg"].reindex(xs)
         fig = go.Figure()
-        fcs = ystart(meta.get("forecast_from", {}).get("Arabica") or "9999")
+        fcs = _forecast_start()
         cols = [("rgba(10,36,99,0.35)" if ystart(y) >= fcs else NAVY) for y in spread.index]
         fig.add_trace(go.Bar(x=list(spread.index), y=spread.values, name="Arabica S/U minus Robusta S/U (pp)", marker_color=cols, marker_line_width=0))
         fig.add_trace(go.Scatter(x=xs, y=arb.values, name="Arb, Jul-Jun average (right)", mode="lines+markers", yaxis="y2",

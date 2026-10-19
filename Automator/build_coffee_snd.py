@@ -1,8 +1,7 @@
 """One-off seed: the 'Coffee SnD ETG' sheet of Archives/coffee.xlsx -> the Database/ files the dashboard reads.
 
   Database/coffee_snd.csv         commodity, item, year, value   the INPUTS: each origin's production and consumption (m bags)
-  Database/coffee_snd_meta.json   opening stock (first year's end stock), the first starred (*) year and the first orange-shaded
-                                  year, per commodity
+  Database/coffee_snd_meta.json   opening stock (the first year's end stock) per commodity; which years are estimates comes from today's date
   Database/coffee_snd_notes.csv   commodity, item, year, note     the analyst comments on the sheet's cells
   Database/coffee_su_history.csv  year, arabica_su, robusta_su, arb_end_jun, arb_avg   the sheet's right-hand history block
                                   (S/U since 2006/07 and the arabica-robusta arb, which the dashboard overlays on the S/U spread)
@@ -47,14 +46,12 @@ def main():
         sys.exit(f"{SRC} is locked (open in Excel?). Close it, or pass a copy: python Automator/build_coffee_snd.py <copy.xlsx>")
     wb_v = openpyxl.load_workbook(tmp, data_only=True)
     ws = wb_v[SHEET]
-    rows, meta = [], {"opening_stock": {}, "estimate_from": {}, "forecast_from": {"Arabica": "2023/24", "Robusta": "2023/24"}}
+    rows, meta = [], {"opening_stock": {}}
     years = None
     for comm, b in BLOCKS.items():
         yrs = [clean_year(ws.cell(b["head"], c).value) for c in range(FIRST_COL, LAST_COL + 1)]
         years = years or yrs
         assert yrs == years, f"{comm} year headers differ from Arabica's: {yrs}"
-        starred = [c for c in range(FIRST_COL, LAST_COL + 1) if "*" in str(ws.cell(b["head"], c).value)]
-        meta["estimate_from"][comm] = years[starred[0] - FIRST_COL] if starred else None
         meta["opening_stock"][comm] = float(ws.cell(b["stock"], FIRST_COL).value)
         for r in list(range(b["first"], b["last"] + 1)) + [b["cons"]]:
             item = str(ws.cell(r, 1).value).strip()

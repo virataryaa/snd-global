@@ -7,6 +7,7 @@ end stock = last year's end stock + balance (the first year's end stock is an in
 import html
 import io
 import json
+from datetime import date
 from pathlib import Path
 
 import numpy as np
@@ -75,6 +76,18 @@ def ystart(label: str) -> int:
     return int(label[:4])
 
 
+def current_crop_year(today=None) -> str:
+    """The Jul-Jun crop year today falls in: Oct 2026 -> '2026/27', Mar 2027 -> '2026/27'."""
+    t = today or date.today()
+    y = t.year if t.month >= 7 else t.year - 1
+    return f"{y}/{(y + 1) % 100:02d}"
+
+
+def is_estimate(year: str) -> bool:
+    """A crop year that has not finished yet (the running one and later) is an estimate: starred and shaded."""
+    return ystart(year) >= ystart(current_crop_year())
+
+
 @st.cache_data(ttl=600)
 def load():
     df = pd.read_csv(CSV)
@@ -133,12 +146,10 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo) -> str:
     ncol = len(shown) + 1
 
     def shaded(comm, y):
-        f = comm and meta.get("forecast_from", {}).get(comm)
-        return bool(f) and ystart(y) >= ystart(f)
+        return bool(comm) and is_estimate(y)
 
     def starred(comm, y):
-        f = comm and meta["estimate_from"].get(comm)
-        return bool(f) and ystart(y) >= ystart(f)
+        return bool(comm) and is_estimate(y)
 
     def head(comm=None):
         cells = "".join(f"<th class='y{' fc' if shaded(comm, y) else ''}'>{y}{'*' if starred(comm, y) else ''}</th>" for y in shown)
@@ -239,13 +250,7 @@ def charts(a, r, glob, shown):
 # ── Edit view: the main table, with the inputs editable ────────────────────────────────────────────────────
 def calc_table(comm, fr, glob, shown, meta) -> str:
     """The calculated rows of one commodity, shown under its editable inputs (they move as you type)."""
-    def shaded(y):
-        f = meta.get("forecast_from", {}).get(comm)
-        return bool(f) and ystart(y) >= ystart(f)
-
-    def star(y):
-        f = meta["estimate_from"].get(comm)
-        return bool(f) and ystart(y) >= ystart(f)
+    shaded = star = is_estimate
 
     def tr(label, vals, kind, fmt, neg=False):
         cells = "".join(f"<td class='{'fc ' if shaded(y) else ''}{'neg' if neg and pd.notna(vals[y]) and vals[y] < -0.049 else ''}'>{fmt(vals[y])}</td>"
@@ -271,9 +276,8 @@ def render_edit(df, meta, years, shown, editable):
         items = ORIGINS[comm] + ["Consumption"]
         d = df[df["commodity"] == comm].pivot_table(index="item", columns="year", values="value", aggfunc="sum").reindex(index=items, columns=shown)
         g = d.map(_fmt)
-        est = meta["estimate_from"].get(comm)
         st.markdown(f"<div class='snd-bar'>{comm}</div>", unsafe_allow_html=True)
-        cols = {y: st.column_config.TextColumn(f"{y}{'*' if est and ystart(y) >= ystart(est) else ''}", alignment="right", width=86) for y in shown}
+        cols = {y: st.column_config.TextColumn(f"{y}{'*' if is_estimate(y) else ''}", alignment="right", width=86) for y in shown}
         cols["_index"] = st.column_config.TextColumn("", width=120)
         key = f"snd_edit_{comm}_{len(shown)}"
         keys.append(key)
@@ -409,10 +413,9 @@ def render_entry():
     items = ORIGINS[comm] + ["Consumption"]
     d = df[df["commodity"] == comm].pivot_table(index="item", columns="year", values="value", aggfunc="sum").reindex(index=items, columns=years)
     g = d.map(_fmt)
-    est = meta["estimate_from"].get(comm)
     with st.container(border=True):
         st.markdown(f"<div class='card-title'>{comm} inputs <span class='pill'>m bags</span></div>", unsafe_allow_html=True)
-        cols = {y: st.column_config.TextColumn(f"{y}{'*' if est and ystart(y) >= ystart(est) else ''}", alignment="right", width=82) for y in years}
+        cols = {y: st.column_config.TextColumn(f"{y}{'*' if is_estimate(y) else ''}", alignment="right", width=82) for y in years}
         cols["_index"] = st.column_config.TextColumn("", width=110)
         key = f"en_grid_{comm}"
         after = st.data_editor(g, column_config=cols, disabled=not editable, width="content", row_height=28,
@@ -453,25 +456,16 @@ def render_entry():
 
     with st.container(border=True):
         st.markdown(f"<div class='card-title'>{comm} settings</div>", unsafe_allow_html=True)
-        gc = st.columns([1.3, 1.3, 1.3, 1, 2], vertical_alignment="bottom")
+        gc = st.columns([1.3, 1, 5], vertical_alignment="bottom")
         op_old = float(meta["opening_stock"][comm])
         op = gc[0].number_input(f"End stock {years[0]} (m bags)", min_value=0.0, value=op_old, step=0.1, format="%.1f",
                                 key=f"en_open_{comm}", disabled=not editable)
-        opts = ["None"] + years
-        cur = est if est in years else "None"
-        new_est = gc[1].selectbox("Estimates from", opts, index=opts.index(cur), key=f"en_est_{comm}", disabled=not editable)
-        shade_old = meta.get("forecast_from", {}).get(comm)
-        scur = shade_old if shade_old in years else "None"
-        new_shade = gc[2].selectbox("Shaded from", opts, index=opts.index(scur), key=f"en_shade_{comm}", disabled=not editable)
-        if gc[3].button("Save settings", disabled=(not editable) or (abs(op - op_old) < 1e-9 and new_est == cur and new_shade == scur), width="stretch",
-                        key=f"en_set_{comm}"):
+        if gc[1].button("Save", disabled=(not editable) or abs(op - op_old) < 1e-9, width="stretch", key=f"en_set_{comm}"):
             try:
                 with st.spinner("Saving..."):
                     def mut(m):
                         m["opening_stock"][comm] = round(float(op), 4)
-                        m["estimate_from"][comm] = None if new_est == "None" else new_est
-                        m.setdefault("forecast_from", {})[comm] = None if new_shade == "None" else new_shade
-                    _save_meta(f"{comm} settings", f"{op_old:g} / {cur} / {scur}", f"{op:g} / {new_est} / {new_shade}", mut)
+                    _save_meta(f"{comm} opening stock", f"{op_old:g}", f"{op:g}", mut)
             except (gh.GitHubError, Exception) as ex:
                 st.error(f"GitHub save failed: {ex}")
             else:

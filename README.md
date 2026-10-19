@@ -8,8 +8,7 @@ Supply and demand balances, starting with coffee: the "SnD ETG" table (Arabica, 
   - `snd.py` - the Coffee page (the SnD table and three charts) and the Entry page. `ghstore.py` - saves Entry changes to GitHub
     (needs `github_token` in Secrets, see `.streamlit/secrets.toml.example`).
 - `Database/coffee_snd.csv` - the inputs: each origin's production and the consumption, per crop year (commodity, item, year, value).
-- `Database/coffee_snd_meta.json` - end stock of the first year (the starting point of the stock roll), the first starred (*) year and the
-  first orange-shaded year, per commodity.
+- `Database/coffee_snd_meta.json` - end stock of the first year (the starting point of the stock roll), per commodity.
 - `Database/coffee_snd_notes.csv` - the analyst comments from the sheet's cells (shown as a purple corner, text on hover).
 - `Database/coffee_su_history.csv` - the sheet's right-hand block: Arabica and Robusta S/U since 2006/07 and the arb (end June and Jul-Jun average).
 - `Dashboard/analytics.py` - the Analytics section (see below).
@@ -23,7 +22,7 @@ Only the inputs are stored; everything else is calculated, so a changed origin n
 
 ## Updating
 
-Type changes on the Entry page (each commodity: origins, consumption, plus the first-year end stock and where the * / shading start).
+Type changes on the Entry page (each commodity: origins, consumption, plus the first-year end stock).
 It saves to GitHub and the app reloads. Old Excel hard-codes are not copied: for example the sheet's 2027/28 Arabica production was typed as
 98.4 while its origins add up to 95.2, so the dashboard shows 95.2.
 
@@ -39,3 +38,5 @@ The Coffee page has an Edit mode (sidebar) that makes the inputs editable in pla
 ## Next
 
 Other sheets of the workbook (Brazil internal SnD, Coffee production per region, AgriAcies mimic) can become further pages.
+
+Estimates follow today's date: the crop year (Jul-Jun) that is running and every later one is starred and shaded, years that have finished are not.
