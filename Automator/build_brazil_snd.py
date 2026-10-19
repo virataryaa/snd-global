@@ -85,6 +85,10 @@ def main():
             carry_in = val(r, c0 + 1) if not formula(r, c0 + 1) else None
             agri.append((table, clean(y), carry_in, val(r, c0 + 2), val(r, c0 + 4), val(r, c0 + 6),
                          val(r, c0 + 8) if not formula(r, c0 + 8) else None))
+    for c in range(24, 33):                                          # the small side table: AgriAcies Brazil production and carry-in stocks
+        y = wv.cell(74, c).value
+        if y:
+            agri.append(("AgriAcies Brazil", clean(y), val(76, c), val(75, c), None, None, None))
     pd.DataFrame(agri, columns=["table", "year", "carry_in", "production", "int_use", "exports", "stu"]).to_csv(
         DB / "brazil_agri.csv", index=False, lineterminator="\n")
     print(f"wrote {len(inp)} inputs ({inp.series.nunique()} series, {years[0]}..{years[-1]}), {len(agri)} AgriAcies rows, opening {meta['opening']}")

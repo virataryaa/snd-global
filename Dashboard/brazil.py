@@ -153,7 +153,7 @@ def full_table(A, C, O, shown) -> str:
 # ── AgriAcies format ──────────────────────────────────────────────────────────
 def agri_html(agri: pd.DataFrame) -> str:
     out = []
-    for table in ["Arabica Jul-Jun", "Robusta Apr-Mar", "Total Jul-Jun"]:
+    for table in ["Arabica Jul-Jun", "Robusta Apr-Mar", "Total Jul-Jun"]:                  # the three main tables
         d = agri[agri["table"] == table].copy()
         d = d[d["production"].notna() | d["stu"].notna()]                # no empty history rows
         d["_y"] = d["year"].map(ystart)
@@ -176,6 +176,15 @@ def agri_html(agri: pd.DataFrame) -> str:
                    "<tr><th class='y first'>Crop year</th><th class='y'>Carry in</th><th class='y'>Production</th><th class='y'>Supply</th>"
                    "<th class='y'>Int use</th><th class='y'>Exports</th><th class='y'>Carry out</th><th class='y'>STU</th></tr>"
                    + "".join(rows) + "</table></div>")
+    side = agri[agri["table"] == "AgriAcies Brazil"].copy()
+    if not side.empty:
+        side["_y"] = side["year"].map(ystart)
+        side = side.sort_values("_y")
+        head = "".join(f"<th class='y'>{short(y)}</th>" for y in side["year"])
+        out.append("<div class='snd-bar'>AgriAcies Brazil</div><div class='snd-wrap' style='border-radius:0 0 8px 8px;margin-top:0'><table class='snd'>"
+                   f"<tr><th class='y first'></th>{head}</tr>"
+                   "<tr class='b'><td class='lbl'>Production</td>" + "".join(f"<td>{fnum(v)}</td>" for v in side["production"]) + "</tr>"
+                   "<tr><td class='lbl'>Carry in stocks</td>" + "".join(f"<td>{fnum(v)}</td>" for v in side["carry_in"]) + "</tr></table></div>")
     return "".join(out)
 
 
