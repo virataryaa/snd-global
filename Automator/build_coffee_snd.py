@@ -4,6 +4,8 @@
   Database/coffee_snd_meta.json   opening stock (first year's end stock), the first starred (*) year and the first orange-shaded
                                   year, per commodity
   Database/coffee_snd_notes.csv   commodity, item, year, note     the analyst comments on the sheet's cells
+  Database/coffee_su_history.csv  year, arabica_su, robusta_su, arb_end_jun, arb_avg   the sheet's right-hand history block
+                                  (S/U since 2006/07 and the arabica-robusta arb, which the dashboard overlays on the S/U spread)
 
 Everything else on the sheet (production totals, balance, end stocks, S/U, global rows) is a formula in Excel and is
 worked out by the dashboard. This script checks its own arithmetic against Excel's cached numbers before it writes.
@@ -97,6 +99,20 @@ def main():
                     body = re.sub(r"\s*Reply:\s*", " | ", body)
                     notes.append((comm, item, years[cell.column - FIRST_COL], re.sub(r"\s+", " ", body).strip(" |")))
     pd.DataFrame(notes, columns=["commodity", "item", "year", "note"]).to_csv(DB / "coffee_snd_notes.csv", index=False, lineterminator="\n")
+    # history block (columns AE..AV = 2006/07 .. 2023/24): S/U and the arb
+    ws_h = wb_v[SHEET]
+    hist = []
+    for c in range(31, 49):
+        y = ws_h.cell(3, c).value
+        if not y:
+            continue
+
+        def g(r, c=c):
+            v = ws_h.cell(r, c).value
+            return float(v) if isinstance(v, (int, float)) else None
+        hist.append((str(y).strip(), g(4), g(6), g(9), g(11)))
+    pd.DataFrame(hist, columns=["year", "arabica_su", "robusta_su", "arb_end_jun", "arb_avg"]).to_csv(
+        DB / "coffee_su_history.csv", index=False, lineterminator="\n")
     df.to_csv(DB / "coffee_snd.csv", index=False, lineterminator="\n")
     (DB / "coffee_snd_meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {len(df)} inputs, {len(notes)} notes, years {years[0]} .. {years[-1]}, meta {meta}")
