@@ -85,7 +85,7 @@ def stock(scope, a, r, g):
 
 def current_params(sel, scope, unit="%") -> dict:
     keep = tuple(f"{c}|" for c in _comms(scope))
-    vals = {k: float(st.session_state.get(_skey(k, unit), 0.0)) for k in ALL_KEYS if k.startswith(keep)}
+    vals = {k: float(st.session_state.get(_skey(k, unit)) or 0.0) for k in ALL_KEYS if k.startswith(keep)}
     vals = {k: v for k, v in vals.items() if abs(v) > 1e-9}
     return {"years": list(sel), ("pct" if unit == "%" else "abs"): vals}
 
@@ -149,29 +149,28 @@ def whatif(df, meta, years):
                 cols = st.columns(4, gap="small")
                 for col, it in zip(cols, items[row:row + 4]):
                     key = _skey(f"{comm}|{it}", unit)
-                    st.session_state.setdefault(key, 0.0)
+                    start = float(st.session_state.get(key) or 0.0)       # always an explicit number: without one the box shows its minimum
                     if unit == "m bags":                                 # absolute change in million bags
                         lim = 20.0 if it == "Consumption" else 30.0
-                        col.number_input(it, min_value=-lim, max_value=lim, step=0.5, format="%.1f", key=key)
+                        col.number_input(it, min_value=-lim, max_value=lim, value=start, step=0.5, format="%.1f", key=key)
                     elif it == "Consumption":
-                        col.number_input("Consumption", min_value=-10.0, max_value=10.0, step=0.5, format="%.1f", key=key)
+                        col.number_input("Consumption", min_value=-10.0, max_value=10.0, value=start, step=0.5, format="%.1f", key=key)
                     else:
-                        col.number_input(it, min_value=-50.0, max_value=50.0, step=1.0, format="%.0f", key=key)
+                        col.number_input(it, min_value=-50.0, max_value=50.0, value=start, step=1.0, format="%.0f", key=key)
     with right, st.container(border=True):
         card("Result")
         st.markdown(f"<div class='snd-wrap' style='width:100%;margin:4px 0 0'><table class='snd' style='width:100%'>{head}{''.join(rows)}</table></div>",
                     unsafe_allow_html=True)
 
     short = [y[2:] for y in years]                                   # the charts show every crop year
-    c1, c2 = st.columns(2, gap="small")
-    for col, (title, fn, k, color, fmt, key) in zip((c1, c2), (("Stocks to use, %", su, 100, NAVY, ".1f", "sc_bar_su"),
-                                                              ("Balance, m bags", bal, 1, AMBER, ",.1f", "sc_bar_bal"))):
-        with col, st.container(border=True):
+    for title, fn, k, color, fmt, key in (("Stocks to use, %", su, 100, NAVY, ".1f", "sc_bar_su"),
+                                           ("Balance, m bags", bal, 1, AMBER, ",.1f", "sc_bar_bal")):
+        with st.container(border=True):
             fig = go.Figure()
             fig.add_trace(go.Bar(x=short, y=(fn(scope, *base)[years] * k).values, name="Base", marker_color="#c3cbe0", marker_line_width=0))
             fig.add_trace(go.Bar(x=short, y=(fn(scope, *scen)[years] * k).values, name="Scenario", marker_color=color, marker_line_width=0,
                                  text=[f"{v:.1f}" for v in (fn(scope, *scen)[years] * k).values], textposition="outside", textfont=dict(size=8.5)))
-            _fig(fig, height=260, fmt=fmt).update_layout(barmode="group", bargap=0.25, legend=dict(orientation="h", x=0, y=1.15, font=dict(size=10)))
+            _fig(fig, height=230, fmt=fmt).update_layout(barmode="group", bargap=0.3, legend=dict(orientation="h", x=0, y=1.15, font=dict(size=10)))
             card(title)
             st.plotly_chart(fig, width="stretch", key=key)
 
@@ -195,9 +194,10 @@ def sensitivity(df, meta, years):
     key = c[0].selectbox("Flex", options, format_func=label, key="sn_origin")
     year = c[1].selectbox("Crop year", cyears, key="sn_year")
     unit = c[2].radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit")
-    step = c[3].number_input("Step", min_value=0.1, value=5.0 if unit == "m bags" else 10.0, step=0.5 if unit == "m bags" else 1.0,
-                             format="%.1f", key=f"sn_step_{unit}")
-    n = int(c[4].number_input("Steps each side", min_value=1, max_value=6, value=2, step=1, key="sn_n"))
+    skey = f"sn_step_{unit}"
+    step = c[3].number_input("Step", min_value=0.1, value=float(st.session_state.get(skey) or (5.0 if unit == "m bags" else 10.0)),
+                             step=0.5 if unit == "m bags" else 1.0, format="%.1f", key=skey) or (5.0 if unit == "m bags" else 10.0)
+    n = int(c[4].number_input("Steps each side", min_value=1, max_value=6, value=int(st.session_state.get("sn_n") or 2), step=1, key="sn_n") or 2)
     metric = c[5].radio("Show", ["S/U", "Balance", "End stock"], horizontal=True, key="sn_metric")
 
     comm, item = key.split("|")

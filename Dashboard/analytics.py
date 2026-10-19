@@ -45,36 +45,61 @@ def _forecast_start(meta=None, comm=None):
 
 
 # ── 1. Balance bridge ───────────────────────────────────────────────────────────────────────────────────────
-def view_bridge(frames, years, meta):
-    c1, c2, _ = st.columns([1.2, 1.4, 5], vertical_alignment="bottom")
-    opts = years[1:]
-    y = c1.selectbox("Crop year", opts, index=opts.index("2026/27") if "2026/27" in opts else len(opts) - 1, key="an_br_year")
-    scope = c2.radio("Scope", ["Global", "Arabica", "Robusta"], horizontal=True, key="an_br_scope")
+def bridge_fig(frames, years, y, scope, height=330):
+    """A waterfall from last year's balance to this year's, built from bars so demand can look different: supply steps solid, demand steps
+    hatched. Demand is shown as its effect on the balance (more demand = red). Small origin moves are grouped as 'Other'."""
     prev = years[years.index(y) - 1]
     comms = ["Arabica", "Robusta"] if scope == "Global" else [scope]
-    prod_steps, dem_steps = [], []
+    supply, demand = [], []
     for comm in comms:
         fr = frames[comm]
         for o in ORIGINS[comm]:
-            d = float(fr.loc[o, y] - fr.loc[o, prev])
-            prod_steps.append((f"{o} ({comm[0]})" if scope == "Global" else o, d))
-        dem_steps.append((f"{comm} demand" if scope == "Global" else "Demand", -float(fr.loc["Consumption", y] - fr.loc["Consumption", prev])))
+            supply.append((f"{o} ({comm[0]})" if scope == "Global" else o, float(fr.loc[o, y] - fr.loc[o, prev])))
+        demand.append((f"{comm} demand" if scope == "Global" else "Demand", -float(fr.loc["Consumption", y] - fr.loc["Consumption", prev])))
     start = sum(float(frames[c].loc["Balance", prev]) for c in comms)
     end = sum(float(frames[c].loc["Balance", y]) for c in comms)
-    big = sorted([s for s in prod_steps if abs(s[1]) >= 0.05], key=lambda s: -abs(s[1]))
-    small = sum(s[1] for s in prod_steps if abs(s[1]) < 0.05)
-    steps = big + ([("Other (small)", small)] if abs(small) >= 0.005 else []) + dem_steps
-    x = [f"Balance {prev}"] + [s[0] for s in steps] + [f"Balance {y}"]
-    fig = go.Figure(go.Waterfall(
-        x=x, y=[start] + [s[1] for s in steps] + [end], measure=["absolute"] + ["relative"] * len(steps) + ["total"],
-        text=[f"{start:.1f}"] + [f"{s[1]:+.1f}" for s in steps] + [f"{end:.1f}"], textposition="outside", textfont=dict(size=11),
-        increasing=dict(marker=dict(color=GREEN)), decreasing=dict(marker=dict(color=RED)), totals=dict(marker=dict(color=NAVY)),
-        connector=dict(line=dict(color="rgba(15,23,42,.25)", width=1)), hovertemplate="%{x}: %{y:+.1f}<extra></extra>"))
-    _fig(fig, height=400, legend=False).update_layout(hovermode="closest", yaxis_title="m bags")
-    with st.container(border=True):
-        card(f"{scope} balance bridge, {prev} to {y}",
-             "m bags · green = adds to the balance (more supply or less demand), red = takes away")
-        st.plotly_chart(fig, width="stretch", key="an_bridge")
+    big = sorted([s_ for s_ in supply if abs(s_[1]) >= 0.3], key=lambda s_: -abs(s_[1]))
+    small = sum(s_[1] for s_ in supply if abs(s_[1]) < 0.3)
+    steps = [(n, d, False) for n, d in big] + ([("Other", small, False)] if abs(small) >= 0.05 else []) + [(n, d, True) for n, d in demand]
+
+    xs, base, h, colors, pattern, text = [f"Bal {prev[2:]}"], [0.0], [start], [NAVY], [""], [f"{start:+.1f}"]
+    run = start
+    for name, d, is_dem in steps:
+        xs.append(name)
+        base.append(min(run, run + d))
+        h.append(abs(d))
+        colors.append((GREEN if d >= 0 else RED) if not is_dem else ("#7fc9a8" if d >= 0 else "#e59a92"))
+        pattern.append("/" if is_dem else "")
+        text.append("0.0" if abs(d) < 0.05 else f"{d:+.1f}")
+        run += d
+    xs.append(f"Bal {y[2:]}")
+    base.append(0.0)
+    h.append(end)
+    colors.append(NAVY)
+    pattern.append("")
+    text.append(f"{end:+.1f}")
+    fig = go.Figure(go.Bar(x=xs, y=h, base=base, marker=dict(color=colors, pattern=dict(shape=pattern, fgcolor="#ffffff", size=5, solidity=0.35),
+                                                              line=dict(width=0)),
+                           text=text, textposition="outside", textfont=dict(size=9.5), cliponaxis=False,
+                           customdata=text, hovertemplate="%{x}: %{customdata}<extra></extra>"))
+    _fig(fig, height=height, legend=False).update_layout(hovermode="closest", bargap=0.25, margin=dict(t=14, b=10, l=8, r=8),
+                                                         xaxis=dict(type="category", tickangle=-40, tickfont=dict(size=9)), yaxis=dict(tickfont=dict(size=9)))
+    return fig
+
+
+def view_bridge(frames, years, meta):
+    scope = st.radio("Scope", ["Global", "Arabica", "Robusta"], horizontal=True, key="an_br_scope", label_visibility="collapsed")
+    cur = snd.current_crop_year()
+    at = years.index(cur) if cur in years else len(years) - 1
+    targets = [y for y in years[max(1, at - 1):at + 3]]                        # previous, current, next (and the one after, when there is one)
+    names = {at - 1: "previous", at: "current", at + 1: "next", at + 2: "year after"}
+    cols = st.columns(len(targets), gap="small")
+    for col, y in zip(cols, targets):
+        with col, st.container(border=True):
+            card(f"{y} <span class='pill'>{names.get(years.index(y), '')}</span>")
+            st.plotly_chart(bridge_fig(frames, years, y, scope, height=330 if len(targets) > 2 else 380), width="stretch", key=f"an_bridge_{y}")
+    st.markdown("<div style='font-size:10.5px;color:#94a3b8;margin-top:-4px'>Hatched bars = demand, shown as its effect on the balance "
+                "(more demand is red). Origin moves under 0.3m bags are grouped as Other.</div>", unsafe_allow_html=True)
 
 
 # ── 3 + 4. Stocks to use ────────────────────────────────────────────────────────────────────────────────────
