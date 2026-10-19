@@ -1,0 +1,193 @@
+commodity,item,year,value
+Arabica,Brazil,2016/17,45.7
+Arabica,Brazil,2017/18,37.3
+Arabica,Brazil,2018/19,48.0
+Arabica,Brazil,2019/20,39.0
+Arabica,Brazil,2020/21,53.0
+Arabica,Brazil,2021/22,36.0
+Arabica,Brazil,2022/23,37.0
+Arabica,Brazil,2023/24,42.0
+Arabica,Brazil,2024/25,43.0
+Arabica,Brazil,2025/26,37.0
+Arabica,Brazil,2026/27,50.0
+Arabica,Brazil,2027/28,41.0
+Arabica,Colombia,2016/17,14.6
+Arabica,Colombia,2017/18,13.4
+Arabica,Colombia,2018/19,13.9
+Arabica,Colombia,2019/20,13.8
+Arabica,Colombia,2020/21,13.2
+Arabica,Colombia,2021/22,11.7
+Arabica,Colombia,2022/23,10.5
+Arabica,Colombia,2023/24,12.0
+Arabica,Colombia,2024/25,14.5
+Arabica,Colombia,2025/26,12.5
+Arabica,Colombia,2026/27,13.5
+Arabica,Colombia,2027/28,14.0
+Arabica,Honduras,2016/17,7.8
+Arabica,Honduras,2017/18,7.8
+Arabica,Honduras,2018/19,7.4
+Arabica,Honduras,2019/20,6.1
+Arabica,Honduras,2020/21,6.5
+Arabica,Honduras,2021/22,4.9
+Arabica,Honduras,2022/23,5.5
+Arabica,Honduras,2023/24,4.9
+Arabica,Honduras,2024/25,5.3
+Arabica,Honduras,2025/26,6.0
+Arabica,Honduras,2026/27,5.6
+Arabica,Honduras,2027/28,5.6
+Arabica,Super 5,2016/17,12.0
+Arabica,Super 5,2017/18,12.3
+Arabica,Super 5,2018/19,12.1
+Arabica,Super 5,2019/20,11.6
+Arabica,Super 5,2020/21,12.0
+Arabica,Super 5,2021/22,11.7
+Arabica,Super 5,2022/23,12.5
+Arabica,Super 5,2023/24,13.0
+Arabica,Super 5,2024/25,13.5
+Arabica,Super 5,2025/26,13.8
+Arabica,Super 5,2026/27,13.8
+Arabica,Super 5,2027/28,14.0
+Arabica,Ethiopia,2016/17,5.9
+Arabica,Ethiopia,2017/18,5.8
+Arabica,Ethiopia,2018/19,6.4
+Arabica,Ethiopia,2019/20,6.5
+Arabica,Ethiopia,2020/21,7.1
+Arabica,Ethiopia,2021/22,7.2
+Arabica,Ethiopia,2022/23,7.4
+Arabica,Ethiopia,2023/24,7.5
+Arabica,Ethiopia,2024/25,7.5
+Arabica,Ethiopia,2025/26,8.0
+Arabica,Ethiopia,2026/27,7.2
+Arabica,Ethiopia,2027/28,7.2
+Arabica,Peru,2016/17,4.1
+Arabica,Peru,2017/18,4.3
+Arabica,Peru,2018/19,4.4
+Arabica,Peru,2019/20,3.8
+Arabica,Peru,2020/21,4.0
+Arabica,Peru,2021/22,4.2
+Arabica,Peru,2022/23,3.6
+Arabica,Peru,2023/24,4.5
+Arabica,Peru,2024/25,4.0
+Arabica,Peru,2025/26,4.0
+Arabica,Peru,2026/27,4.0
+Arabica,Peru,2027/28,4.0
+Arabica,Others,2016/17,10.3
+Arabica,Others,2017/18,10.9
+Arabica,Others,2018/19,10.7
+Arabica,Others,2019/20,9.6
+Arabica,Others,2020/21,8.7
+Arabica,Others,2021/22,9.4
+Arabica,Others,2022/23,9.4
+Arabica,Others,2023/24,9.4
+Arabica,Others,2024/25,9.4
+Arabica,Others,2025/26,11.0
+Arabica,Others,2026/27,9.4
+Arabica,Others,2027/28,9.4
+Arabica,Consumption,2016/17,94.2
+Arabica,Consumption,2017/18,93.5
+Arabica,Consumption,2018/19,97.9
+Arabica,Consumption,2019/20,94.6
+Arabica,Consumption,2020/21,96.0
+Arabica,Consumption,2021/22,91.4
+Arabica,Consumption,2022/23,89.0
+Arabica,Consumption,2023/24,92.5
+Arabica,Consumption,2024/25,99.0
+Arabica,Consumption,2025/26,98.0
+Arabica,Consumption,2026/27,96.0
+Arabica,Consumption,2027/28,97.0
+Robusta,Vietnam,2016/17,23.1
+Robusta,Vietnam,2017/18,29.0
+Robusta,Vietnam,2018/19,27.9
+Robusta,Vietnam,2019/20,27.7
+Robusta,Vietnam,2020/21,26.5
+Robusta,Vietnam,2021/22,29.1
+Robusta,Vietnam,2022/23,28.5
+Robusta,Vietnam,2023/24,27.5
+Robusta,Vietnam,2024/25,27.0
+Robusta,Vietnam,2025/26,30.0
+Robusta,Vietnam,2026/27,29.0
+Robusta,Vietnam,2027/28,29.5
+Robusta,Brazil,2016/17,11.6
+Robusta,Brazil,2017/18,13.3
+Robusta,Brazil,2018/19,19.0
+Robusta,Brazil,2019/20,21.0
+Robusta,Brazil,2020/21,20.0
+Robusta,Brazil,2021/22,22.0
+Robusta,Brazil,2022/23,23.0
+Robusta,Brazil,2023/24,24.0
+Robusta,Brazil,2024/25,22.0
+Robusta,Brazil,2025/26,26.0
+Robusta,Brazil,2026/27,24.6
+Robusta,Brazil,2027/28,25.0
+Robusta,Indonesia,2016/17,12.1
+Robusta,Indonesia,2017/18,9.0
+Robusta,Indonesia,2018/19,9.6
+Robusta,Indonesia,2019/20,10.8
+Robusta,Indonesia,2020/21,12.1
+Robusta,Indonesia,2021/22,12.1
+Robusta,Indonesia,2022/23,10.5
+Robusta,Indonesia,2023/24,8.0
+Robusta,Indonesia,2024/25,10.8
+Robusta,Indonesia,2025/26,10.8
+Robusta,Indonesia,2026/27,10.5
+Robusta,Indonesia,2027/28,11.0
+Robusta,India,2016/17,5.2
+Robusta,India,2017/18,5.0
+Robusta,India,2018/19,4.8
+Robusta,India,2019/20,4.3
+Robusta,India,2020/21,4.9
+Robusta,India,2021/22,5.5
+Robusta,India,2022/23,4.9
+Robusta,India,2023/24,5.5
+Robusta,India,2024/25,5.0
+Robusta,India,2025/26,5.0
+Robusta,India,2026/27,5.5
+Robusta,India,2027/28,5.5
+Robusta,Uganda,2016/17,4.1
+Robusta,Uganda,2017/18,3.7
+Robusta,Uganda,2018/19,4.0
+Robusta,Uganda,2019/20,4.9
+Robusta,Uganda,2020/21,6.3
+Robusta,Uganda,2021/22,5.5
+Robusta,Uganda,2022/23,5.5
+Robusta,Uganda,2023/24,6.5
+Robusta,Uganda,2024/25,7.0
+Robusta,Uganda,2025/26,7.0
+Robusta,Uganda,2026/27,7.0
+Robusta,Uganda,2027/28,7.0
+Robusta,Cote d'Ivoire,2016/17,1.4
+Robusta,Cote d'Ivoire,2017/18,2.1
+Robusta,Cote d'Ivoire,2018/19,2.1
+Robusta,Cote d'Ivoire,2019/20,1.9
+Robusta,Cote d'Ivoire,2020/21,1.4
+Robusta,Cote d'Ivoire,2021/22,1.5
+Robusta,Cote d'Ivoire,2022/23,0.9
+Robusta,Cote d'Ivoire,2023/24,1.8
+Robusta,Cote d'Ivoire,2024/25,1.5
+Robusta,Cote d'Ivoire,2025/26,1.5
+Robusta,Cote d'Ivoire,2026/27,1.5
+Robusta,Cote d'Ivoire,2027/28,1.5
+Robusta,Others,2016/17,5.3
+Robusta,Others,2017/18,5.1
+Robusta,Others,2018/19,5.7
+Robusta,Others,2019/20,5.1
+Robusta,Others,2020/21,4.9
+Robusta,Others,2021/22,4.7
+Robusta,Others,2022/23,4.6
+Robusta,Others,2023/24,4.8
+Robusta,Others,2024/25,4.9
+Robusta,Others,2025/26,5.0
+Robusta,Others,2026/27,5.0
+Robusta,Others,2027/28,5.0
+Robusta,Consumption,2016/17,64.6
+Robusta,Consumption,2017/18,68.6
+Robusta,Consumption,2018/19,71.6
+Robusta,Consumption,2019/20,74.0
+Robusta,Consumption,2020/21,72.0
+Robusta,Consumption,2021/22,81.3
+Robusta,Consumption,2022/23,83.1
+Robusta,Consumption,2023/24,82.0
+Robusta,Consumption,2024/25,76.0
+Robusta,Consumption,2025/26,78.0
+Robusta,Consumption,2026/27,81.0
+Robusta,Consumption,2027/28,81.0
