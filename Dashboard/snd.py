@@ -312,15 +312,17 @@ def render_edit(df, meta, notes, years, shown, editable):
     bad = any(c[4] is not None and c[4] < 0 for c in changes)
     if bad:
         st.error("Values cannot be negative.")
-    bc = st.columns([1, 1, 8], vertical_alignment="center")
+    bc = st.columns([1, 1, 5, 3], vertical_alignment="center")
     save = bc[0].button("Save", type="primary", disabled=(not changes) or bad, width="stretch", key="snd_save")
     bc[1].button("Undo", disabled=not changes, width="stretch", key="snd_undo", on_click=_undo)
+    reason = bc[2].text_input("Reason", key=f"snd_reason_{epoch}", placeholder="Reason for the change, shown in Revisions (e.g. CCS adjustment, weather shock)",
+                              label_visibility="collapsed", max_chars=140, disabled=not changes)
     if changes:
-        bc[2].markdown(f"<div class='card-desc' style='margin:0'>{len(changes)} unsaved change(s)</div>", unsafe_allow_html=True)
+        bc[3].markdown(f"<div class='card-desc' style='margin:0'>{len(changes)} unsaved change(s)</div>", unsafe_allow_html=True)
     if save:
         try:
             with st.spinner("Saving..."):
-                _save_inputs(changes)
+                _save_inputs(changes, reason)
         except (gh.GitHubError, Exception) as ex:
             st.error(f"GitHub save failed: {ex}")
         else:
@@ -377,9 +379,15 @@ def _apply_changes(d: pd.DataFrame, changes) -> pd.DataFrame:
     return d
 
 
-def _save_inputs(changes):
+def clean_reason(txt) -> str:
+    """The reason typed with a save, as one short line that the revision log can read back (no ' | ' inside)."""
+    return " ".join(str(txt or "").split()).replace(" | ", " / ")[:140]
+
+
+def _save_inputs(changes, reason=""):
     lines = [f"{c} {it} {y}: {_fmt(o) or '-'} -> {_fmt(n) or '-'}" for c, it, y, o, n in changes]
-    msg = f"Coffee SnD | {len(changes)} change(s)\n\n" + "\n".join(lines)
+    reason = clean_reason(reason)
+    msg = f"Coffee SnD | {len(changes)} change(s)" + (f" | reason: {reason}" if reason else "") + "\n\n" + "\n".join(lines)
 
     def apply(text):
         d = _apply_changes(pd.read_csv(io.StringIO(text)), changes)

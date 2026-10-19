@@ -10,7 +10,7 @@ Crop year Jul-Jun, million 60 kg bags. Run from the project root: `streamlit run
 - **Brazil** - Arabica, Conillon and overall Brazil, plus the AgriAcies-format tables. Same in-place Edit mode.
 - **Analytics** - Balance bridge, Stocks to use (history bands, S/U gap vs the arb), Supply mix, Correlations (S/U gap vs arb, origin co-movement,
   Brazil on/off years), Growth, Scenario (what-if, nothing saved).
-- **Revisions** - every saved change to the inputs (Coffee or Brazil) and its effect, read from the GitHub save history.
+- **Revisions** - every saved change to the inputs (Coffee or Brazil) as one line chart of all origins, with the reason typed when saving (the box next to Save), read from the GitHub save history.
 
 Estimates follow today's date: the crop year that is running and every later one is starred and shaded.
 

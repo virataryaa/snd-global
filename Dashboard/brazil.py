@@ -223,9 +223,10 @@ def _apply(inp, changes):
     return d
 
 
-def _save(changes):
+def _save(changes, reason=""):
     lines = [f"{s} {y}: {_show(s, o) or '-'} -> {_show(s, n) or '-'}" for s, y, o, n in changes]
-    msg = f"Brazil SnD | {len(changes)} change(s)\n\n" + "\n".join(lines)
+    reason = snd.clean_reason(reason)
+    msg = f"Brazil SnD | {len(changes)} change(s)" + (f" | reason: {reason}" if reason else "") + "\n\n" + "\n".join(lines)
 
     def apply(text):
         d = _apply(pd.read_csv(io.StringIO(text)), changes)
@@ -293,15 +294,17 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     bad = any(c[3] is not None and c[3] < 0 for c in changes)
     if bad:
         st.error("Values cannot be negative.")
-    bc = st.columns([1, 1, 8], vertical_alignment="center")
+    bc = st.columns([1, 1, 5, 3], vertical_alignment="center")
     save = bc[0].button("Save", type="primary", disabled=(not changes) or bad, width="stretch", key="br_save")
     bc[1].button("Undo", disabled=not changes, width="stretch", key="br_undo", on_click=_undo)
+    reason = bc[2].text_input("Reason", key=f"br_reason_{epoch}", placeholder="Reason for the change, shown in Revisions (e.g. CCS adjustment, weather shock)",
+                              label_visibility="collapsed", max_chars=140, disabled=not changes)
     if changes:
-        bc[2].markdown(f"<div class='card-desc' style='margin:0'>{len(changes)} unsaved change(s)</div>", unsafe_allow_html=True)
+        bc[3].markdown(f"<div class='card-desc' style='margin:0'>{len(changes)} unsaved change(s)</div>", unsafe_allow_html=True)
     if save:
         try:
             with st.spinner("Saving..."):
-                _save(changes)
+                _save(changes, reason)
         except (gh.GitHubError, Exception) as ex:
             st.error(f"GitHub save failed: {ex}")
         else:

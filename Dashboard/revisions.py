@@ -2,6 +2,7 @@
 
 Each save is one commit whose message lists the cells changed ("Arabica Brazil 2026/27: 50 -> 55"), so the log needs no database of its own.
 """
+import html
 import re
 
 import numpy as np
@@ -28,8 +29,11 @@ def _val(t):
     return np.nan if t in ("", "-") else float(t)
 
 
+REASON = re.compile(r"\| reason: (.*)$")
+
+
 def _rows(dataset):
-    """[(when, group, item, year, old, new, effect)] for one dataset, newest first."""
+    """[(when, group, item, year, old, new, effect, reason)] for one dataset, newest first."""
     out = []
     if dataset == "Coffee SnD":
         path, head, rx = snd.CSV_PATH, "Coffee SnD |", COFFEE_LINE
@@ -39,6 +43,8 @@ def _rows(dataset):
         first, _, body = msg.partition("\n")
         if not first.startswith(head):
             continue
+        why = REASON.search(first)
+        why = why.group(1).strip() if why else ""
         for ln in body.splitlines():
             m = rx.match(ln.strip())
             if not m:
@@ -50,8 +56,8 @@ def _rows(dataset):
                 comm, (item, year, old, new) = "Brazil", m.groups()
                 sign = BRAZIL_SIGN.get(item, np.nan)
             o, n = _val(old), _val(new)
-            out.append((pd.Timestamp(ts), comm, item, year, o, n, sign * (np.nan_to_num(n) - np.nan_to_num(o))))
-    return pd.DataFrame(out, columns=["when", "group", "item", "year", "old", "new", "effect"])
+            out.append((pd.Timestamp(ts), comm, item, year, o, n, sign * (np.nan_to_num(n) - np.nan_to_num(o)), why))
+    return pd.DataFrame(out, columns=["when", "group", "item", "year", "old", "new", "effect", "reason"])
 
 
 PALETTE = ["#0a2463", "#3e5fa8", "#1f8a9c", "#b7791f", "#1f9d6f", "#c0392b", "#8a5fb0", "#7f9bd1", "#e2b768", "#94a3b8", "#0f172a", "#8fc7d0", "#c9a227", "#d9534f"]
@@ -64,13 +70,14 @@ def revision_lines(sub: pd.DataFrame, level: bool, with_commodity: bool):
     for i, ((group, item), p) in enumerate(sub.sort_values("when").groupby(["group", "item"], sort=True)):
         xs = [p["when"].iloc[0] - pd.Timedelta(seconds=1)] + list(p["when"])
         ys = [p["old"].iloc[0]] + list(p["new"])
-        xs, ys = xs + [sub["when"].max()], ys + [ys[-1]]                      # carry the line on to the latest revision of any origin
+        why = [""] + [r if r else "no reason given" for r in p["reason"]]
+        xs, ys, why = xs + [sub["when"].max()], ys + [ys[-1]], why + [""]      # carry the line on to the latest revision of any origin
         if not level:
             ys = [v - ys[0] if pd.notna(v) and pd.notna(ys[0]) else np.nan for v in ys]
         name = f"{group[:1]}. {item}" if with_commodity else item
         fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines+markers", name=name, line=dict(color=PALETTE[i % len(PALETTE)], width=2, shape="hv"),
-                                 marker=dict(size=6), connectgaps=True,
-                                 hovertemplate=f"{name}: %{{y:+.2f}}<extra></extra>" if not level else f"{name}: %{{y:.2f}}<extra></extra>"))
+                                 marker=dict(size=6), connectgaps=True, customdata=why,
+                                 hovertemplate=(f"{name}: %{{y:+.2f}}" if not level else f"{name}: %{{y:.2f}}") + "  %{customdata}<extra></extra>"))
     _fig(fig, height=420, fmt="+.1f" if not level else ",.1f").update_layout(
         hovermode="x unified", xaxis=dict(type="date", showgrid=False),
         legend=dict(orientation="h", x=0, y=1.12, font=dict(size=10)),
@@ -110,8 +117,9 @@ def render():
     last = rv.sort_values("when", ascending=False).head(30)
     body = "".join(f"<tr><td class='lbl'>{r.when:%d %b %Y %H:%M}</td><td class='lbl'>{r.group} {r.item}</td><td>{r.year}</td>"
                    f"<td>{fnum(r.old)}</td><td>{fnum(r.new)}</td>"
-                   f"<td class='{'neg' if pd.notna(r.effect) and r.effect < 0 else ''}'>{'' if pd.isna(r.effect) else format(r.effect, '+.1f')}</td></tr>"
+                   f"<td class='{'neg' if pd.notna(r.effect) and r.effect < 0 else ''}'>{'' if pd.isna(r.effect) else format(r.effect, '+.1f')}</td>"
+                   f"<td class='lbl' style='min-width:220px'>{html.escape(r.reason)}</td></tr>"
                    for r in last.itertuples())
     st.markdown("<div class='snd-bar'>Latest revisions</div><div class='snd-wrap' style='border-radius:0 0 8px 8px;margin-top:0'><table class='snd'>"
                 "<tr><th class='y first'>When</th><th class='y first'>Item</th><th class='y'>Year</th><th class='y'>Was</th><th class='y'>Now</th>"
-                f"<th class='y'>Effect</th></tr>{body}</table></div>", unsafe_allow_html=True)
+                f"<th class='y'>Effect</th><th class='y first'>Reason</th></tr>{body}</table></div>", unsafe_allow_html=True)
