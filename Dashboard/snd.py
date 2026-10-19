@@ -24,30 +24,46 @@ ORIGINS = {
     "Robusta": ["Vietnam", "Brazil", "Indonesia", "India", "Uganda", "Cote d'Ivoire", "Others"],
 }
 TZ = "Europe/Amsterdam"
-NAVY, TEAL, GREEN, RED, AMBER, GREY = "#0a2463", "#1f8a9c", "#1f9d6f", "#c94a4a", "#c98a1f", "#8a94a8"
-INK, AXIS, GRID = "#1a1a2e", "#4a5578", "rgba(10,36,99,0.08)"
+NAVY, TEAL, GREEN, RED, AMBER, GREY = "#0a2463", "#1f8a9c", "#1f9d6f", "#c0392b", "#b7791f", "#94a3b8"
+INK, AXIS, GRID = "#0f172a", "#64748b", "rgba(15,23,42,0.06)"
 
 CSS = """
 <style>
-.snd-wrap { overflow-x: auto; background: #ffffff; border: 1px solid #dfe3ee; border-radius: 10px; margin-bottom: 14px; }
-table.snd { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; color: #1a1a2e; }
-table.snd td, table.snd th { padding: 5px 10px; text-align: center; white-space: nowrap; }
-table.snd td.lbl { text-align: center; min-width: 150px; }
-table.snd tr.title th { background: #2f5597; color: #ffffff; font-size: 17px; font-weight: 700; padding: 8px 10px; }
-table.snd tr.title th.l { text-align: left; }
-table.snd tr.combo td { font-size: 15px; background: #ffffff; border-bottom: 1px solid #dfe3ee; }
-table.snd tr.comm th { background: #ffffff; color: #1a1a2e; font-size: 17px; font-weight: 700; border-top: 2px solid #1a1a2e;
-                       border-bottom: 2px solid #1a1a2e; padding: 4px; }
-table.snd th.y { font-weight: 500; font-size: 15px; }
-table.snd th.y.a { background: #e2efda; } table.snd th.y.b { background: #fff2cc; } table.snd th.y.e { background: #f8cbad; }
-table.snd tr.z td { background: #e7e7e7; }
-table.snd tr.b td { font-weight: 700; }
-table.snd tr.bal td { background: #d9e1f2; font-weight: 700; }
-table.snd tr.sep td { border-bottom: 2px solid #1a1a2e; padding: 0; height: 0; }
-table.snd td.neg { color: #d00000; }
+.snd-wrap { background: #ffffff; border: 1px solid #e6e9f0; border-radius: 12px; padding: 4px 6px 8px; margin-bottom: 14px;
+            box-shadow: 0 1px 2px rgba(15,23,42,.04); overflow-x: auto; }
+table.snd { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 12.5px; color: #0f172a;
+            font-variant-numeric: tabular-nums; letter-spacing: .005em; }
+table.snd td, table.snd th { padding: 3px 12px; text-align: right; white-space: nowrap; line-height: 1.35; }
+table.snd td.lbl { text-align: left; color: #475569; padding-left: 14px; min-width: 190px; }
+table.snd td { border: 0; border-bottom: 1px solid #f1f3f7; }
+table.snd th { border: 0; }
+/* title strip + context line */
+table.snd tr.meta td { color: #64748b; font-size: 11.5px; border-bottom: 0; padding: 6px 12px 10px; }
+table.snd tr.meta td.lbl { color: #94a3b8; }
+/* commodity header: label left, a thin accent rule under it */
+table.snd tr.comm th { text-align: left; font-size: 12px; font-weight: 700; color: #ffffff; letter-spacing: .12em; text-transform: uppercase;
+                       padding: 7px 14px; background: linear-gradient(90deg, #0a1d4d 0%, #0a2463 100%); }
+table.snd tr.gap td { border: 0; height: 12px; padding: 0; }
+/* year header */
+table.snd th.y { font-size: 11.5px; font-weight: 600; color: #0a2463; padding: 6px 12px; background: #eef2fb; border-bottom: 1px solid #dbe4f7; }
+table.snd th.y.fc { background: #dbe4f7; }
+table.snd th.y.first { text-align: left; }
+table.snd td.fc { background: #f6f8fd; }
+table.snd tr.b td { font-weight: 650; color: #0f172a; }
+table.snd tr.b td.lbl { color: #0f172a; }
+table.snd tr.bal td { background: #e8eefb; font-weight: 700; border-bottom: 1px solid #dbe4f7; }
+table.snd tr.bal td.fc { background: #dfe8f9; }
+table.snd tr.bal td.lbl { color: #0a2463; }
+table.snd tr.soft td { color: #64748b; }
+table.snd tr.soft td.lbl { color: #94a3b8; }
+table.snd tr.sep td { border: 0; height: 6px; padding: 0; }
+table.snd td.neg { color: #c0392b; }
 table.snd td.note { position: relative; cursor: help; }
-table.snd td.note::after { content: ""; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 9px 9px 0;
-                           border-color: transparent #b865d1 transparent transparent; }
+table.snd td.note::after { content: ""; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 6px 6px 0;
+                           border-color: transparent #a855f7 transparent transparent; }
+.snd-head { display: flex; align-items: baseline; gap: 12px; margin: 2px 0 12px; }
+.snd-head .t { font-size: 20px; font-weight: 700; color: #0a2463; letter-spacing: -.01em; }
+.snd-head .s { font-size: 12px; color: #94a3b8; letter-spacing: .02em; }
 </style>
 """
 
@@ -111,25 +127,28 @@ def fpct(v, dec=1):
 
 
 def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo) -> str:
-    """The sheet's layout: title bar, Brazil Combo line, then Arabica / Robusta / Global blocks."""
+    """The sheet's layout, quietly: Brazil Combo line, then Arabica / Robusta / Global blocks."""
     ncol = len(shown) + 1
 
-    def head(comm=None, label=""):
-        cells, k = "", 0
-        for y in shown:
-            star = comm and meta["estimate_from"].get(comm) and ystart(y) >= ystart(meta["estimate_from"][comm])
-            shade = comm and meta.get("forecast_from", {}).get(comm) and ystart(y) >= ystart(meta["forecast_from"][comm])
-            cls = "e" if shade else ("a" if k % 2 == 0 else "b")
-            k += 1
-            cells += f"<th class='y {cls}'>{y}{'*' if star else ''}</th>"
-        return f"<tr><th class='y'>{label}</th>{cells}</tr>"
+    def shaded(comm, y):
+        f = comm and meta.get("forecast_from", {}).get(comm)
+        return bool(f) and ystart(y) >= ystart(f)
+
+    def starred(comm, y):
+        f = comm and meta["estimate_from"].get(comm)
+        return bool(f) and ystart(y) >= ystart(f)
+
+    def head(comm=None):
+        cells = "".join(f"<th class='y{' fc' if shaded(comm, y) else ''}'>{y}{'*' if starred(comm, y) else ''}</th>" for y in shown)
+        return f"<tr><th class='y first'></th>{cells}</tr>"
 
     def tr(label, vals, kind="", fmt=fnum, comm=None, item=None, neg_red=False):
         cells = ""
         for y in shown:
             v = vals[y]
-            est = comm and meta["estimate_from"].get(comm) and ystart(y) >= ystart(meta["estimate_from"][comm])
             cls = []
+            if shaded(comm, y):
+                cls.append("fc")
             if neg_red and pd.notna(v) and v < -0.049:
                 cls.append("neg")
             title = ""
@@ -140,73 +159,77 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo) -> str:
             cells += f"<td class='{' '.join(cls)}'{title}>{fmt(v)}</td>"
         return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>"
 
-    out = [f"<tr class='title'><th class='l'>Jul-Jun</th><th colspan='{ncol - 1}'>SnD ETG</th></tr>"]
-    out.insert(0, f"<tr class='combo'><td class='lbl'>Brazil Combo</td>{''.join(f'<td>{combo[y]:.1f}</td>' for y in shown)}</tr>")
+    out = [f"<tr class='meta'><td class='lbl'>Brazil combo</td>{''.join(f'<td>{combo[y]:.1f}</td>' for y in shown)}</tr>"]
     for comm, fr in comm_frames.items():
+        if comm != "Arabica":
+            out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
         out.append(f"<tr class='comm'><th colspan='{ncol}'>{comm}</th></tr>")
         out.append(head(comm))
-        for i, o in enumerate(ORIGINS[comm]):
-            out.append(tr(o, fr.loc[o], "z" if i % 2 else "", comm=comm, item=o))
+        for o in ORIGINS[comm]:
+            out.append(tr(o, fr.loc[o], comm=comm, item=o))
         out.append(tr("Production", fr.loc["Production"], "b"))
         out.append(tr("Consumption", fr.loc["Consumption"], "b", comm=comm, item="Consumption"))
-        out.append(tr("Consumption %", fr.loc["Consumption %"], "", fpct))
+        out.append(tr("Consumption %", fr.loc["Consumption %"], "soft", fpct))
         out.append(tr("Balance", fr.loc["Balance"], "bal", neg_red=True))
-        out.append(tr("End Season Stock", fr.loc["End Season Stock"], ""))
-        out.append(tr("S/U", fr.loc["S/U"], "", (lambda v: fpct(v, 1 if comm == "Arabica" else 0))))
+        out.append(tr("End season stock", fr.loc["End Season Stock"], ""))
+        out.append(tr("S/U", fr.loc["S/U"], "soft", (lambda v: fpct(v, 1 if comm == "Arabica" else 0))))
         if comm == "Robusta":
-            out.append(tr("Robusta demand share", glob.loc["Robusta demand share"], "", lambda v: fpct(v, 0)))
-        out.append(f"<tr class='sep'><td colspan='{ncol}'></td></tr>")
-    out.append("<tr class='comm'><th colspan='%d'>Global</th></tr>" % ncol)
+            out.append(tr("Robusta demand share", glob.loc["Robusta demand share"], "soft", lambda v: fpct(v, 0)))
+    out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
+    out.append(f"<tr class='comm'><th colspan='{ncol}'>Global</th></tr>")
     out.append(head(None))
-    out.append(tr("Production Global", glob.loc["Production Global"], "b"))
-    out.append(tr("Consumption Global", glob.loc["Consumption Global"], "b"))
-    out.append(tr("Global Balance", glob.loc["Global Balance"], "bal", neg_red=True))
+    out.append(tr("Production", glob.loc["Production Global"], "b"))
+    out.append(tr("Consumption", glob.loc["Consumption Global"], "b"))
+    out.append(tr("Balance", glob.loc["Global Balance"], "bal", neg_red=True))
     start = years.index(shown[0]) % 2                                 # the sheet pairs 2016/17 + 2017/18, 2018/19 + 2019/20, ...
     lab, val = {}, {}
     for i, y in enumerate(shown):
         if (i + start) % 2 == 0 and i + 1 < len(shown):
             lab[y] = f"{y[:4]}/{shown[i + 1][5:7]}"                  # 2016/17 + 2017/18 -> 2016/18
             val[y] = glob.loc["Global Balance", y] + glob.loc["Global Balance", shown[i + 1]]
-    out.append("<tr><td class='lbl'>2 year cycle</td>" + "".join(f"<td>{lab.get(y, '')}</td>" for y in shown) + "</tr>")
-    out.append("<tr class='bal'><td class='lbl'>Global Balance</td>"
+    out.append("<tr class='soft'><td class='lbl'>2 year cycle</td>" + "".join(f"<td>{lab.get(y, '')}</td>" for y in shown) + "</tr>")
+    out.append("<tr class='b'><td class='lbl'>2 year balance</td>"
                + "".join(f"<td class='{'neg' if val.get(y, 0) < -0.049 else ''}'>{fnum(val[y]) if y in val else ''}</td>" for y in shown) + "</tr>")
-    out.append(tr("Global demand chg", glob.loc["Global demand chg"], "", fpct))
-    out.append(tr("Combined End Season Stock", glob.loc["Combined End Season Stock"], ""))
-    out.append(tr("Combined S/U", glob.loc["Combined S/U"], "", fpct))
+    out.append(tr("Demand change", glob.loc["Global demand chg"], "soft", fpct))
+    out.append(tr("Combined end season stock", glob.loc["Combined End Season Stock"], ""))
+    out.append(tr("Combined S/U", glob.loc["Combined S/U"], "soft", fpct))
     return f"<div class='snd-wrap'><table class='snd'>{''.join(out)}</table></div>"
 
 
 # ── Charts ────────────────────────────────────────────────────────────────────
-def _style(fig, height=300, fmt=",.1f", legend=True):
+def _style(fig, height=230, fmt=",.1f", legend=True):
     fig.update_layout(template="plotly_white", height=height, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                      font=dict(color=INK), margin=dict(t=10, b=30, l=10, r=10), hovermode="x unified",
-                      legend=dict(orientation="h", x=0, y=1.12, bgcolor="rgba(0,0,0,0)", font=dict(size=11)) if legend else None,
-                      showlegend=legend,
-                      xaxis=dict(color=AXIS, showgrid=False, type="category"),
-                      yaxis=dict(gridcolor=GRID, color=AXIS, hoverformat=fmt, zeroline=True, zerolinecolor="rgba(10,36,99,0.25)"))
+                      font=dict(color=INK, size=11), margin=dict(t=4, b=24, l=8, r=8), hovermode="x unified",
+                      legend=dict(orientation="h", x=0, y=1.14, bgcolor="rgba(0,0,0,0)", font=dict(size=10.5)) if legend else None,
+                      showlegend=legend, bargap=0.35,
+                      xaxis=dict(color=AXIS, showgrid=False, type="category", tickfont=dict(size=10),
+                                 tickangle=0, tickvals=None),
+                      yaxis=dict(gridcolor=GRID, color=AXIS, hoverformat=fmt, zeroline=True, zerolinecolor="rgba(15,23,42,0.18)",
+                                 tickfont=dict(size=10)))
     return fig
 
 
 def charts(a, r, glob, shown):
-    c1, c2, c3 = st.columns(3, gap="medium")
+    c1, c2, c3 = st.columns(3, gap="small")
+    short = {y: y[2:] for y in shown}                                # 2024/25 -> 24/25 on the axes
     with c1, st.container(border=True):
-        st.markdown("<div class='chart-head'>Balance</div><div class='card-desc'>m bags · production − consumption</div>", unsafe_allow_html=True)
+        st.markdown("<div class='chart-head'>Balance</div><div class='card-desc'>m bags</div>", unsafe_allow_html=True)
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=shown, y=a.loc["Balance", shown], name="Arabica", marker_color=NAVY))
-        fig.add_trace(go.Bar(x=shown, y=r.loc["Balance", shown], name="Robusta", marker_color=AMBER))
+        fig.add_trace(go.Bar(x=[short[y] for y in shown], y=a.loc["Balance", shown], name="Arabica", marker_color=NAVY, marker_line_width=0))
+        fig.add_trace(go.Bar(x=[short[y] for y in shown], y=r.loc["Balance", shown], name="Robusta", marker_color=AMBER, marker_line_width=0))
         st.plotly_chart(_style(fig).update_layout(barmode="group"), width="stretch", key="c_bal")
     with c2, st.container(border=True):
-        st.markdown("<div class='chart-head'>Stocks to use</div><div class='card-desc'>end season stock / consumption</div>", unsafe_allow_html=True)
+        st.markdown("<div class='chart-head'>Stocks to use</div><div class='card-desc'>end stock / consumption</div>", unsafe_allow_html=True)
         fig = go.Figure()
         for nm, ser, col in [("Arabica", a.loc["S/U", shown], NAVY), ("Robusta", r.loc["S/U", shown], AMBER),
                              ("Combined", glob.loc["Combined S/U", shown], TEAL)]:
-            fig.add_trace(go.Scatter(x=shown, y=ser, name=nm, mode="lines+markers", line=dict(color=col, width=2.2)))
+            fig.add_trace(go.Scatter(x=[short[y] for y in shown], y=ser, name=nm, mode="lines+markers", line=dict(color=col, width=2.2)))
         st.plotly_chart(_style(fig, fmt=".1%").update_layout(yaxis_tickformat=".0%"), width="stretch", key="c_su")
     with c3, st.container(border=True):
-        st.markdown("<div class='chart-head'>Global production vs consumption</div><div class='card-desc'>m bags</div>", unsafe_allow_html=True)
+        st.markdown("<div class='chart-head'>Global production and consumption</div><div class='card-desc'>m bags</div>", unsafe_allow_html=True)
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=shown, y=glob.loc["Production Global", shown], name="Production", marker_color="#c3cbe0"))
-        fig.add_trace(go.Scatter(x=shown, y=glob.loc["Consumption Global", shown], name="Consumption", mode="lines+markers",
+        fig.add_trace(go.Bar(x=[short[y] for y in shown], y=glob.loc["Production Global", shown], name="Production", marker_color="#c3cbe0"))
+        fig.add_trace(go.Scatter(x=[short[y] for y in shown], y=glob.loc["Consumption Global", shown], name="Consumption", mode="lines+markers",
                                  line=dict(color=NAVY, width=2.4)))
         st.plotly_chart(_style(fig), width="stretch", key="c_glob")
 
@@ -222,7 +245,8 @@ def render():
     a, r = block(df, meta, "Arabica", years), block(df, meta, "Robusta", years)
     glob = global_block(a, r, years)
     combo = a.loc["Brazil"] + r.loc["Brazil"]
-    st.markdown("<div class='mc-hero-t'>Coffee SnD</div>", unsafe_allow_html=True)
+    st.markdown("<div class='snd-head'><span class='t'>Coffee SnD</span><span class='s'>Jul–Jun · million 60 kg bags · * estimate</span></div>",
+                unsafe_allow_html=True)
     st.markdown(snd_table(df, meta, notes, years, shown, {"Arabica": a, "Robusta": r}, glob, combo), unsafe_allow_html=True)
     charts(a, r, glob, shown)
 
