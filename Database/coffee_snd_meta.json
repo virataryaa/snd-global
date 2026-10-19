@@ -2,5 +2,13 @@
   "opening_stock": {
     "Arabica": 26.4,
     "Robusta": 15.9
+  },
+  "estimate_from": {
+    "Arabica": "2026/27",
+    "Robusta": "2026/27"
+  },
+  "forecast_from": {
+    "Arabica": "2026/27",
+    "Robusta": "2026/27"
   }
 }
