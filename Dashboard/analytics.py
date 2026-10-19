@@ -111,32 +111,40 @@ def _su_series(comm, frames, years, hist):
     return pd.concat([h, frames[comm].loc["S/U", years]]).astype(float)
 
 
-def view_su(frames, years, meta):
+def su_fig(s, height=360):
+    """S/U line against its own history: min-max and 25th-75th bands, median dotted, estimates amber dotted."""
+    s = s.dropna()
+    xs = sorted(s.index, key=ystart)
+    s = s.reindex(xs)
+    fs = _forecast_start()
+    a_idx = [y for y in xs if ystart(y) < fs]
+    f_idx = [y for y in xs if ystart(y) >= fs]
+    actual = s[a_idx]
+    lo, hi, q1, q3, med = actual.min(), actual.max(), actual.quantile(.25), actual.quantile(.75), actual.median()
+    lab = [y[2:] for y in xs]
+    fig = go.Figure()
+    for a_, b_, col, nm in [(hi, lo, "rgba(10,36,99,0.07)", "min-max"), (q3, q1, "rgba(10,36,99,0.14)", "25th-75th")]:
+        fig.add_trace(go.Scatter(x=lab, y=[a_] * len(xs), mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"))
+        fig.add_trace(go.Scatter(x=lab, y=[b_] * len(xs), mode="lines", line=dict(width=0), fill="tonexty", fillcolor=col, name=nm, hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=lab, y=[med] * len(xs), mode="lines", line=dict(color=AXIS, width=1.2, dash="dot"), name="median", hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=[y[2:] for y in a_idx], y=s[a_idx], mode="lines+markers", name="S/U", line=dict(color=NAVY, width=2.2), marker=dict(size=5)))
+    if f_idx:
+        join = ([a_idx[-1]] if a_idx else []) + f_idx
+        fig.add_trace(go.Scatter(x=[y[2:] for y in join], y=s[join], mode="lines+markers", name="estimate",
+                                 line=dict(color=AMBER, width=2.2, dash="dot"), marker=dict(size=5)))
+    _fig(fig, height=height, fmt=".1%").update_layout(yaxis_tickformat=".0%", margin=dict(t=14, b=10, l=8, r=8),
+                                                      xaxis=dict(type="category", tickangle=-45, tickfont=dict(size=9)))
+    return fig
+
+
+def view_su(frames, years, meta, glob):
     hist = load_su()
-    su = {c: _su_series(c, frames, years, hist) for c in ORIGINS}
-    xs = sorted(set(su["Arabica"].index) | set(su["Robusta"].index), key=ystart)
-    with st.container(border=True):
-        comm = st.radio("Commodity", ["Arabica", "Robusta"], horizontal=True, key="an_su_comm", label_visibility="collapsed")
-        s = su[comm].reindex(xs)
-        fs = _forecast_start(meta, comm)
-        actual = s[[y for y in s.index if ystart(y) < fs and pd.notna(s[y])]]
-        lo, hi, q1, q3, med = actual.min(), actual.max(), actual.quantile(.25), actual.quantile(.75), actual.median()
-        fig = go.Figure()
-        for a_, b_, col, nm in [(hi, lo, "rgba(10,36,99,0.07)", "min-max"), (q3, q1, "rgba(10,36,99,0.14)", "25th-75th")]:
-            fig.add_trace(go.Scatter(x=xs, y=[a_] * len(xs), mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"))
-            fig.add_trace(go.Scatter(x=xs, y=[b_] * len(xs), mode="lines", line=dict(width=0), fill="tonexty", fillcolor=col, name=nm, hoverinfo="skip"))
-        fig.add_trace(go.Scatter(x=xs, y=[med] * len(xs), mode="lines", line=dict(color=AXIS, width=1.2, dash="dot"), name="median", hoverinfo="skip"))
-        a_idx = [y for y in xs if ystart(y) < fs]
-        f_idx = [y for y in xs if ystart(y) >= fs]
-        fig.add_trace(go.Scatter(x=a_idx, y=s.reindex(a_idx), mode="lines+markers", name="S/U", line=dict(color=NAVY, width=2.2),
-                                 marker=dict(size=5), connectgaps=True))
-        if f_idx:
-            join = [a_idx[-1]] + f_idx if a_idx else f_idx
-            fig.add_trace(go.Scatter(x=join, y=s.reindex(join), mode="lines+markers", name="estimate", line=dict(color=AMBER, width=2.2, dash="dot"),
-                                     marker=dict(size=5)))
-        _fig(fig, height=430, fmt=".1%").update_layout(yaxis_tickformat=".0%", xaxis=dict(type="category", tickangle=-45, tickfont=dict(size=9.5)))
-        card(f"{comm} stocks to use vs history")
-        st.plotly_chart(fig, width="stretch", key="an_su_band")
+    series = [("Arabica", _su_series("Arabica", frames, years, hist)), ("Robusta", _su_series("Robusta", frames, years, hist)),
+              ("Global", glob.loc["Combined S/U", years].astype(float))]
+    for col, (name, s) in zip(st.columns(3, gap="small"), series):
+        with col, st.container(border=True):
+            card(f"{name} stocks to use")
+            st.plotly_chart(su_fig(s), width="stretch", key=f"an_su_{name}")
 
 
 def _fit(x, y):
@@ -234,6 +242,6 @@ def render():
     if view == "Balance bridge":
         view_bridge(frames, years, meta)
     elif view == "Stocks to use":
-        view_su(frames, years, meta)
+        view_su(frames, years, meta, glob)
     else:
         view_cycle(frames, years, meta)
