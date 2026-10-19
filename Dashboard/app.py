@@ -5,6 +5,7 @@ st.set_page_config(page_title="Global SnD", layout="wide", initial_sidebar_state
 import analytics  # noqa: E402  (after set_page_config)
 import brazil  # noqa: E402
 import revisions  # noqa: E402
+import scenario  # noqa: E402
 import snd  # noqa: E402
 
 # Strict light theme: CSS hard-codes colours, no prefers-color-scheme,
@@ -94,7 +95,8 @@ def _gate():
 
 _gate()
 
-KEEP = ["section", "snd_span", "snd_mode", "an_view", "an_su_comm", "an_br_scope", "an_gr_scope", "an_mix_scope", "an_co_mode", "br_span", "br_mode", "br_view", "rv_set"]
+KEEP = (["section", "snd_page", "snd_span", "snd_mode", "an_view", "an_su_comm", "an_br_scope", "br_span", "br_mode", "rv_set",
+         "sc_years", "sc_name", "sc_cmp", "sc_cmp_year", "sc_cmp_cur"] + [scenario._skey(k) for k in scenario.ALL_KEYS])
 for _k in KEEP:
     if _k not in st.session_state and f"_keep_{_k}" in st.session_state:
         st.session_state[_k] = st.session_state[f"_keep_{_k}"]
@@ -103,16 +105,20 @@ with st.sidebar:
     st.markdown("<div class='sb-title'>Global SnD</div>", unsafe_allow_html=True)
     st.markdown("<div class='sb-label'>Section</div>", unsafe_allow_html=True)
     with st.container(key="sec_nav"):
-        section = st.radio("Section", ["Coffee", "Brazil", "Analytics", "Revisions"], index=0, label_visibility="collapsed", key="section")
+        section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Revisions"], index=0, label_visibility="collapsed", key="section")
 
-if section == "Brazil":
-    brazil.render()
-elif section == "Analytics":
+if section == "SnD":
+    page = st.radio("Page", ["Coffee", "Brazil", "AgriAcies format"], horizontal=True, key="snd_page", label_visibility="collapsed")
+    if page == "Coffee":
+        snd.render()
+    else:
+        brazil.render("Brazil SnD" if page == "Brazil" else "AgriAcies format")
+elif section == "Analysis":
     analytics.render()
-elif section == "Revisions":
-    revisions.render()
+elif section == "Scenarios":
+    scenario.page()
 else:
-    snd.render()
+    revisions.render()
 
 for _k in KEEP:
     if _k in st.session_state:

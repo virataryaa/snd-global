@@ -314,20 +314,22 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     _opening_controls(meta, years, True)
 
 
-def render():
+def render(view="Brazil SnD"):
     st.markdown(snd.CSS, unsafe_allow_html=True)
     inp, meta, agri, years = load()
     etg_a, etg_r = etg_brazil(years)
-    with st.sidebar:
-        st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
-        span = st.radio("Years", ["All", "Last 10"], horizontal=True, key="br_span")
-        mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="br_mode")
+    mode, span = "View", "All"
+    if view == "Brazil SnD":
+        with st.sidebar:
+            st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
+            span = st.radio("Years", ["All", "Last 10"], horizontal=True, key="br_span")
+            mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="br_mode")
     shown = years if span == "All" else years[-10:]
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))
-    st.markdown("<div class='snd-head'><span class='t'>Brazil internal SnD</span><span class='s'>Jul–Jun · million 60 kg bags · * estimate"
+    title = "Brazil internal SnD" if view == "Brazil SnD" else "AgriAcies format"
+    st.markdown(f"<div class='snd-head'><span class='t'>{title}</span><span class='s'>Jul–Jun · million 60 kg bags · * estimate"
                 + (" · editing inputs" if mode == "Edit" else "") + "</span></div>", unsafe_allow_html=True)
-    view = st.radio("View", ["Brazil SnD", "AgriAcies format"], horizontal=True, key="br_view", label_visibility="collapsed")
     if view == "AgriAcies format":
         st.markdown(agri_html(agri), unsafe_allow_html=True)
         return
