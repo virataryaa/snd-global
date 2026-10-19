@@ -237,20 +237,20 @@ def charts(a, r, glob, shown):
     c1, c2, c3 = st.columns(3, gap="small")
     short = {y: y[2:] for y in shown}                                # 2024/25 -> 24/25 on the axes
     with c1, st.container(border=True):
-        st.markdown("<div class='chart-head'>Balance</div><div class='card-desc'>m bags</div>", unsafe_allow_html=True)
+        st.markdown("<div class='chart-head'>Balance</div>", unsafe_allow_html=True)
         fig = go.Figure()
         fig.add_trace(go.Bar(x=[short[y] for y in shown], y=a.loc["Balance", shown], name="Arabica", marker_color=NAVY, marker_line_width=0))
         fig.add_trace(go.Bar(x=[short[y] for y in shown], y=r.loc["Balance", shown], name="Robusta", marker_color=AMBER, marker_line_width=0))
         st.plotly_chart(_style(fig).update_layout(barmode="group"), width="stretch", key="c_bal")
     with c2, st.container(border=True):
-        st.markdown("<div class='chart-head'>Stocks to use</div><div class='card-desc'>end stock / consumption</div>", unsafe_allow_html=True)
+        st.markdown("<div class='chart-head'>Stocks to use</div>", unsafe_allow_html=True)
         fig = go.Figure()
         for nm, ser, col in [("Arabica", a.loc["S/U", shown], NAVY), ("Robusta", r.loc["S/U", shown], AMBER),
                              ("Combined", glob.loc["Combined S/U", shown], TEAL)]:
             fig.add_trace(go.Scatter(x=[short[y] for y in shown], y=ser, name=nm, mode="lines+markers", line=dict(color=col, width=2.2)))
         st.plotly_chart(_style(fig, fmt=".1%").update_layout(yaxis_tickformat=".0%"), width="stretch", key="c_su")
     with c3, st.container(border=True):
-        st.markdown("<div class='chart-head'>Global production and consumption</div><div class='card-desc'>m bags</div>", unsafe_allow_html=True)
+        st.markdown("<div class='chart-head'>Global production and consumption</div>", unsafe_allow_html=True)
         fig = go.Figure()
         fig.add_trace(go.Bar(x=[short[y] for y in shown], y=glob.loc["Production Global", shown], name="Production", marker_color="#c3cbe0"))
         fig.add_trace(go.Scatter(x=[short[y] for y in shown], y=glob.loc["Consumption Global", shown], name="Consumption", mode="lines+markers",
@@ -346,8 +346,7 @@ def render():
     a, r = block(df, meta, "Arabica", years), block(df, meta, "Robusta", years)
     glob = global_block(a, r, years)
     combo = a.loc["Brazil"] + r.loc["Brazil"]
-    st.markdown("<div class='snd-head'><span class='t'>Coffee SnD</span><span class='s'>Jul–Jun · million 60 kg bags · * estimate"
-                + (" · editing inputs" if mode == "Edit" else "") + "</span></div>", unsafe_allow_html=True)
+    st.markdown("<div class='snd-head'><span class='t'>Coffee SnD</span><span class='s'>Jul–Jun · m bags · * estimate</span></div>", unsafe_allow_html=True)
     if mode == "Edit":
         render_edit(df, meta, notes, years, shown, gh.enabled())
         return

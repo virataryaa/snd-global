@@ -35,7 +35,8 @@ def _fig(fig, height=360, fmt=",.1f", legend=True):
 
 
 def card(title, desc=""):
-    st.markdown(f"<div class='chart-head'>{title}</div>" + (f"<div class='card-desc'>{desc}</div>" if desc else ""), unsafe_allow_html=True)
+    """A chart title. The description argument is accepted but not shown: the charts speak for themselves."""
+    st.markdown(f"<div class='chart-head'>{title}</div>", unsafe_allow_html=True)
 
 
 def _forecast_start(meta=None, comm=None):
@@ -68,14 +69,12 @@ def view_bridge(frames, years, meta):
         x=x, y=[start] + [s[1] for s in steps] + [end], measure=["absolute"] + ["relative"] * len(steps) + ["total"],
         text=[f"{start:.1f}"] + [f"{s[1]:+.1f}" for s in steps] + [f"{end:.1f}"], textposition="outside", textfont=dict(size=11),
         increasing=dict(marker=dict(color=GREEN)), decreasing=dict(marker=dict(color=RED)), totals=dict(marker=dict(color=NAVY)),
-        connector=dict(line=dict(color="rgba(15,23,42,.25)", width=1)), hovertemplate="%{x}: %{y:+.2f}<extra></extra>"))
+        connector=dict(line=dict(color="rgba(15,23,42,.25)", width=1)), hovertemplate="%{x}: %{y:+.1f}<extra></extra>"))
     _fig(fig, height=400, legend=False).update_layout(hovermode="closest", yaxis_title="m bags")
     with st.container(border=True):
         card(f"{scope} balance bridge, {prev} to {y}",
              "m bags · green = adds to the balance (more supply or less demand), red = takes away")
         st.plotly_chart(fig, width="stretch", key="an_bridge")
-        st.markdown(f"<div class='an-note'>Balance moves from {start:+.1f} to {end:+.1f} ({end - start:+.1f}): "
-                    f"production {sum(s[1] for s in prod_steps):+.1f}, demand {sum(s[1] for s in dem_steps):+.1f}.</div>", unsafe_allow_html=True)
 
 
 # ── 3 + 4. Stocks to use ────────────────────────────────────────────────────────────────────────────────────
@@ -91,17 +90,16 @@ def view_su(frames, years, meta):
     hist = load_su()
     su = {c: _su_series(c, frames, years, hist) for c in ORIGINS}
     xs = sorted(set(su["Arabica"].index) | set(su["Robusta"].index), key=ystart)
-    left, right = st.columns(2, gap="small")
-    with left, st.container(border=True):
+    with st.container(border=True):
         comm = st.radio("Commodity", ["Arabica", "Robusta"], horizontal=True, key="an_su_comm", label_visibility="collapsed")
         s = su[comm].reindex(xs)
         fs = _forecast_start(meta, comm)
         actual = s[[y for y in s.index if ystart(y) < fs and pd.notna(s[y])]]
         lo, hi, q1, q3, med = actual.min(), actual.max(), actual.quantile(.25), actual.quantile(.75), actual.median()
         fig = go.Figure()
-        for a, b, col, nm in [(hi, lo, "rgba(10,36,99,0.07)", "min-max"), (q3, q1, "rgba(10,36,99,0.14)", "25th-75th")]:
-            fig.add_trace(go.Scatter(x=xs, y=[a] * len(xs), mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"))
-            fig.add_trace(go.Scatter(x=xs, y=[b] * len(xs), mode="lines", line=dict(width=0), fill="tonexty", fillcolor=col, name=nm, hoverinfo="skip"))
+        for a_, b_, col, nm in [(hi, lo, "rgba(10,36,99,0.07)", "min-max"), (q3, q1, "rgba(10,36,99,0.14)", "25th-75th")]:
+            fig.add_trace(go.Scatter(x=xs, y=[a_] * len(xs), mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"))
+            fig.add_trace(go.Scatter(x=xs, y=[b_] * len(xs), mode="lines", line=dict(width=0), fill="tonexty", fillcolor=col, name=nm, hoverinfo="skip"))
         fig.add_trace(go.Scatter(x=xs, y=[med] * len(xs), mode="lines", line=dict(color=AXIS, width=1.2, dash="dot"), name="median", hoverinfo="skip"))
         a_idx = [y for y in xs if ystart(y) < fs]
         f_idx = [y for y in xs if ystart(y) >= fs]
@@ -111,37 +109,11 @@ def view_su(frames, years, meta):
             join = [a_idx[-1]] + f_idx if a_idx else f_idx
             fig.add_trace(go.Scatter(x=join, y=s.reindex(join), mode="lines+markers", name="estimate", line=dict(color=AMBER, width=2.2, dash="dot"),
                                      marker=dict(size=5)))
-        _fig(fig, height=360, fmt=".1%").update_layout(yaxis_tickformat=".0%", xaxis=dict(type="category", tickangle=-45, tickfont=dict(size=9.5)))
-        card(f"{comm} stocks to use vs history", f"{xs[0]} to {xs[-1]} · bands from {len(actual)} actual years")
+        _fig(fig, height=430, fmt=".1%").update_layout(yaxis_tickformat=".0%", xaxis=dict(type="category", tickangle=-45, tickfont=dict(size=9.5)))
+        card(f"{comm} stocks to use vs history")
         st.plotly_chart(fig, width="stretch", key="an_su_band")
-        last = [y for y in f_idx if pd.notna(s[y])][:3] or [y for y in a_idx if pd.notna(s[y])][-1:]
-        bits = [f"{y}: {s[y]:.1%} = {(actual < s[y]).mean():.0%} percentile" for y in last]
-        st.markdown("<div class='an-note'>" + " · ".join(bits) + f" · median {med:.1%}, range {lo:.1%} to {hi:.1%}. "
-                    f"Up to {hist['year'].iloc[hist['year'].map(ystart).lt(ystart(years[0])).sum() - 1]} the S/U comes from the sheet's history block, "
-                    f"from {years[0]} on it is calculated from the inputs.</div>", unsafe_allow_html=True)
-
-    with right, st.container(border=True):
-        D = pd.DataFrame(index=xs)
-        D["gap"] = (su["Arabica"].reindex(xs) - su["Robusta"].reindex(xs)) * 100
-        D["arb"] = hist.set_index("year")["arb_avg"].reindex(xs)
-        cur = ystart(snd.current_crop_year())
-        actual_d = D[[ystart(y) < cur for y in D.index]]
-        dx, dy = actual_d["gap"].diff(), actual_d["arb"].diff()
-        fit = _fit(dx, dy)
-        card("Does a widening Arabica-vs-Robusta S/U gap move the arb?", "each dot is a crop year with an arb number (the sheet has them to 2021/22)")
-        if fit is None:
-            st.markdown("<div class='an-note'>Not enough years with both numbers.</div>", unsafe_allow_html=True)
-        else:
-            lab = [y[2:] for y, a_, b_ in zip(actual_d.index, dx, dy) if np.isfinite(a_) and np.isfinite(b_)]
-            st.plotly_chart(_scatter(fit, lab, "change in S/U gap, Arabica minus Robusta (pp)", "change in arb"), width="stretch", key="an_su_scatter")
-            note = f"r = {fit['r']:+.2f} ({_strength(fit['r'])}), {fit['n']} years."
-            nxt = D["gap"].diff()[[y for y in D.index if ystart(y) >= cur][:1]]
-            if len(nxt) and np.isfinite(nxt.iloc[0]):
-                note += f" {nxt.index[0]}: the gap moves {nxt.iloc[0]:+.1f}pp, which the fit maps to an arb move of {fit['slope'] * nxt.iloc[0]:+.0f} (indicative only)."
-            st.markdown(f"<div class='an-note'>{note}</div>", unsafe_allow_html=True)
 
 
-# ── Correlations ────────────────────────────────────────────────────────────────────────────────────────────
 def _fit(x, y):
     x, y = np.asarray(x, float), np.asarray(y, float)
     m = np.isfinite(x) & np.isfinite(y)
@@ -161,7 +133,7 @@ def _strength(r):
 def _scatter(fit, labels, xt, yt, height=360):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=fit["x"], y=fit["y"], mode="markers+text", text=labels, textposition="top center", textfont=dict(size=9, color=AXIS),
-                             marker=dict(size=8, color=NAVY), hovertemplate="%{text}: %{x:.2f}, %{y:.2f}<extra></extra>"))
+                             marker=dict(size=8, color=NAVY), hovertemplate="%{text}: %{x:.1f}, %{y:.1f}<extra></extra>"))
     xs = np.linspace(fit["x"].min(), fit["x"].max(), 20)
     fig.add_trace(go.Scatter(x=xs, y=fit["slope"] * xs + fit["icpt"], mode="lines", line=dict(color=AMBER, width=2, dash="dot"), hoverinfo="skip"))
     _fig(fig, height=height, legend=False).update_layout(hovermode="closest", xaxis=dict(title=xt, type="linear", showgrid=True, gridcolor="rgba(15,23,42,0.06)"),
@@ -170,43 +142,67 @@ def _scatter(fit, labels, xt, yt, height=360):
 
 
 def view_cycle(frames, years, meta):
-    """Brazil Arabica on/off years: growth this year against growth the year before."""
+    """Brazil Arabica: the on/off cycle, the crop by year, the stock position and where the crop goes."""
     import brazil
     cur = ystart(snd.current_crop_year())
     inp, bmeta, _agri, byears = brazil.load()
     ea, er = brazil.etg_brazil(byears)
-    prod = brazil.compute(inp, ea, er, byears, bmeta)[3]["Arabica production"]
+    A, _C, _O, eff = brazil.compute(inp, ea, er, byears, bmeta)
+    prod = eff["Arabica production"]
     g = prod.pct_change(fill_method=None) * 100
     ys = [y for y in byears if ystart(y) < cur]
     fit = _fit(g.shift(1)[ys].values, g[ys].values)
-    left, right = st.columns([1.4, 1], gap="small")
-    with left, st.container(border=True):
-        card("Brazil Arabica on and off years", "growth this year against growth the year before · a negative slope is the biennial cycle")
+    short = [y[2:] for y in byears]
+    est = [snd.is_estimate(y) for y in byears]
+
+    top_l, top_r = st.columns(2, gap="small")
+    with top_l, st.container(border=True):
+        card("On and off years: growth this year vs the year before")
         if fit is None:
             st.markdown("<div class='an-note'>Not enough history.</div>", unsafe_allow_html=True)
-            return
-        lab = [y[2:] for y, a_, b_ in zip(ys, g.shift(1)[ys], g[ys]) if np.isfinite(a_) and np.isfinite(b_)]
-        st.plotly_chart(_scatter(fit, lab, "growth the year before (%)", "growth this year (%)", height=380), width="stretch", key="an_cycle")
-    with right, st.container(border=True):
-        last = ys[-1]
+        else:
+            lab = [y[2:] for y, a_, b_ in zip(ys, g.shift(1)[ys], g[ys]) if np.isfinite(a_) and np.isfinite(b_)]
+            st.plotly_chart(_scatter(fit, lab, "growth the year before (%)", "growth this year (%)", height=330), width="stretch", key="an_cycle")
+    with top_r, st.container(border=True):
+        up = (g.fillna(0) >= 0).tolist()                              # the first year has nothing to compare with: navy
+        colors = [NAVY if u else AMBER for u in up]
+        fig = go.Figure(go.Bar(x=short, y=prod.values, marker=dict(color=colors, opacity=[0.55 if e else 1 for e in est], line_width=0),
+                               text=[f"{v:.1f}" for v in prod.values], textposition="outside", textfont=dict(size=9.5),
+                               hovertemplate="%{x}: %{y:.1f}m bags<extra></extra>", name="Production"))
         nxt = [y for y in byears if ystart(y) >= cur][:1]
-        card("What the cycle says now", f"slope {fit['slope']:+.2f}, r = {fit['r']:+.2f} ({_strength(fit['r'])}), {fit['n']} years")
-        if nxt and np.isfinite(g[last]):
-            implied_g = fit["slope"] * g[last] + fit["icpt"]
-            implied = prod[last] * (1 + implied_g / 100)
-            rows = [(f"{last} actual", prod[last], g[last]), (f"{nxt[0]}: cycle-implied", implied, implied_g), (f"{nxt[0]}: our estimate", prod[nxt[0]], g[nxt[0]])]
-            body = "".join(f"<tr class='{'b' if 'our' in lab_ else ''}'><td class='lbl'>{lab_}</td><td>{p:.1f}</td><td>{gr:+.0f}%</td></tr>" for lab_, p, gr in rows)
-            st.markdown("<div class='snd-wrap'><table class='snd'><tr><th class='y first'></th><th class='y'>m bags</th><th class='y'>growth</th></tr>"
-                        f"{body}</table></div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='an-note'>After a {g[last]:+.0f}% year the pattern points to about {implied:.1f}m bags for {nxt[0]}; we have {prod[nxt[0]]:.1f}m "
-                        f"({prod[nxt[0]] - implied:+.1f}m above the cycle). Frost and drought can override it; treat it as a check on the number, not a forecast.</div>", unsafe_allow_html=True)
+        if fit is not None and nxt and np.isfinite(g[ys[-1]]):
+            implied = float(prod[ys[-1]] * (1 + (fit["slope"] * g[ys[-1]] + fit["icpt"]) / 100))
+            fig.add_trace(go.Scatter(x=[nxt[0][2:]], y=[implied], mode="markers", name="cycle-implied", marker=dict(symbol="diamond", size=12, color=RED,
+                                                                                                                  line=dict(color="#ffffff", width=1.5)),
+                                     hovertemplate="cycle-implied: %{y:.1f}m bags<extra></extra>"))
+        _fig(fig, height=330, fmt=".1f").update_layout(hovermode="closest", bargap=0.3)
+        card("Crop by year: navy = grew, amber = fell")
+        st.plotly_chart(fig, width="stretch", key="an_cycle_prod")
+
+    bot_l, bot_r = st.columns(2, gap="small")
+    with bot_l, st.container(border=True):
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=short, y=A.loc["Closing Stock"].values, name="Closing stock", marker=dict(color="#c3cbe0", opacity=[0.6 if e else 1 for e in est], line_width=0),
+                             hovertemplate="%{x}: %{y:.1f}m bags<extra></extra>"))
+        fig.add_trace(go.Scatter(x=short, y=(A.loc["Stock/Use Arabica"] * 100).values, name="S/U (right)", yaxis="y2", mode="lines+markers",
+                                 line=dict(color=NAVY, width=2.2), marker=dict(size=5), hovertemplate="%{x}: %{y:.1f}%<extra></extra>"))
+        _fig(fig, height=300, fmt=".1f").update_layout(hovermode="x unified", yaxis2=dict(overlaying="y", side="right", showgrid=False, color=AXIS, ticksuffix="%"))
+        card("Brazil Arabica closing stock and stocks to use")
+        st.plotly_chart(fig, width="stretch", key="an_cycle_stock")
+    with bot_r, st.container(border=True):
+        fig = go.Figure()
+        for nm, col, ser in (("Exports", NAVY, A.loc["Exports"]), ("Consumption", TEAL, A.loc["Consumption"]), ("Stock change", AMBER, A.loc["Stock Change"])):
+            fig.add_trace(go.Bar(x=short, y=ser.values, name=nm, marker=dict(color=col, line_width=0), hovertemplate=nm + ": %{y:.1f}<extra></extra>"))
+        _fig(fig, height=300, fmt=".1f").update_layout(barmode="relative", bargap=0.3, hovermode="x unified")
+        card("Where the crop goes, m bags")
+        st.plotly_chart(fig, width="stretch", key="an_cycle_use")
 
 
 # ── Page ──────────────────────────────────────────────────────────────────────
 def render():
     st.markdown(snd.CSS + CSS, unsafe_allow_html=True)
     df, meta, _notes, years = load()
-    st.markdown("<div class='snd-head'><span class='t'>Analysis</span><span class='s'>from the SnD inputs · m bags</span></div>", unsafe_allow_html=True)
+    st.markdown("<div class='snd-head'><span class='t'>Analysis</span></div>", unsafe_allow_html=True)
     view = st.radio("View", VIEWS, horizontal=True, key="an_view", label_visibility="collapsed")
     frames = {c: block(df, meta, c, years) for c in ORIGINS}
     glob = global_block(frames["Arabica"], frames["Robusta"], years)

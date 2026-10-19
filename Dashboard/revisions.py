@@ -77,7 +77,7 @@ def revision_lines(sub: pd.DataFrame, level: bool, with_commodity: bool):
         name = f"{group[:1]}. {item}" if with_commodity else item
         fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines+markers", name=name, line=dict(color=PALETTE[i % len(PALETTE)], width=2, shape="hv"),
                                  marker=dict(size=6), connectgaps=True, customdata=why,
-                                 hovertemplate=(f"{name}: %{{y:+.2f}}" if not level else f"{name}: %{{y:.2f}}") + "  %{customdata}<extra></extra>"))
+                                 hovertemplate=(f"{name}: %{{y:+.1f}}" if not level else f"{name}: %{{y:.1f}}") + "  %{customdata}<extra></extra>"))
     _fig(fig, height=420, fmt="+.1f" if not level else ",.1f").update_layout(
         hovermode="x unified", xaxis=dict(type="date", showgrid=False),
         legend=dict(orientation="h", x=0, y=1.12, font=dict(size=10)),
@@ -88,11 +88,11 @@ def revision_lines(sub: pd.DataFrame, level: bool, with_commodity: bool):
 
 def render():
     st.markdown(snd.CSS + analytics.CSS, unsafe_allow_html=True)
-    st.markdown("<div class='snd-head'><span class='t'>Revisions</span><span class='s'>every saved change to the inputs, from the GitHub save log</span></div>",
+    st.markdown("<div class='snd-head'><span class='t'>Revisions</span><span class='s'></span></div>",
                 unsafe_allow_html=True)
     dataset = st.radio("Dataset", ["Coffee SnD", "Brazil SnD"], horizontal=True, key="rv_set", label_visibility="collapsed")
     if not gh.enabled():
-        st.markdown("<div class='an-note'>The revision log is read from the GitHub save history. Add github_token in Secrets to see it.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='an-note'>Add github_token in Secrets to see the revision log.</div>", unsafe_allow_html=True)
         return
     try:
         rv = _rows(dataset)
@@ -100,7 +100,7 @@ def render():
         st.markdown(f"<div class='an-note'>Not available: {ex}</div>", unsafe_allow_html=True)
         return
     if rv.empty:
-        st.markdown("<div class='an-note'>No revisions saved yet. Every change saved in Edit mode is logged here.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='an-note'>No revisions saved yet.</div>", unsafe_allow_html=True)
         return
     with st.container(border=True):
         c1, c2, c3, _ = st.columns([1.2, 1.4, 2, 4], vertical_alignment="bottom")

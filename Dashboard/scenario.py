@@ -249,7 +249,7 @@ def compare_section(df, meta, years, saved, params, scope):
         incl = c[2].checkbox("Current inputs", value=bool(params["pct"]), key="sc_cmp_cur")
         sets = [("Base", {})] + ([("Current inputs", params)] if incl and params["pct"] else []) + [(p, saved[p]) for p in picks]
         if len(sets) < 2:
-            st.markdown("<div class='an-note'>Pick a saved scenario (or include the current inputs) to compare with the base.</div>", unsafe_allow_html=True)
+            st.markdown("<div class='an-note'>Pick a saved scenario to compare.</div>", unsafe_allow_html=True)
             return
         M = pd.DataFrame({name: metrics(df, meta, years, p, y) for name, p in sets})
         su_rows = [f"{c_} S/U" for c_ in _comms(scope)] + (["Combined S/U"] if scope == "Combined" else [])
@@ -266,9 +266,6 @@ def compare_section(df, meta, years, saved, params, scope):
                 _fig(fig, height=300, fmt=".1f" if pct else ",.1f").update_layout(barmode="group", yaxis_ticksuffix="%" if pct else "")
                 st.markdown(f"<div class='chart-head'>{title}</div>", unsafe_allow_html=True)
                 st.plotly_chart(fig, width="stretch", key=key)
-        for nm, p in sets[1:]:
-            ch = ", ".join(f"{k.replace('|', ' ')} {v:+g}%" for k, v in p.get("pct", {}).items()) or "no change"
-            st.markdown(f"<div class='an-note'><b>{nm}</b>: {ch} · years {', '.join(p.get('years', []))}</div>", unsafe_allow_html=True)
 
 
 def sensitivity_section(df, meta, years, sel, params, scope):
@@ -312,8 +309,8 @@ def sensitivity_section(df, meta, years, sel, params, scope):
                              marker_color=RED, marker_line_width=0))
         fig.add_trace(go.Bar(y=[b[0] for b in bars], x=[b[2] for b in bars], orientation="h", name="production +10% (consumption +2%)",
                              marker_color=NAVY, marker_line_width=0))
-        _fig(fig, height=330, fmt="+.2f").update_layout(barmode="relative", hovermode="closest",
-                                                        xaxis=dict(title=f"change in {metric} in {last}, pp", showgrid=True, gridcolor="rgba(15,23,42,0.06)", type="linear"),
+        _fig(fig, height=330, fmt="+.1f").update_layout(barmode="relative", hovermode="closest",
+                                                        xaxis=dict(title=f"change in {metric} in {last}, pp", hoverformat="+.1f", showgrid=True, gridcolor="rgba(15,23,42,0.06)", type="linear"),
                                                         yaxis=dict(type="category", showgrid=False), legend=dict(orientation="h", x=0, y=1.18, font=dict(size=10)))
         card("What moves stocks to use the most", f"each input shocked on its own, in {', '.join(y_[2:] for y_ in yrs)} · the ten biggest")
         st.plotly_chart(fig, width="stretch", key="sc_tornado")
@@ -323,7 +320,7 @@ def page():
     """The Scenarios section."""
     st.markdown(snd.CSS + analytics.CSS, unsafe_allow_html=True)
     df, meta, _notes, years = snd.load()
-    st.markdown("<div class='snd-head'><span class='t'>Scenarios</span><span class='s'>change an input, see the balance and stocks move · save, compare, stress-test</span></div>",
+    st.markdown("<div class='snd-head'><span class='t'>Scenarios</span><span class='s'></span></div>",
                 unsafe_allow_html=True)
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))

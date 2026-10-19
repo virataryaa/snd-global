@@ -328,8 +328,7 @@ def render(view="Brazil SnD"):
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))
     title = "Brazil internal SnD" if view == "Brazil SnD" else "AgriAcies format"
-    st.markdown(f"<div class='snd-head'><span class='t'>{title}</span><span class='s'>Jul–Jun · million 60 kg bags · * estimate"
-                + (" · editing inputs" if mode == "Edit" else "") + "</span></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='snd-head'><span class='t'>{title}</span><span class='s'>Jul–Jun · m bags · * estimate</span></div>", unsafe_allow_html=True)
     if view == "AgriAcies format":
         st.markdown(agri_html(agri), unsafe_allow_html=True)
         return
