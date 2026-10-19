@@ -409,7 +409,11 @@ def render_entry():
     st.markdown("<div class='page-title'>Entry</div>", unsafe_allow_html=True)
     df, meta, notes, years = load()
     editable = gh.enabled()
-    comm = st.radio("Commodity", list(ORIGINS), horizontal=True, label_visibility="collapsed", key="en_comm")
+    comm = st.radio("Commodity", list(ORIGINS) + ["Brazil"], horizontal=True, label_visibility="collapsed", key="en_comm")
+    if comm == "Brazil":
+        import brazil                                                 # imported here: brazil imports this module
+        brazil.render_entry()
+        return
     items = ORIGINS[comm] + ["Consumption"]
     d = df[df["commodity"] == comm].pivot_table(index="item", columns="year", values="value", aggfunc="sum").reindex(index=items, columns=years)
     g = d.map(_fmt)

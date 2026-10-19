@@ -3,6 +3,7 @@ import streamlit as st
 st.set_page_config(page_title="Global SnD", layout="wide", initial_sidebar_state="expanded")
 
 import analytics  # noqa: E402  (after set_page_config)
+import brazil  # noqa: E402
 import snd  # noqa: E402
 
 # Strict light theme: CSS hard-codes colours, no prefers-color-scheme,
@@ -74,7 +75,7 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 )
 
 # Widgets that are not drawn in a run lose their value (e.g. the Years filter while Entry is open): keep a copy.
-KEEP = ["section", "snd_span", "snd_mode", "en_comm", "an_view", "an_su_comm", "an_br_scope", "an_gr_scope"]
+KEEP = ["section", "snd_span", "snd_mode", "en_comm", "an_view", "an_su_comm", "an_br_scope", "an_gr_scope", "br_span", "br_mode", "br_view"]
 for _k in KEEP:
     if _k not in st.session_state and f"_keep_{_k}" in st.session_state:
         st.session_state[_k] = st.session_state[f"_keep_{_k}"]
@@ -83,10 +84,12 @@ with st.sidebar:
     st.markdown("<div class='sb-title'>Global SnD</div>", unsafe_allow_html=True)
     st.markdown("<div class='sb-label'>Section</div>", unsafe_allow_html=True)
     with st.container(key="sec_nav"):
-        section = st.radio("Section", ["Entry", "Coffee", "Analytics"], index=1, label_visibility="collapsed", key="section")
+        section = st.radio("Section", ["Entry", "Coffee", "Brazil", "Analytics"], index=1, label_visibility="collapsed", key="section")
 
 if section == "Entry":
     snd.render_entry()
+elif section == "Brazil":
+    brazil.render()
 elif section == "Analytics":
     analytics.render()
 else:

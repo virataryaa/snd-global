@@ -12,6 +12,7 @@ Supply and demand balances, starting with coffee: the "SnD ETG" table (Arabica, 
 - `Database/coffee_snd_notes.csv` - the analyst comments from the sheet's cells (shown as a purple corner, text on hover).
 - `Database/coffee_su_history.csv` - the sheet's right-hand block: Arabica and Robusta S/U since 2006/07 and the arb (end June and Jul-Jun average).
 - `Dashboard/analytics.py` - the Analytics section (see below).
+- `Dashboard/brazil.py` + `Database/brazil_snd.csv`, `brazil_agri.csv`, `brazil_meta.json` - the Brazil internal SnD page (Arabica, Conillon, overall Brazil, and the AgriAcies-format tables), seeded by `Automator/build_brazil_snd.py` from the sheet "Brazil internal SnD".
 - `Automator/build_coffee_snd.py` - one-off seed from `Archives/coffee.xlsx` (sheet "Coffee SnD ETG"). `Archives/` stays local.
 
 ## How it is worked out
@@ -40,3 +41,7 @@ The Coffee page has an Edit mode (sidebar) that makes the inputs editable in pla
 Other sheets of the workbook (Brazil internal SnD, Coffee production per region, AgriAcies mimic) can become further pages.
 
 Estimates follow today's date: the crop year (Jul-Jun) that is running and every later one is starred and shaded, years that have finished are not.
+
+## Brazil internal SnD
+
+Same rules as the sheet: Brazil production comes from the SnD ETG sheet unless the Brazil sheet has its own number for the year; consumption is typed up to 2020/21 and from 2021/22 is (1 - Conillon demand %) or the Conillon demand % times the overall Brazil consumption; stock change = production - exports - consumption; closing stock rolls forward from the first year. Every calculated row was checked against Excel's own numbers. One difference: the sheet leaves the 2027/28 Conillon stock change blank, so its closing stock stays at 3.9; the dashboard calculates it (+2.8, closing 6.7). The sheet's rows "All Coffee Production" and "Overall Consumption Brazil" at the bottom of the Overall block add the wrong cells and are not reproduced (the same figures are in the Conillon block).
