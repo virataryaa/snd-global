@@ -61,6 +61,8 @@ table.snd td.neg { color: #c0392b; }
 table.snd td.note { position: relative; cursor: help; }
 table.snd td.note::after { content: ""; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 6px 6px 0;
                            border-color: transparent #a855f7 transparent transparent; }
+.snd-bar { background: linear-gradient(90deg, #0a1d4d 0%, #0a2463 100%); color: #ffffff; font-size: 12px; font-weight: 700;
+           letter-spacing: .12em; text-transform: uppercase; padding: 7px 14px; border-radius: 8px 8px 0 0; margin-top: 6px; }
 .snd-head { display: flex; align-items: baseline; gap: 12px; margin: 2px 0 12px; }
 .snd-head .t { font-size: 20px; font-weight: 700; color: #0a2463; letter-spacing: -.01em; }
 .snd-head .s { font-size: 12px; color: #94a3b8; letter-spacing: .02em; }
@@ -234,6 +236,90 @@ def charts(a, r, glob, shown):
         st.plotly_chart(_style(fig), width="stretch", key="c_glob")
 
 
+# ── Edit view: the main table, with the inputs editable ────────────────────────────────────────────────────
+def calc_table(comm, fr, glob, shown, meta) -> str:
+    """The calculated rows of one commodity, shown under its editable inputs (they move as you type)."""
+    def shaded(y):
+        f = meta.get("forecast_from", {}).get(comm)
+        return bool(f) and ystart(y) >= ystart(f)
+
+    def star(y):
+        f = meta["estimate_from"].get(comm)
+        return bool(f) and ystart(y) >= ystart(f)
+
+    def tr(label, vals, kind, fmt, neg=False):
+        cells = "".join(f"<td class='{'fc ' if shaded(y) else ''}{'neg' if neg and pd.notna(vals[y]) and vals[y] < -0.049 else ''}'>{fmt(vals[y])}</td>"
+                        for y in shown)
+        return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>"
+
+    head = "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if shaded(y) else ''}'>{y}{'*' if star(y) else ''}</th>" for y in shown) + "</tr>"
+    rows = [tr("Production", fr.loc["Production"], "b", fnum), tr("Consumption %", fr.loc["Consumption %"], "soft", fpct),
+            tr("Balance", fr.loc["Balance"], "bal", fnum, True), tr("End season stock", fr.loc["End Season Stock"], "", fnum),
+            tr("S/U", fr.loc["S/U"], "soft", lambda v: fpct(v, 1 if comm == "Arabica" else 0))]
+    if comm == "Robusta":
+        rows.append(tr("Robusta demand share", glob.loc["Robusta demand share"], "soft", lambda v: fpct(v, 0)))
+    return f"<div class='snd-wrap' style='border-radius:0 0 8px 8px;margin-top:0'><table class='snd'>{head}{''.join(rows)}</table></div>"
+
+
+def render_edit(df, meta, years, shown, editable):
+    """Edit mode: each commodity's inputs as an editable grid in the table's layout; the calculated rows below it follow the edits live.
+    One Save for both commodities."""
+    live = df
+    changes_all, keys = [], []
+    grids = {}
+    for comm in ORIGINS:
+        items = ORIGINS[comm] + ["Consumption"]
+        d = df[df["commodity"] == comm].pivot_table(index="item", columns="year", values="value", aggfunc="sum").reindex(index=items, columns=shown)
+        g = d.map(_fmt)
+        est = meta["estimate_from"].get(comm)
+        st.markdown(f"<div class='snd-bar'>{comm}</div>", unsafe_allow_html=True)
+        cols = {y: st.column_config.TextColumn(f"{y}{'*' if est and ystart(y) >= ystart(est) else ''}", alignment="right", width=86) for y in shown}
+        cols["_index"] = st.column_config.TextColumn("", width=120)
+        key = f"snd_edit_{comm}_{len(shown)}"
+        keys.append(key)
+        after = st.data_editor(g, column_config=cols, disabled=not editable, width="stretch", row_height=28,
+                               height=len(g) * 28 + 40, key=key)
+        grids[comm] = (g, after)
+        try:
+            ch = [(comm, it, y, _num(g.loc[it, y]), _num(after.loc[it, y])) for it in items for y in shown
+                  if _num(g.loc[it, y]) != _num(after.loc[it, y])]
+        except ValueError:
+            st.error("Numbers only.")
+            return
+        changes_all += ch
+        live = _apply_changes(live, ch)
+        fr = block(live, meta, comm, years)
+        grids[comm] += (fr,)
+        glob = global_block(grids["Arabica"][2], fr, years) if comm == "Robusta" else None
+        st.markdown(calc_table(comm, fr, glob, shown, meta), unsafe_allow_html=True)   # calculated rows under their grid, from the edits
+    if any(c[4] is not None and c[4] < 0 for c in changes_all):
+        st.error("Values cannot be negative.")
+        changes_all = []
+    if not editable:
+        st.markdown("<div class='card-desc'>Read-only: add github_token in Secrets to edit.</div>", unsafe_allow_html=True)
+        return
+    bc = st.columns([1, 1, 6], vertical_alignment="center")
+    save = bc[0].button("Save", type="primary", disabled=not changes_all, width="stretch", key="snd_save")
+    if bc[1].button("Undo", disabled=not changes_all, width="stretch", key="snd_undo"):
+        for k in keys:
+            st.session_state.pop(k, None)
+        st.rerun()
+    if changes_all:
+        bc[2].markdown(f"<div class='card-desc' style='margin:0'>{len(changes_all)} unsaved cell(s) - the rows under each grid already show the result.</div>",
+                       unsafe_allow_html=True)
+    if save:
+        try:
+            with st.spinner("Saving..."):
+                _save_inputs(changes_all)
+        except (gh.GitHubError, Exception) as ex:
+            st.error(f"GitHub save failed: {ex}")
+        else:
+            for k in keys:
+                st.session_state.pop(k, None)
+            st.session_state["en_flash"] = f"Saved {len(changes_all)} change(s)."
+            st.rerun()
+
+
 # ── Page ──────────────────────────────────────────────────────────────────────
 def render():
     st.markdown(CSS, unsafe_allow_html=True)
@@ -241,12 +327,18 @@ def render():
     with st.sidebar:
         st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
         span = st.radio("Years", ["Last 10", "All"], horizontal=True, key="snd_span")
+        mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="snd_mode")
     shown = years[-10:] if span == "Last 10" else years
+    if st.session_state.get("en_flash"):
+        st.toast(st.session_state.pop("en_flash"))
     a, r = block(df, meta, "Arabica", years), block(df, meta, "Robusta", years)
     glob = global_block(a, r, years)
     combo = a.loc["Brazil"] + r.loc["Brazil"]
-    st.markdown("<div class='snd-head'><span class='t'>Coffee SnD</span><span class='s'>Jul–Jun · million 60 kg bags · * estimate</span></div>",
-                unsafe_allow_html=True)
+    st.markdown("<div class='snd-head'><span class='t'>Coffee SnD</span><span class='s'>Jul–Jun · million 60 kg bags · * estimate"
+                + (" · editing inputs" if mode == "Edit" else "") + "</span></div>", unsafe_allow_html=True)
+    if mode == "Edit":
+        render_edit(df, meta, years, shown, gh.enabled())
+        return
     st.markdown(snd_table(df, meta, notes, years, shown, {"Arabica": a, "Robusta": r}, glob, combo), unsafe_allow_html=True)
     charts(a, r, glob, shown)
 
@@ -265,16 +357,22 @@ def _fmt(v):
     return "" if v is None or pd.isna(v) else f"{v:g}"
 
 
+def _apply_changes(d: pd.DataFrame, changes) -> pd.DataFrame:
+    """The inputs frame with (commodity, item, year, old, new) changes applied; new = None removes the value."""
+    d = d.copy()
+    for c, it, y, _o, n in changes:
+        d = d[~((d["commodity"] == c) & (d["item"] == it) & (d["year"] == y))]
+        if n is not None:
+            d = pd.concat([d, pd.DataFrame([{"commodity": c, "item": it, "year": y, "value": n}])], ignore_index=True)
+    return d
+
+
 def _save_inputs(changes):
     lines = [f"{c} {it} {y}: {_fmt(o) or '-'} -> {_fmt(n) or '-'}" for c, it, y, o, n in changes]
     msg = f"Coffee SnD | {len(changes)} change(s)\n\n" + "\n".join(lines)
 
     def apply(text):
-        d = pd.read_csv(io.StringIO(text))
-        for c, it, y, _o, n in changes:
-            d = d[~((d["commodity"] == c) & (d["item"] == it) & (d["year"] == y))]
-            if n is not None:
-                d = pd.concat([d, pd.DataFrame([{"commodity": c, "item": it, "year": y, "value": n}])], ignore_index=True)
+        d = _apply_changes(pd.read_csv(io.StringIO(text)), changes)
         order = {(c, it): i for c, its in ORIGINS.items() for i, it in enumerate(its + ["Consumption"])}
         d["_o"] = [order.get((c, it), 99) for c, it in zip(d["commodity"], d["item"])]
         d["_c"] = d["commodity"].map({"Arabica": 0, "Robusta": 1})

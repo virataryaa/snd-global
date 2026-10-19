@@ -73,7 +73,7 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 )
 
 # Widgets that are not drawn in a run lose their value (e.g. the Years filter while Entry is open): keep a copy.
-KEEP = ["section", "snd_span", "en_comm"]
+KEEP = ["section", "snd_span", "snd_mode", "en_comm"]
 for _k in KEEP:
     if _k not in st.session_state and f"_keep_{_k}" in st.session_state:
         st.session_state[_k] = st.session_state[f"_keep_{_k}"]
