@@ -14,7 +14,7 @@ import brazil
 import ghstore as gh
 import snd
 from analytics import _fig, card
-from snd import GREEN, NAVY, RED, fnum, ystart
+from snd import fnum, ystart
 
 COFFEE_LINE = re.compile(r"^(Arabica|Robusta) (.+) (\d{4}/\d{2}): (.*) -> (.*)$")
 BRAZIL_LINE = re.compile(r"^(.+) (\d{4}/\d{2}): (.*) -> (.*)$")
@@ -54,6 +54,31 @@ def _rows(dataset):
     return pd.DataFrame(out, columns=["when", "group", "item", "year", "old", "new", "effect"])
 
 
+PALETTE = ["#0a2463", "#3e5fa8", "#1f8a9c", "#b7791f", "#1f9d6f", "#c0392b", "#8a5fb0", "#7f9bd1", "#e2b768", "#94a3b8", "#0f172a", "#8fc7d0", "#c9a227", "#d9534f"]
+
+
+def revision_lines(sub: pd.DataFrame, level: bool, with_commodity: bool):
+    """One step line per origin / item: its estimate over time, from the first number to every saved revision.
+    level=False plots the change against the first estimate, so origins of very different size sit on one axis."""
+    fig = go.Figure()
+    for i, ((group, item), p) in enumerate(sub.sort_values("when").groupby(["group", "item"], sort=True)):
+        xs = [p["when"].iloc[0] - pd.Timedelta(seconds=1)] + list(p["when"])
+        ys = [p["old"].iloc[0]] + list(p["new"])
+        xs, ys = xs + [sub["when"].max()], ys + [ys[-1]]                      # carry the line on to the latest revision of any origin
+        if not level:
+            ys = [v - ys[0] if pd.notna(v) and pd.notna(ys[0]) else np.nan for v in ys]
+        name = f"{group[:1]}. {item}" if with_commodity else item
+        fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines+markers", name=name, line=dict(color=PALETTE[i % len(PALETTE)], width=2, shape="hv"),
+                                 marker=dict(size=6), connectgaps=True,
+                                 hovertemplate=f"{name}: %{{y:+.2f}}<extra></extra>" if not level else f"{name}: %{{y:.2f}}<extra></extra>"))
+    _fig(fig, height=420, fmt="+.1f" if not level else ",.1f").update_layout(
+        hovermode="x unified", xaxis=dict(type="date", showgrid=False),
+        legend=dict(orientation="h", x=0, y=1.12, font=dict(size=10)),
+        yaxis=dict(title="m bags" if level else "m bags vs first estimate", zeroline=True, zerolinecolor="rgba(15,23,42,0.25)",
+                   gridcolor="rgba(15,23,42,0.06)"))
+    return fig
+
+
 def render():
     st.markdown(snd.CSS + analytics.CSS, unsafe_allow_html=True)
     st.markdown("<div class='snd-head'><span class='t'>Revisions</span><span class='s'>every saved change to the inputs, from the GitHub save log</span></div>",
@@ -70,32 +95,18 @@ def render():
     if rv.empty:
         st.markdown("<div class='an-note'>No revisions saved yet. Every change saved in Edit mode is logged here.</div>", unsafe_allow_html=True)
         return
-    unit = "balance" if dataset == "Coffee SnD" else "Brazil closing stock"
-    left, right = st.columns(2, gap="small")
-    with left, st.container(border=True):
-        g = rv.dropna(subset=["effect"]).groupby("year", as_index=False)["effect"].sum()
-        g = g.sort_values("year", key=lambda s: s.map(ystart))
-        fig = go.Figure(go.Bar(x=g["year"], y=g["effect"], marker_color=[GREEN if v >= 0 else RED for v in g["effect"]], marker_line_width=0,
-                               text=[f"{v:+.1f}" for v in g["effect"]], textposition="outside"))
-        _fig(fig, height=300, legend=False).update_layout(hovermode="closest")
-        card(f"Net effect of our revisions on the {unit}", "m bags · by crop year · more supply or less use raises it")
-        st.plotly_chart(fig, width="stretch", key="rv_net")
-    with right, st.container(border=True):
-        c1, c2, c3 = st.columns(3)
-        groups = sorted(rv["group"].unique())
-        group = c1.selectbox("Commodity" if dataset == "Coffee SnD" else "Set", groups, key="rv_group")
-        sub = rv[rv["group"] == group]
-        item = c2.selectbox("Item", sorted(sub["item"].unique()), key="rv_item")
-        sub = sub[sub["item"] == item]
-        years = sorted(sub["year"].unique(), key=ystart)
-        year = c3.selectbox("Crop year", years, index=len(years) - 1, key="rv_year")
-        p = sub[sub["year"] == year].sort_values("when")
-        card(f"{group} {item} {year}: path of the estimate", "each point is a saved revision")
-        xs = [p["when"].iloc[0] - pd.Timedelta(seconds=1)] + list(p["when"])
-        ys = [p["old"].iloc[0]] + list(p["new"])
-        fig = go.Figure(go.Scatter(x=xs, y=ys, mode="lines+markers", line=dict(color=NAVY, width=2.2, shape="hv"), marker=dict(size=7)))
-        _fig(fig, height=220, legend=False).update_layout(hovermode="closest", xaxis=dict(type="date", showgrid=False))
-        st.plotly_chart(fig, width="stretch", key="rv_path")
+    with st.container(border=True):
+        c1, c2, c3, _ = st.columns([1.2, 1.4, 2, 4], vertical_alignment="bottom")
+        years = sorted(rv["year"].unique(), key=ystart)
+        year = c1.selectbox("Crop year", years, index=len(years) - 1, key="rv_year")
+        groups = ["All"] + sorted(rv["group"].unique()) if dataset == "Coffee SnD" else ["All"]
+        group = c2.selectbox("Commodity", groups, key="rv_group") if len(groups) > 1 else "All"
+        mode = c3.radio("Show", ["Change vs first estimate", "Level"], horizontal=True, key="rv_mode")
+        sub = rv[rv["year"] == year]
+        if group != "All":
+            sub = sub[sub["group"] == group]
+        card(f"How every estimate for {year} was revised", "each line is one origin or item · each point is a saved revision")
+        st.plotly_chart(revision_lines(sub, mode == "Level", dataset == "Coffee SnD" and group == "All"), width="stretch", key="rv_lines")
     last = rv.sort_values("when", ascending=False).head(30)
     body = "".join(f"<tr><td class='lbl'>{r.when:%d %b %Y %H:%M}</td><td class='lbl'>{r.group} {r.item}</td><td>{r.year}</td>"
                    f"<td>{fnum(r.old)}</td><td>{fnum(r.new)}</td>"
