@@ -1,49 +1,42 @@
 # Global SnD
 
-Supply and demand balances, starting with coffee: the "SnD ETG" table (Arabica, Robusta, Global), crop year Jul-Jun, million 60 kg bags.
+Supply and demand balances, starting with coffee: the "SnD ETG" table (Arabica, Robusta, Global), the Brazil internal SnD, analytics and a revision log.
+Crop year Jul-Jun, million 60 kg bags. Run from the project root: `streamlit run Dashboard/app.py`.
+
+## Sections (sidebar)
+
+- **Coffee** - the SnD table. Mode **Edit** makes the input cells (origins, consumption) editable in place in the same table; the calculated rows
+  follow as you type; one Save writes to GitHub. The first-year end stock is under the table.
+- **Brazil** - Arabica, Conillon and overall Brazil, plus the AgriAcies-format tables. Same in-place Edit mode.
+- **Analytics** - Balance bridge, Stocks to use (history bands, S/U gap vs the arb), Supply mix, Correlations (S/U gap vs arb, origin co-movement,
+  Brazil on/off years), Growth, Scenario (what-if, nothing saved).
+- **Revisions** - every saved change to the inputs (Coffee or Brazil) and its effect, read from the GitHub save history.
+
+Estimates follow today's date: the crop year that is running and every later one is starred and shaded.
 
 ## Structure
 
-- `Dashboard/app.py` - Streamlit app (run from the project root: `streamlit run Dashboard/app.py`). Sidebar: Entry, Coffee.
-  - `snd.py` - the Coffee page (the SnD table and three charts) and the Entry page. `ghstore.py` - saves Entry changes to GitHub
-    (needs `github_token` in Secrets, see `.streamlit/secrets.toml.example`).
-- `Database/coffee_snd.csv` - the inputs: each origin's production and the consumption, per crop year (commodity, item, year, value).
-- `Database/coffee_snd_meta.json` - end stock of the first year (the starting point of the stock roll), per commodity.
-- `Database/coffee_snd_notes.csv` - the analyst comments from the sheet's cells (shown as a purple corner, text on hover).
-- `Database/coffee_su_history.csv` - the sheet's right-hand block: Arabica and Robusta S/U since 2006/07 and the arb (end June and Jul-Jun average).
-- `Dashboard/analytics.py` - the Analytics section (see below).
-- `Dashboard/brazil.py` + `Database/brazil_snd.csv`, `brazil_agri.csv`, `brazil_meta.json` - the Brazil internal SnD page (Arabica, Conillon, overall Brazil, and the AgriAcies-format tables), seeded by `Automator/build_brazil_snd.py` from the sheet "Brazil internal SnD".
-- `Automator/build_coffee_snd.py` - one-off seed from `Archives/coffee.xlsx` (sheet "Coffee SnD ETG"). `Archives/` stays local.
+- `Dashboard/app.py` - shell, theme, optional password gate. `snd.py` (Coffee page), `brazil.py`, `analytics.py`, `revisions.py`.
+  `tableedit.py` + `snd_table_component/` - the small Streamlit component that makes the styled table editable. `ghstore.py` - saves to GitHub.
+- `Database/coffee_snd.csv` (inputs), `coffee_snd_meta.json` (first-year end stock), `coffee_snd_notes.csv` (analyst comments, purple corner),
+  `coffee_su_history.csv` (S/U since 2006/07 and the arb), `brazil_snd.csv`, `brazil_agri.csv`, `brazil_meta.json`.
+- `Automator/build_coffee_snd.py`, `build_brazil_snd.py` - one-off seeds from `Archives/coffee.xlsx` (stays local). If Excel has the workbook open it is locked:
+  close it or pass a copy.
 
 ## How it is worked out
 
-Same as the Excel sheet: production = sum of the origins, balance = production - consumption, end stock = last year's end stock + balance,
-S/U = end stock / consumption, global = Arabica + Robusta, 2 year cycle = balance of the two years in a pair (2016/18, 2018/20, ...).
-Only the inputs are stored; everything else is calculated, so a changed origin number flows through the whole table.
+Only inputs are stored; everything else is calculated like the Excel sheets (checked against Excel's own numbers): production = sum of origins, balance =
+production - consumption, end stock = last year's + balance, S/U = end stock / consumption, global = Arabica + Robusta. Brazil production comes from the
+SnD sheet unless the Brazil sheet has its own; Brazil consumption after 2020/21 = (1 - Conillon demand %) or the Conillon demand % times overall consumption.
+Differences from the Excel: Arabica 2027/28 production (sheet typed 98.4, origins add up to 95.2), the blank 2027/28 Conillon stock change, and two
+buggy rows of the Overall Brazil block that are not reproduced.
 
-## Updating
+## Deploying
 
-Type changes on the Entry page (each commodity: origins, consumption, plus the first-year end stock).
-It saves to GitHub and the app reloads. Old Excel hard-codes are not copied: for example the sheet's 2027/28 Arabica production was typed as
-98.4 while its origins add up to 95.2, so the dashboard shows 95.2.
-
-## Analytics
-
-Balance bridge (what moved the balance, origin by origin), Stocks to use (today's S/U against its history with bands, and the Arabica
-minus Robusta S/U gap against the arb), Growth (production vs consumption growth), Scenario (change production by origin or consumption and
-see balance, stocks and S/U move; nothing is saved) and Revisions (a log of every saved change and its effect on the balance, read from the
-GitHub save history, so it needs `github_token`).
-
-The Coffee page has an Edit mode (sidebar) that makes the inputs editable in place, with the calculated rows updating as you type.
+Streamlit Cloud, main file `Dashboard/app.py`. Secrets (see `.streamlit/secrets.toml.example`): `github_token` (Contents read/write on this repo) lets Edit mode save,
+and `[auth] password` asks for a password before anything is shown. Set the password: without it, anyone with the URL can edit the numbers.
+A save commits to GitHub, which redeploys the app.
 
 ## Next
 
-Other sheets of the workbook (Brazil internal SnD, Coffee production per region, AgriAcies mimic) can become further pages.
-
-Estimates follow today's date: the crop year (Jul-Jun) that is running and every later one is starred and shaded, years that have finished are not.
-
-## Brazil internal SnD
-
-Same rules as the sheet: Brazil production comes from the SnD ETG sheet unless the Brazil sheet has its own number for the year; consumption is typed up to 2020/21 and from 2021/22 is (1 - Conillon demand %) or the Conillon demand % times the overall Brazil consumption; stock change = production - exports - consumption; closing stock rolls forward from the first year. Every calculated row was checked against Excel's own numbers. One difference: the sheet leaves the 2027/28 Conillon stock change blank, so its closing stock stays at 3.9; the dashboard calculates it (+2.8, closing 6.7). The sheet's rows "All Coffee Production" and "Overall Consumption Brazil" at the bottom of the Overall block add the wrong cells and are not reproduced (the same figures are in the Conillon block).
-
-Edit mode (sidebar, Coffee and Brazil pages) edits the table itself: the input cells are typed over in place (Enter to commit, Escape to cancel), the calculated rows are rebuilt from the edits as you go, and one Save writes to GitHub. The editable table is a small Streamlit component in `Dashboard/snd_table_component`.
+The "AgriAcies mimic" sheet has the Brazil layout with AgriAcies's inputs and the Conillon block on an Apr-Mar crop year; "Coffee Production per region" is another sheet.

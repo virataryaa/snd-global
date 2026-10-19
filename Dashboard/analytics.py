@@ -4,16 +4,13 @@ growth, a what-if scenario, and the log of how our estimates were revised.
 Everything is calculated from the same inputs as the SnD table (Database/coffee_snd.csv) plus the sheet's S/U history and arb block
 (Database/coffee_su_history.csv).
 """
-import re
-
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-import ghstore as gh
 import snd
-from snd import (AMBER, AXIS, GREEN, GREY, INK, NAVY, ORIGINS, RED, TEAL, block, fnum, fpct, global_block, load, ystart)
+from snd import AMBER, AXIS, GREEN, NAVY, ORIGINS, RED, TEAL, block, fnum, fpct, global_block, load, ystart
 
 SU_HIST = snd.ROOT / "Database" / "coffee_su_history.csv"
 CSS = """
@@ -23,7 +20,7 @@ table.snd span.dl.up { color: #1f9d6f; } table.snd span.dl.dn { color: #c0392b; 
 .an-note { color: #64748b; font-size: 12.5px; margin: 2px 0 10px; }
 </style>
 """
-VIEWS = ["Balance bridge", "Stocks to use", "Growth", "Scenario", "Revisions"]
+VIEWS = ["Balance bridge", "Stocks to use", "Supply mix", "Correlations", "Growth", "Scenario"]
 
 
 @st.cache_data(ttl=600)
@@ -167,9 +164,8 @@ def view_growth(frames, glob, years, meta):
 
 # ── 5. Scenario ─────────────────────────────────────────────────────────────────────────────────────────────
 def _reset_scenario():
-    for k in [k for k in st.session_state if str(k).startswith("sc_")]:
-        if k != "sc_years":
-            st.session_state[k] = 0.0
+    for k in [k for k in st.session_state if str(k).startswith(("sc_p_", "sc_c_"))]:           # the number boxes only (not the buttons)
+        st.session_state[k] = 0.0
 
 
 def view_scenario(df, meta, years):
@@ -234,76 +230,147 @@ def view_scenario(df, meta, years):
         st.plotly_chart(fig, width="stretch", key="sc_chart")
 
 
-# ── 8. Revisions ────────────────────────────────────────────────────────────────────────────────────────────
-REV = re.compile(r"^(Arabica|Robusta) (.+) (\d{4}/\d{2}): (.*) -> (.*)$")
+# ── Supply mix ──────────────────────────────────────────────────────────────────────────────────────────────
+MIX_COLORS = ["#0a2463", "#3e5fa8", "#7f9bd1", "#1f8a9c", "#8fc7d0", "#b7791f", "#94a3b8"]
 
 
-def _val(t):
-    t = t.strip()
-    return np.nan if t in ("", "-") else float(t)
-
-
-@st.cache_data(ttl=300, show_spinner=False)
-def _revisions(_token_ok: bool) -> pd.DataFrame:
-    rows = []
-    for ts, msg in gh.history(snd.CSV_PATH):
-        first, _, body = msg.partition("\n")
-        if not first.startswith("Coffee SnD |"):
-            continue
-        for ln in body.splitlines():
-            m = REV.match(ln.strip())
-            if m:
-                rows.append((pd.Timestamp(ts), m.group(1), m.group(2), m.group(3), _val(m.group(4)), _val(m.group(5))))
-    return pd.DataFrame(rows, columns=["when", "commodity", "item", "year", "old", "new"])
-
-
-def view_revisions(years, meta):
-    if not gh.enabled():
-        st.markdown("<div class='an-note'>The revision log is read from the GitHub save history. Add github_token in Secrets to see it.</div>", unsafe_allow_html=True)
-        return
-    try:
-        rv = _revisions(True)
-    except Exception as ex:
-        st.markdown(f"<div class='an-note'>Not available: {ex}</div>", unsafe_allow_html=True)
-        return
-    if rv.empty:
-        st.markdown("<div class='an-note'>No revisions saved yet. Every change saved on the Entry page or in Edit mode is logged here.</div>", unsafe_allow_html=True)
-        return
-    rv = rv.assign(delta=(rv["new"].fillna(0) - rv["old"].fillna(0)), cons=rv["item"] == "Consumption")
-    rv["balance_effect"] = np.where(rv["cons"], -rv["delta"], rv["delta"])
-    left, right = st.columns([1, 1], gap="small")
+def view_mix(frames, years, meta):
+    scope = st.radio("Commodity", ["Arabica", "Robusta"], horizontal=True, key="an_mix_scope", label_visibility="collapsed")
+    fr = frames[scope]
+    short = [y[2:] for y in years]
+    est = [snd.is_estimate(y) for y in years]
+    left, right = st.columns([1.3, 1], gap="small")
     with left, st.container(border=True):
-        g = rv.groupby("year", as_index=False)["balance_effect"].sum().sort_values("year", key=lambda s: s.map(ystart))
-        fig = go.Figure(go.Bar(x=g["year"], y=g["balance_effect"], marker_color=[GREEN if v >= 0 else RED for v in g["balance_effect"]],
-                               marker_line_width=0, text=[f"{v:+.1f}" for v in g["balance_effect"]], textposition="outside"))
-        _fig(fig, height=320, legend=False).update_layout(hovermode="closest")
-        card("Net effect of our revisions on the balance", "m bags · production up or consumption down raises the balance")
-        st.plotly_chart(fig, width="stretch", key="rv_net")
+        fig = go.Figure()
+        for o, col in zip(ORIGINS[scope], MIX_COLORS):
+            fig.add_trace(go.Bar(x=short, y=fr.loc[o, years], name=o, marker=dict(color=col, opacity=[0.5 if e else 1 for e in est], line_width=0)))
+        _fig(fig, height=360).update_layout(barmode="stack", bargap=0.25)
+        card(f"{scope} production by origin", "m bags · lighter bars = estimates")
+        st.plotly_chart(fig, width="stretch", key="mix_stack")
     with right, st.container(border=True):
-        c1, c2, c3 = st.columns(3)
-        comm = c1.selectbox("Commodity", list(ORIGINS), key="rv_comm")
-        items = ORIGINS[comm] + ["Consumption"]
-        item = c2.selectbox("Item", items, key="rv_item")
-        sub = rv[(rv["commodity"] == comm) & (rv["item"] == item)]
-        yrs = sorted(sub["year"].unique(), key=ystart) or years[-1:]
-        year = c3.selectbox("Crop year", yrs, index=len(yrs) - 1, key="rv_year")
-        p = sub[sub["year"] == year].sort_values("when")
-        card(f"{comm} {item} {year}: path of the estimate", "each point is a saved revision")
-        if p.empty:
-            st.markdown("<div class='an-note'>No revisions for this one yet.</div>", unsafe_allow_html=True)
+        prod = fr.loc["Production", years]
+        shares = fr.loc[ORIGINS[scope][:-1], years].div(prod, axis=1) * 100                 # named origins, not 'Others'
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=short, y=shares.loc["Brazil"], name="Brazil share", mode="lines+markers", line=dict(color=NAVY, width=2.2), marker=dict(size=5)))
+        top3 = shares.apply(lambda c: c.nlargest(3).sum(), axis=0)
+        fig.add_trace(go.Scatter(x=short, y=top3, name="Top 3 origins", mode="lines+markers", line=dict(color=AMBER, width=2.2), marker=dict(size=5)))
+        _fig(fig, height=360, fmt=".1f").update_layout(yaxis_ticksuffix="%")
+        card(f"How concentrated {scope} supply is", "share of production, % · a high Brazil share means a Brazil crop moves the whole balance")
+        st.plotly_chart(fig, width="stretch", key="mix_share")
+        st.markdown(f"<div class='an-note'>Brazil is {shares.loc['Brazil', years[-1]]:.0f}% of {scope} production in {years[-1]} "
+                    f"(average {shares.loc['Brazil'].mean():.0f}% since {years[0]}).</div>", unsafe_allow_html=True)
+
+
+# ── Correlations ────────────────────────────────────────────────────────────────────────────────────────────
+def _fit(x, y):
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    m = np.isfinite(x) & np.isfinite(y)
+    x, y = x[m], y[m]
+    if len(x) < 4 or np.std(x) == 0:
+        return None
+    slope, icpt = np.polyfit(x, y, 1)
+    r = float(np.corrcoef(x, y)[0, 1])
+    return dict(slope=float(slope), icpt=float(icpt), r=r, n=len(x), x=x, y=y)
+
+
+def _strength(r):
+    a = abs(r)
+    return "weak" if a < 0.3 else "moderate" if a < 0.6 else "strong"
+
+
+def _heat(z: pd.DataFrame, height=380):
+    fig = go.Figure(go.Heatmap(z=z.values, x=list(z.columns), y=list(z.index), zmin=-1, zmax=1, xgap=1, ygap=1,
+                               colorscale=[[0, "#c0392b"], [0.5, "#ffffff"], [1, "#0a2463"]], text=np.round(z.values, 2),
+                               texttemplate="%{text}", textfont=dict(size=10), hovertemplate="%{y} vs %{x}: %{z:.2f}<extra></extra>",
+                               colorbar=dict(thickness=8, len=0.8)))
+    _fig(fig, height=height, legend=False).update_layout(hovermode="closest", yaxis=dict(autorange="reversed", showgrid=False),
+                                                         xaxis=dict(tickangle=-40, showgrid=False))
+    return fig
+
+
+def _scatter(fit, labels, xt, yt, height=360):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=fit["x"], y=fit["y"], mode="markers+text", text=labels, textposition="top center", textfont=dict(size=9, color=AXIS),
+                             marker=dict(size=8, color=NAVY), hovertemplate="%{text}: %{x:.2f}, %{y:.2f}<extra></extra>"))
+    xs = np.linspace(fit["x"].min(), fit["x"].max(), 20)
+    fig.add_trace(go.Scatter(x=xs, y=fit["slope"] * xs + fit["icpt"], mode="lines", line=dict(color=AMBER, width=2, dash="dot"), hoverinfo="skip"))
+    _fig(fig, height=height, legend=False).update_layout(hovermode="closest", xaxis=dict(title=xt, type="linear", showgrid=True, gridcolor="rgba(15,23,42,0.06)"),
+                                                         yaxis=dict(title=yt, gridcolor="rgba(15,23,42,0.06)"))
+    return fig
+
+
+def view_corr(frames, glob, years, meta):
+    hist = load_su()
+    cur = ystart(snd.current_crop_year())
+    su = {c: _su_series(c, frames, years, hist) for c in ORIGINS}
+    allyears = sorted(set(su["Arabica"].index) | set(hist["year"]), key=ystart)
+    D = pd.DataFrame(index=allyears)
+    D["Arabica S/U"], D["Robusta S/U"] = su["Arabica"].reindex(allyears) * 100, su["Robusta"].reindex(allyears) * 100
+    D["S/U gap (A-R)"] = D["Arabica S/U"] - D["Robusta S/U"]
+    h = hist.set_index("year")
+    D["Arb, Jul-Jun avg"], D["Arb, end Jun"] = h["arb_avg"].reindex(allyears), h["arb_end_jun"].reindex(allyears)
+    actual = D[[ystart(y) < cur for y in D.index]]
+
+    top_l, top_r = st.columns(2, gap="small")
+    with top_l, st.container(border=True):
+        mode = st.radio("Mode", ["Changes", "Levels"], horizontal=True, key="an_co_mode", label_visibility="collapsed")
+        if mode == "Changes":
+            dx, dy = actual["S/U gap (A-R)"].diff(), actual["Arb, Jul-Jun avg"].diff()
+            fit, lab = _fit(dx, dy), [y[2:] for y, a, b in zip(actual.index, dx, dy) if np.isfinite(a) and np.isfinite(b)]
+            xt, yt, ttl = "change in S/U gap (pp)", "change in arb", "Does a widening S/U gap move the arb?"
         else:
-            xs = [p["when"].iloc[0] - pd.Timedelta(seconds=1)] + list(p["when"])
-            ys = [p["old"].iloc[0]] + list(p["new"])
-            fig = go.Figure(go.Scatter(x=xs, y=ys, mode="lines+markers", line=dict(color=NAVY, width=2.2, shape="hv"), marker=dict(size=7)))
-            _fig(fig, height=250, legend=False).update_layout(hovermode="closest", xaxis=dict(type="date", color=AXIS, showgrid=False))
-            st.plotly_chart(fig, width="stretch", key="rv_path")
-    last = rv.sort_values("when", ascending=False).head(25)
-    body = "".join(f"<tr><td class='lbl'>{r.when:%d %b %Y %H:%M}</td><td class='lbl'>{r.commodity} {r.item}</td><td>{r.year}</td>"
-                   f"<td>{fnum(r.old)}</td><td>{fnum(r.new)}</td><td class='{'neg' if r.balance_effect < 0 else ''}'>{r.balance_effect:+.1f}</td></tr>"
-                   for r in last.itertuples())
-    st.markdown("<div class='snd-bar'>Latest revisions</div><div class='snd-wrap' style='border-radius:0 0 8px 8px;margin-top:0'><table class='snd'>"
-                "<tr><th class='y first'>When</th><th class='y first'>Item</th><th class='y'>Year</th><th class='y'>Was</th><th class='y'>Now</th>"
-                f"<th class='y'>Balance effect</th></tr>{body}</table></div>", unsafe_allow_html=True)
+            fit, lab = _fit(actual["S/U gap (A-R)"], actual["Arb, Jul-Jun avg"]), [y[2:] for y, a, b in zip(actual.index, actual["S/U gap (A-R)"], actual["Arb, Jul-Jun avg"]) if np.isfinite(a) and np.isfinite(b)]
+            xt, yt, ttl = "S/U gap, Arabica minus Robusta (pp)", "arb, Jul-Jun average", "S/U gap against the arb level"
+        card(ttl, "each dot is a crop year with an arb number (the sheet has them to 2021/22)")
+        if fit is None:
+            st.markdown("<div class='an-note'>Not enough years with both numbers.</div>", unsafe_allow_html=True)
+        else:
+            st.plotly_chart(_scatter(fit, lab, xt, yt), width="stretch", key="co_scatter")
+            note = f"r = {fit['r']:+.2f} ({_strength(fit['r'])}), R² = {fit['r'] ** 2:.2f}, {fit['n']} years."
+            if mode == "Changes":
+                nxt = D["S/U gap (A-R)"].diff()[[y for y in D.index if ystart(y) >= cur][:1]]
+                if len(nxt) and np.isfinite(nxt.iloc[0]):
+                    note += f" {nxt.index[0]}: gap moves {nxt.iloc[0]:+.1f}pp, which the fit maps to an arb move of {fit['slope'] * nxt.iloc[0]:+.0f} (indicative only)."
+            st.markdown(f"<div class='an-note'>{note}</div>", unsafe_allow_html=True)
+    with top_r, st.container(border=True):
+        z = actual.corr(min_periods=5)
+        card("Correlation of the levels", "all crop years that have both numbers · 1 = move together, -1 = opposite")
+        st.plotly_chart(_heat(z, 360), width="stretch", key="co_heat1")
+
+    bot_l, bot_r = st.columns(2, gap="small")
+    with bot_l, st.container(border=True):
+        act_years = [y for y in years if ystart(y) < cur]
+        cols = {}
+        for comm in ORIGINS:
+            for o in ORIGINS[comm][:-1]:
+                cols[f"{o} ({comm[0]})"] = frames[comm].loc[o, act_years].pct_change(fill_method=None)
+        G = pd.DataFrame(cols).dropna(how="all")
+        card("Do origins' crops move together?", f"correlation of production growth, {G.index[0]} to {G.index[-1]} ({len(G)} years: a small sample, read as a guide)")
+        st.plotly_chart(_heat(G.corr(min_periods=5), 400), width="stretch", key="co_heat2")
+    with bot_r, st.container(border=True):
+        import brazil
+        inp, bmeta, _agri, byears = brazil.load()
+        ea, er = brazil.etg_brazil(byears)
+        _A, _C, _O, eff = brazil.compute(inp, ea, er, byears, bmeta)
+        prod = eff["Arabica production"]
+        g = prod.pct_change(fill_method=None) * 100
+        ys = [y for y in byears if ystart(y) < cur]
+        gx, gy = g.shift(1)[ys], g[ys]
+        fit = _fit(gx.values, gy.values)
+        card("Brazil Arabica on and off years", "growth this year against growth the year before · a negative slope is the biennial cycle")
+        if fit is None:
+            st.markdown("<div class='an-note'>Not enough history.</div>", unsafe_allow_html=True)
+        else:
+            lab = [y[2:] for y, a, b in zip(ys, gx, gy) if np.isfinite(a) and np.isfinite(b)]
+            st.plotly_chart(_scatter(fit, lab, "growth the year before (%)", "growth this year (%)"), width="stretch", key="co_cycle")
+            last = ys[-1]
+            nxt = [y for y in byears if ystart(y) >= cur][:1]
+            note = f"slope {fit['slope']:+.2f}, r = {fit['r']:+.2f} ({_strength(fit['r'])}), {fit['n']} years."
+            if nxt and np.isfinite(g[last]):
+                implied = fit["slope"] * g[last] + fit["icpt"]
+                note += (f" After {last} ({g[last]:+.0f}%) the cycle implies about {implied:+.0f}% for {nxt[0]}; "
+                         f"our estimate is {g[nxt[0]]:+.0f}% ({prod[nxt[0]]:.1f}m bags).")
+            st.markdown(f"<div class='an-note'>{note}</div>", unsafe_allow_html=True)
 
 
 # ── Page ──────────────────────────────────────────────────────────────────────
@@ -318,9 +385,11 @@ def render():
         view_bridge(frames, years, meta)
     elif view == "Stocks to use":
         view_su(frames, years, meta)
+    elif view == "Supply mix":
+        view_mix(frames, years, meta)
+    elif view == "Correlations":
+        view_corr(frames, glob, years, meta)
     elif view == "Growth":
         view_growth(frames, glob, years, meta)
-    elif view == "Scenario":
-        view_scenario(df, meta, years)
     else:
-        view_revisions(years, meta)
+        view_scenario(df, meta, years)

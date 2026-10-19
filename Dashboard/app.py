@@ -4,6 +4,7 @@ st.set_page_config(page_title="Global SnD", layout="wide", initial_sidebar_state
 
 import analytics  # noqa: E402  (after set_page_config)
 import brazil  # noqa: E402
+import revisions  # noqa: E402
 import snd  # noqa: E402
 
 # Strict light theme: CSS hard-codes colours, no prefers-color-scheme,
@@ -39,13 +40,11 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 [data-testid="stVerticalBlockBorderWrapper"]:has(> div > [data-testid="stVerticalBlock"]) {
     background: #ffffff; border: 1px solid #e6e9f0 !important; border-radius: 12px; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
 
-/* Sidebar: quiet section switch (Entry stays the one warm accent) */
+/* Sidebar: quiet section switch */
 [data-testid="stSidebarUserContent"] { padding-top: 1.2rem !important; }
 [data-testid="stSidebar"] .st-key-sec_nav div[role="radiogroup"] { display: flex; flex-direction: column; align-items: stretch; width: 100%; border-radius: 10px; padding: 3px; gap: 2px; }
 [data-testid="stSidebar"] .st-key-sec_nav div[role="radiogroup"] label { padding: 7px 14px !important; }
 [data-testid="stSidebar"] .st-key-sec_nav div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 13.5px !important; }
-[data-testid="stSidebar"] .st-key-sec_nav div[role="radiogroup"] label:first-of-type:has(input:checked) { background: #fff1e6 !important; }
-[data-testid="stSidebar"] .st-key-sec_nav div[role="radiogroup"] label:first-of-type:has(input:checked) p { color: #c2410c !important; }
 [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p { font-size: 10px !important; font-weight: 600; letter-spacing: .1em;
     text-transform: uppercase; color: #8fa3d1 !important; }
 [data-testid="stSidebar"] div[role="radiogroup"] { background: rgba(255,255,255,.08); }
@@ -74,8 +73,28 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
     unsafe_allow_html=True,
 )
 
-# Widgets that are not drawn in a run lose their value (e.g. the Years filter while Entry is open): keep a copy.
-KEEP = ["section", "snd_span", "snd_mode", "en_comm", "an_view", "an_su_comm", "an_br_scope", "an_gr_scope", "br_span", "br_mode", "br_view"]
+# Widgets that are not drawn in a run lose their value (e.g. the Years filter while another section is open): keep a copy.
+def _gate():
+    """If Secrets has [auth] password, ask for it before showing anything: the Edit mode can push to GitHub, so a public URL must not be enough."""
+    try:
+        pw = st.secrets.get("auth", {}).get("password")
+    except Exception:
+        pw = None
+    if not pw or st.session_state.get("_authed"):
+        return
+    st.markdown("<div class='page-title' style='margin-top:12vh'>Global SnD</div>", unsafe_allow_html=True)
+    typed = st.text_input("Password", type="password", key="_pw_input")
+    if typed and typed == pw:
+        st.session_state["_authed"] = True
+        st.rerun()
+    elif typed:
+        st.error("Wrong password.")
+    st.stop()
+
+
+_gate()
+
+KEEP = ["section", "snd_span", "snd_mode", "an_view", "an_su_comm", "an_br_scope", "an_gr_scope", "an_mix_scope", "an_co_mode", "br_span", "br_mode", "br_view", "rv_set"]
 for _k in KEEP:
     if _k not in st.session_state and f"_keep_{_k}" in st.session_state:
         st.session_state[_k] = st.session_state[f"_keep_{_k}"]
@@ -84,14 +103,14 @@ with st.sidebar:
     st.markdown("<div class='sb-title'>Global SnD</div>", unsafe_allow_html=True)
     st.markdown("<div class='sb-label'>Section</div>", unsafe_allow_html=True)
     with st.container(key="sec_nav"):
-        section = st.radio("Section", ["Entry", "Coffee", "Brazil", "Analytics"], index=1, label_visibility="collapsed", key="section")
+        section = st.radio("Section", ["Coffee", "Brazil", "Analytics", "Revisions"], index=0, label_visibility="collapsed", key="section")
 
-if section == "Entry":
-    snd.render_entry()
-elif section == "Brazil":
+if section == "Brazil":
     brazil.render()
 elif section == "Analytics":
     analytics.render()
+elif section == "Revisions":
+    revisions.render()
 else:
     snd.render()
 

@@ -14,5 +14,5 @@ def css_of(style_block: str) -> str:
     return FONT + re.sub(r"</?style>", "", style_block)
 
 
-def editable_table(html: str, css: str, key: str, epoch: int, editable: bool = True):
-    return _COMP(html=html, css=css, editable=editable, epoch=epoch, key=key, default={})
+def editable_table(html: str, css: str, key: str, epoch: int, editable: bool = True, edits=None):
+    return _COMP(html=html, css=css, editable=editable, epoch=epoch, edits=edits or {}, key=key, default={})

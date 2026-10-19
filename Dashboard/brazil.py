@@ -8,7 +8,6 @@ Inputs live in Database/brazil_snd.csv (hard-coded cells of the Excel sheet); ev
 """
 import io
 import json
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -209,19 +208,10 @@ def agri_html(agri: pd.DataFrame) -> str:
 
 
 # ── Editing helpers ───────────────────────────────────────────────────────────
-def _num(t):
-    return snd._num(t)
-
-
 def _show(series, v):
     if v is None or pd.isna(v):
         return ""
     return f"{v * 100:g}" if series in PCT_SERIES else f"{v:g}"
-
-
-def _parse(series, txt):
-    v = _num(txt)
-    return None if v is None else (v / 100 if series in PCT_SERIES else v)
 
 
 def _apply(inp, changes):
@@ -249,73 +239,54 @@ def _save(changes):
     load.clear()
 
 
-def _grid(eff, years):
-    return pd.DataFrame({y: [_show(s, eff[s][y]) for s in SERIES] for y in years}, index=SERIES)
-
-
-def _changes(g, after, years):
-    out = []
-    for s in SERIES:
-        for y in years:
-            o, n = _parse(s, g.loc[s, y]), _parse(s, after.loc[s, y])
-            if o != n:
-                out.append((s, y, o, n))
-    return out
-
-
-def _editor(eff, years, editable, key):
-    g = _grid(eff, years)
-    cols = {y: st.column_config.TextColumn(f"{short(y)}{'*' if snd.is_estimate(y) else ''}", alignment="right", width=72) for y in years}
-    cols["_index"] = st.column_config.TextColumn("", width=170)
-    after = st.data_editor(g, column_config=cols, disabled=not editable, width="stretch", row_height=28, height=len(g) * 28 + 40, key=key)
-    try:
-        return g, after, _changes(g, after, years)
-    except ValueError:
-        st.error("Numbers only.")
-        return g, after, None
-
-
-def _save_controls(changes, keys, prefix):
-    bc = st.columns([1, 1, 6], vertical_alignment="center")
-    save = bc[0].button("Save", type="primary", disabled=not changes, width="stretch", key=f"{prefix}_save")
-    if bc[1].button("Undo", disabled=not changes, width="stretch", key=f"{prefix}_undo"):
-        for k in keys:
-            st.session_state.pop(k, None)
-        st.rerun()
-    if changes:
-        bc[2].markdown(f"<div class='card-desc' style='margin:0'>{len(changes)} unsaved cell(s).</div>", unsafe_allow_html=True)
-    if save:
-        try:
-            with st.spinner("Saving..."):
-                _save(changes)
-        except (gh.GitHubError, Exception) as ex:
-            st.error(f"GitHub save failed: {ex}")
-        else:
-            for k in keys:
-                st.session_state.pop(k, None)
-            st.session_state["en_flash"] = f"Saved {len(changes)} change(s)."
-            st.rerun()
-
-
 # ── Page ──────────────────────────────────────────────────────────────────────
 def _undo():
     st.session_state["br_epoch"] = st.session_state.get("br_epoch", 0) + 1
+    st.session_state["_br_edits"] = {}
     try:
         st.session_state["br_tbl"] = {}
     except Exception:
         pass
 
 
+def _opening_controls(meta, years, editable):
+    """The first year's closing stock of Arabica and Conillon (where the stock roll starts)."""
+    with st.expander("First-year closing stock", expanded=False):
+        c = st.columns([1.2, 1.2, 1, 4], vertical_alignment="bottom")
+        old = dict(meta["opening"])
+        new = {k: c[i].number_input(f"{k} {short(years[0])} (m bags)", min_value=0.0, value=float(old[k]), step=0.1, format="%.1f",
+                                    key=f"br_open_{k}", disabled=not editable) for i, k in enumerate(["Arabica", "Conillon"])}
+        if c[2].button("Save", disabled=(not editable) or all(abs(new[k] - old[k]) < 1e-9 for k in new), width="stretch", key="br_open_save"):
+            try:
+                with st.spinner("Saving..."):
+                    def apply(text):
+                        d = json.loads(text)
+                        d["opening"] = {k: round(float(v), 4) for k, v in new.items()}
+                        return json.dumps(d, indent=2) + "\n", None
+                    text, _ = gh.commit(META_PATH, apply, f"Setting | Brazil opening stocks: {old} -> {new}")
+                    with open(META, "w", encoding="utf-8", newline="") as f:
+                        f.write(text)
+                    load.clear()
+            except (gh.GitHubError, Exception) as ex:
+                st.error(f"GitHub save failed: {ex}")
+            else:
+                st.session_state["en_flash"] = "Opening stocks saved."
+                st.rerun()
+
+
 def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     """Edit mode: the table itself, input cells typed over in place; the calculated rows follow the edits. One Save."""
     import tableedit
     epoch = st.session_state.setdefault("br_epoch", 0)
-    edits = st.session_state.get("br_tbl") or {}
+    edits = st.session_state.get("br_tbl")                       # see snd.render_edit: keep a copy across View / Edit switches
+    if edits is None:
+        edits = st.session_state.get("_br_edits", {})
     base = {f"{s}|{y}": float(eff[s][y]) for s in SERIES for y in years if pd.notna(eff[s][y])}
     changes = [(k.split("|")[0], k.split("|")[1], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
     A, C, O, _eff = compute(_apply(inp, changes), etg_a, etg_r, years, meta)
     table = full_table(A, C, O, years, edit=dict(base=base, changed=set(edits)))
-    tableedit.editable_table(table, tableedit.css_of(snd.CSS), "br_tbl", epoch, editable)
+    tableedit.editable_table(table, tableedit.css_of(snd.CSS), "br_tbl", epoch, editable, edits)
+    st.session_state["_br_edits"] = dict(edits)
     if not editable:
         st.markdown("<div class='card-desc'>Read-only: add github_token in Secrets to edit.</div>", unsafe_allow_html=True)
         return
@@ -337,6 +308,7 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
             _undo()
             st.session_state["en_flash"] = f"Saved {len(changes)} change(s)."
             st.rerun()
+    _opening_controls(meta, years, True)
 
 
 def render():
@@ -361,42 +333,3 @@ def render():
         edit_view(inp, meta, etg_a, etg_r, years, eff, gh.enabled())
         return
     st.markdown(full_table(A, C, O, shown), unsafe_allow_html=True)
-
-
-def render_entry():
-    st.markdown(snd.CSS, unsafe_allow_html=True)
-    inp, meta, _agri, years = load()
-    etg_a, etg_r = etg_brazil(years)
-    _A, _C, _O, eff = compute(inp, etg_a, etg_r, years, meta)
-    editable = gh.enabled()
-    with st.container(border=True):
-        st.markdown("<div class='card-title'>Brazil inputs <span class='pill'>m bags · demand % as percent</span></div>", unsafe_allow_html=True)
-        key = f"br_entry_{len(years)}"
-        g, after, changes = _editor({s: eff[s] for s in SERIES}, years, editable, key)
-        if changes is not None:
-            if not editable:
-                st.markdown("<div class='card-desc'>Read-only: add github_token in Secrets to edit.</div>", unsafe_allow_html=True)
-            else:
-                _save_controls(changes, [key], "brn")
-    with st.container(border=True):
-        st.markdown("<div class='card-title'>Closing stock of the first year</div>", unsafe_allow_html=True)
-        c = st.columns([1.2, 1.2, 1, 4], vertical_alignment="bottom")
-        old = dict(meta["opening"])
-        new = {k: c[i].number_input(f"{k} {years[0]} (m bags)", min_value=0.0, value=float(old[k]), step=0.1, format="%.1f",
-                                    key=f"br_open_{k}", disabled=not editable) for i, k in enumerate(["Arabica", "Conillon"])}
-        if c[2].button("Save", disabled=(not editable) or all(abs(new[k] - old[k]) < 1e-9 for k in new), width="stretch", key="br_open_save"):
-            try:
-                with st.spinner("Saving..."):
-                    def apply(text):
-                        d = json.loads(text)
-                        d["opening"] = {k: round(float(v), 4) for k, v in new.items()}
-                        return json.dumps(d, indent=2) + "\n", None
-                    text, _ = gh.commit(META_PATH, apply, f"Setting | Brazil opening stocks: {old} -> {new}")
-                    with open(META, "w", encoding="utf-8", newline="") as f:
-                        f.write(text)
-                    load.clear()
-            except (gh.GitHubError, Exception) as ex:
-                st.error(f"GitHub save failed: {ex}")
-            else:
-                st.session_state["en_flash"] = "Opening stocks saved."
-                st.rerun()

@@ -26,8 +26,10 @@ window.addEventListener("message", function (ev) {
   if (!ev.data || ev.data.type !== "streamlit:render") return;
   var a = ev.data.args || {};
   if (a.css !== state.css) { document.getElementById("theme").textContent = a.css || ""; state.css = a.css; }
-  var reset = a.epoch !== state.epoch;
-  if (reset) { state.epoch = a.epoch; state.edits = {}; }
+  var first = state.epoch === null;
+  var reset = !first && a.epoch !== state.epoch;
+  if (first) { state.epoch = a.epoch; state.edits = Object.assign({}, a.edits || {}); }      // a fresh frame: pick up what the page still holds
+  else if (reset) { state.epoch = a.epoch; state.edits = {}; }
   draw(a);
   if (reset) send();
 });
