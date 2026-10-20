@@ -127,6 +127,10 @@ table.snd th.y:last-child { border-radius: 0 8px 8px 0; }
 table.snd tr.bal td { background: rgba(10,36,99,.06) !important; }
 table.snd tr.bal td.fc { background: rgba(37,65,168,.10) !important; }
 table.snd tr.bal td.lbl { color: #0a2463 !important; }
+/* multiselect pills: dark chip, so the text and the x must be white too */
+[data-baseweb="tag"] { background: #0a2463 !important; }
+[data-baseweb="tag"] span, [data-baseweb="tag"] div { color: #ffffff !important; }
+[data-baseweb="tag"] svg { fill: #ffffff !important; }
 </style>
 """,
     unsafe_allow_html=True,
