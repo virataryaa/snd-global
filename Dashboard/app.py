@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.set_page_config(page_title="Global SnD", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Coffee SnD", layout="wide", initial_sidebar_state="expanded")
 
 import analytics  # noqa: E402  (after set_page_config)
 import brazil  # noqa: E402
@@ -162,7 +162,7 @@ def _gate():
         pw = None
     if not pw or st.session_state.get("_authed"):
         return
-    st.markdown("<div class='page-title' style='margin-top:12vh'>Global SnD</div>", unsafe_allow_html=True)
+    st.markdown("<div class='page-title' style='margin-top:12vh'>Coffee SnD</div>", unsafe_allow_html=True)
     typed = st.text_input("Password", type="password", key="_pw_input")
     if typed and typed == pw:
         st.session_state["_authed"] = True
@@ -182,7 +182,7 @@ for _k in KEEP:
         st.session_state[_k] = st.session_state[f"_keep_{_k}"]
 
 with st.sidebar:
-    st.markdown("<div class='sb-title'>Global SnD</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sb-title'>Coffee SnD</div>", unsafe_allow_html=True)
     st.markdown("<div class='sb-label'>Section</div>", unsafe_allow_html=True)
     with st.container(key="sec_nav"):
         section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Sensitivity", "Revisions"], index=0, label_visibility="collapsed", key="section")

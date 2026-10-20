@@ -261,7 +261,7 @@ def _sensitivity_grid(df, meta, years, key, y_key, year, n, step, unit, progress
     return {"z": z, "labels": labels, "x_label": x_label, "y_label": y_label}
 
 
-def _heatmap_fig(z, labels, x_label, y_label, metric, big=False):
+def _heatmap_fig(z, labels, x_label, y_label, metric, unit="%", big=False):
     """A coloured grid: green/red shading by cell, same convention as the bars did (Balance diverges at zero; S/U and End stock compare
     to the base case, the middle cell, since they have no natural zero)."""
     fmt = {"S/U": "{:.1f}", "Balance": "{:+.1f}", "End stock": "{:.1f}"}[metric]
@@ -269,8 +269,9 @@ def _heatmap_fig(z, labels, x_label, y_label, metric, big=False):
     last = len(labels) - 1
     ref = 0.0 if metric == "Balance" else z[n][n]
     zdev = [[v - ref for v in row] for row in z]
+    unit_label = "%" if unit == "%" else "Bags"
 
-    sz = 11 if big else 10
+    sz = 13 if big else 10
     fig = go.Figure(go.Heatmap(z=zdev, x=labels, y=labels, zmid=0, colorscale=[[0, SOFT_RED], [0.5, SOFT_MID], [1, SOFT_GREEN]],
                                showscale=False, xgap=2, ygap=2,
                                text=[[fmt.format(v) for v in row] for row in z], texttemplate="%{text}", textfont=dict(size=sz, color="#000000"),
@@ -278,12 +279,12 @@ def _heatmap_fig(z, labels, x_label, y_label, metric, big=False):
     for x0, x1, y0, y1 in [(n - 0.5, n + 0.5, -0.5, last + 0.5), (-0.5, last + 0.5, n - 0.5, n + 0.5)]:
         fig.add_shape(type="rect", x0=x0, x1=x1, y0=y0, y1=y1, line=dict(color="#000000", width=1.5),
                       fillcolor="rgba(0,0,0,0)", layer="above")
-    fig.update_layout(template="plotly_white", height=340 if big else 325, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                      margin=dict(t=4, b=28, l=50, r=6), font=dict(color="#1d1d1f", size=sz + 1),
-                      xaxis=dict(title=dict(text=f"{x_label} change", font=dict(color="#0a2463")), type="category", tickfont=dict(size=sz),
-                                 constrain="domain", showline=True, linewidth=1, linecolor="rgba(0,0,0,.15)", mirror=True),
-                      yaxis=dict(title=dict(text=f"{y_label} change", font=dict(color="#0a2463")), type="category", tickfont=dict(size=sz),
-                                 constrain="domain", scaleanchor="x", scaleratio=1,
+    fig.update_layout(template="plotly_white", height=480 if big else 325, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                      margin=dict(t=4, b=34, l=60, r=6), font=dict(color="#1d1d1f", size=sz + 1),
+                      xaxis=dict(title=dict(text=f"{x_label} Crop Change ({unit_label})", font=dict(color="#0a2463")), type="category",
+                                 tickfont=dict(size=sz), constrain="domain", showline=True, linewidth=1, linecolor="rgba(0,0,0,.15)", mirror=True),
+                      yaxis=dict(title=dict(text=f"{y_label} Crop Change ({unit_label})", font=dict(color="#0a2463")), type="category",
+                                 tickfont=dict(size=sz), constrain="domain", scaleanchor="x", scaleratio=1,
                                  showline=True, linewidth=1, linecolor="rgba(0,0,0,.15)", mirror=True))
     return fig
 
@@ -347,7 +348,7 @@ def sensitivity(df, meta, years):
     for metric, title, key_sfx in (("Balance", "balance (deficit / surplus)", "bal"), ("End stock", "End stock", "stock"), ("S/U", "S/U", "su")):
         with st.container(border=True):
             heat_title(f"{x_label} vs {y_label}: {title} at {year}")
-            st.plotly_chart(_heatmap_fig(z[metric], labels, x_label, y_label, metric, big=True), width="stretch", key=f"sn_heat_{key_sfx}")
+            st.plotly_chart(_heatmap_fig(z[metric], labels, x_label, y_label, metric, unit, big=True), width="stretch", key=f"sn_heat_{key_sfx}")
 
 
 def page():
