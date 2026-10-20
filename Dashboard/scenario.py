@@ -344,18 +344,10 @@ def sensitivity(df, meta, years):
     def heat_title(text):
         st.markdown(f"<div class='chart-head' style='text-align:center'>{text}</div>", unsafe_allow_html=True)
 
-    top_l, top_r = st.columns(2, gap="small")
-    with top_l, st.container(border=True):
-        heat_title(f"{x_label} vs {y_label}: balance (deficit / surplus) at {year}")
-        st.plotly_chart(_heatmap_fig(z["Balance"], labels, x_label, y_label, "Balance"), width="stretch", key="sn_heat_bal")
-    with top_r, st.container(border=True):
-        heat_title(f"{x_label} vs {y_label}: End stock at {year}")
-        st.plotly_chart(_heatmap_fig(z["End stock"], labels, x_label, y_label, "End stock"), width="stretch", key="sn_heat_stock")
-
-    _, mid, _ = st.columns([1, 2.1, 1], gap="small")
-    with mid, st.container(border=True):
-        heat_title(f"{x_label} vs {y_label}: S/U at {year}")
-        st.plotly_chart(_heatmap_fig(z["S/U"], labels, x_label, y_label, "S/U", big=True), width="stretch", key="sn_heat_su")
+    for metric, title, key_sfx in (("Balance", "balance (deficit / surplus)", "bal"), ("End stock", "End stock", "stock"), ("S/U", "S/U", "su")):
+        with st.container(border=True):
+            heat_title(f"{x_label} vs {y_label}: {title} at {year}")
+            st.plotly_chart(_heatmap_fig(z[metric], labels, x_label, y_label, metric, big=True), width="stretch", key=f"sn_heat_{key_sfx}")
 
 
 def page():
