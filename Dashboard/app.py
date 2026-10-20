@@ -106,7 +106,7 @@ table.snd td.lbl { color: #3a3a3c !important; }
 table.snd tr.comm th { background: none !important; color: #0a2463 !important; font-size: 11px !important; letter-spacing: .08em !important; padding: 14px 12px 4px !important;
     border-bottom: 0 !important; }
 table.snd th.y, table.snd th.y.fc { background: none !important; color: #86868b !important; font-weight: 500 !important; border-bottom: 1px solid rgba(0,0,0,.08) !important; }
-table.snd td.fc, table.snd tr.bal td.fc { background: rgba(10,36,99,.025) !important; }
+table.snd td.fc, table.snd tr.bal td.fc { background: rgba(10,36,99,.045) !important; }
 table.snd tr.bal td { background: none !important; border-top: 1px solid rgba(0,0,0,.08) !important; border-bottom: 1px solid rgba(0,0,0,.08) !important; }
 table.snd tr.bal td.lbl { color: #1d1d1f !important; }
 table.snd tr.soft td, table.snd tr.soft td.lbl { color: #86868b !important; }
@@ -121,7 +121,7 @@ div[role="radiogroup"] label:has(input:checked), [data-testid="stSidebar"] div[r
 div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p,
 [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #ffffff !important; }
 table.snd th.y { background: #0a2463 !important; color: #ffffff !important; font-weight: 600 !important; padding: 5px 10px !important; border-bottom: 0 !important; }
-table.snd th.y.fc { background: #2541a8 !important; }
+table.snd th.y.fc { background: #0a2463 !important; }
 table.snd th.y.first { border-radius: 8px 0 0 8px; }
 table.snd th.y:last-child { border-radius: 0 8px 8px 0; }
 table.snd tr.bal td { background: rgba(10,36,99,.06) !important; }
