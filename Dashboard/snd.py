@@ -34,7 +34,7 @@ CSS = """
             box-shadow: 0 1px 2px rgba(15,23,42,.04); overflow-x: auto; width: fit-content; max-width: 100%; }
 table.snd { border-collapse: separate; border-spacing: 0; width: auto; font-size: 12px; color: #0f172a;
             font-variant-numeric: tabular-nums; letter-spacing: .005em; }
-table.snd td, table.snd th { padding: 2px 9px; text-align: right; white-space: nowrap; line-height: 1.3; }
+table.snd td, table.snd th { padding: 2px 9px; text-align: center; white-space: nowrap; line-height: 1.3; }
 table.snd td { min-width: 46px; }
 table.snd td.lbl { text-align: left; color: #475569; padding-left: 12px; min-width: 150px; }
 table.snd td { border: 0; border-bottom: 1px solid #f1f3f7; }
@@ -65,7 +65,7 @@ table.snd td.ed:hover { box-shadow: inset 0 0 0 1px #9db3e6; background: #f3f6fd
 table.snd td.ed:focus { outline: none; box-shadow: inset 0 0 0 2px #0a2463; background: #ffffff; }
 table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
 table.snd td.rev { position: relative; }
-.rev-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-left: 5px; vertical-align: middle; background: #94a3b8; }
+.rev-dot { display: inline-block; width: 3px; height: 3px; border-radius: 50%; margin-left: 4px; vertical-align: middle; background: #94a3b8; }
 .rev-dot.up { background: #1f9d6f; }
 .rev-dot.down { background: #c0392b; }
 .rev-pop { display: none; position: absolute; z-index: 60; top: 100%; right: 0; margin-top: 4px; background: #ffffff; color: #1d1d1f;
