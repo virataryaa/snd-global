@@ -314,9 +314,74 @@ def page():
     whatif(df, meta, years)
 
 
+def multi_waterfall(df, meta, years):
+    """Several origins flexed together, by the same percent, stacking one at a time onto the Balance — base, each origin's own push,
+    then the combined deficit/surplus they land on."""
+    scope = st.session_state.get("sc_scope", "Combined")
+    comms = _comms(scope)
+    options = [f"{c}|{it}" for c in comms for it in ORIGINS[c] + ["Consumption"]]
+    label = (lambda k: f"{k.split('|')[0]} · {_disp(k.split('|')[1])}") if len(comms) > 1 else (lambda k: _disp(k.split("|")[1]))
+    cyears = years[-6:]
+    cur = snd.current_crop_year()
+    default_year = cur if cur in cyears else cyears[-1]
+
+    c = st.columns([2.6, 1, 1.1, 2], gap="small", vertical_alignment="bottom")
+    picks = c[0].multiselect("Origins", options, format_func=label, key="mw_picks")
+    pct = c[1].number_input("% change", value=float(st.session_state.get("mw_pct") or -10.0), step=1.0, format="%.0f", key="mw_pct")
+    year = c[2].selectbox("Crop year", cyears, index=cyears.index(default_year), key="mw_year")
+    run_it = c[3].button("Run waterfall", key="mw_run", type="primary", width="stretch")
+
+    if not run_it and "mw_result" not in st.session_state:
+        st.markdown("<div class='an-note'>Pick the origins to move together, the percent change, and press Run.</div>", unsafe_allow_html=True)
+        return
+    if run_it:
+        if not picks:
+            st.markdown("<div class='an-note'>Pick at least one origin.</div>", unsafe_allow_html=True)
+            return
+        base = run(df, meta, years, {})
+        base_bal = float(bal(scope, *base)[year])
+        scen, names, deltas, running = df.copy(), [], [], base_bal
+        for key in picks:
+            comm, item = key.split("|")
+            mask = (scen["commodity"] == comm) & (scen["item"] == item) & (scen["year"] == year)
+            old_v = float(scen.loc[mask, "value"].iloc[0])
+            scen.loc[mask, "value"] = max(old_v * (1 + pct / 100), 0.0)
+            a, r, g = run(scen, meta, years, {})
+            new_bal = float(bal(scope, a, r, g)[year])
+            names.append(label(key))
+            deltas.append(new_bal - running)
+            running = new_bal
+        st.session_state["mw_result"] = (base_bal, names, deltas, running)
+
+    base_bal, names, deltas, running = st.session_state["mw_result"]
+    xs, bases, h, colors, texts = ["Base"], [0.0], [base_bal], [NAVY], [f"{base_bal:+.1f}"]
+    r_ = base_bal
+    for name, d in zip(names, deltas):
+        xs.append(name)
+        bases.append(min(r_, r_ + d))
+        h.append(abs(d))
+        colors.append(GREEN if d >= 0 else RED)
+        texts.append(f"{d:+.1f}")
+        r_ += d
+    xs.append("Combined")
+    bases.append(0.0)
+    h.append(running)
+    colors.append(NAVY)
+    texts.append(f"{running:+.1f}")
+    fig = go.Figure(go.Bar(x=xs, y=h, base=bases, marker_color=colors, marker_line_width=0,
+                           text=texts, textposition="outside", textfont=dict(size=10),
+                           hovertemplate="%{x}: %{text}<extra></extra>"))
+    _fig(fig, height=330, legend=False).update_layout(hovermode="closest", bargap=0.3)
+    with st.container(border=True):
+        card(f"{', '.join(names)}: combined balance at {year} ({pct:+.0f}% each)")
+        st.plotly_chart(fig, width="stretch", key="mw_chart")
+
+
 def sensitivity_page():
     """The Sensitivity section, beneath Scenarios in the sidebar."""
     st.markdown(snd.CSS + analytics.CSS + CSS, unsafe_allow_html=True)
     df, meta, _notes, years = snd.load()
     st.markdown("<div class='snd-head'><span class='t'>Sensitivity</span></div>", unsafe_allow_html=True)
     sensitivity(df, meta, years)
+    st.markdown("<div class='sec-title'>Multi-origin waterfall</div>", unsafe_allow_html=True)
+    multi_waterfall(df, meta, years)
