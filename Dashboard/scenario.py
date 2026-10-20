@@ -241,6 +241,10 @@ def sensitivity_heatmap(df, meta, years, key, year, n, step, unit, metric):
                                text=[[fmt.format(v) for v in row] for row in z], texttemplate="%{text}", textfont=dict(size=8.5, color="#3a3a3c"),
                                hovertemplate=f"{x_label} %{{x}}, {y_label} %{{y}}: %{{z:.1f}}<extra></extra>",
                                colorbar=dict(thickness=7, tickfont=dict(size=8), outlinewidth=0)))
+    zero = n                                                # steps.index(0): the base case, no change on either axis
+    last = len(steps) - 1
+    for x0, x1, y0, y1 in [(zero - 0.5, zero + 0.5, -0.5, last + 0.5), (-0.5, last + 0.5, zero - 0.5, zero + 0.5)]:
+        fig.add_shape(type="rect", x0=x0, x1=x1, y0=y0, y1=y1, line=dict(color="#0a2463", width=1.5), fillcolor="rgba(0,0,0,0)", layer="above")
     fig.update_layout(template="plotly_white", height=235, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                       margin=dict(t=4, b=28, l=50, r=6), font=dict(color="#1d1d1f", size=9.5),
                       xaxis=dict(title=f"{x_label} change", type="category", tickfont=dict(size=8.5),
@@ -276,7 +280,8 @@ def sensitivity(df, meta, years):
     c = st.columns([1.3, 1.2, 1.4], gap="small", vertical_alignment="bottom")
     unit = c[0].radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit")
     skey = f"sn_step_{unit}"
-    step = c[1].number_input("Step", min_value=0.1, value=float(st.session_state.get(skey) or (5.0 if unit == "m bags" else 10.0)),
+    step = c[1].number_input("Step value (in Mn)" if unit == "m bags" else "Step value (%)", min_value=0.1,
+                             value=float(st.session_state.get(skey) or (5.0 if unit == "m bags" else 10.0)),
                              step=0.5 if unit == "m bags" else 1.0, format="%.1f", key=skey) or (5.0 if unit == "m bags" else 10.0)
     n = int(c[2].number_input("Steps each side", min_value=1, max_value=8, value=int(st.session_state.get("sn_n") or 5), step=1, key="sn_n") or 5)
 
