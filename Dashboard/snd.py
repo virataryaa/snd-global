@@ -78,9 +78,7 @@ table.snd td.rev:hover .rev-pop { display: block; }
 .rev-pop .rs { color: #9a9a9e; margin-left: 6px; }
 table.snd td.spark-td, table.snd th.spark-h { border-left: 1px solid rgba(0,0,0,.06); padding-left: 10px; }
 table.snd th.spark-h { font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; }
-.spark { display: inline-flex; align-items: flex-end; gap: 1px; height: 13px; width: 48px; vertical-align: middle; }
-.spark span { flex: 1; background: #9db3e6; border-radius: 1px; min-height: 1px; }
-table.snd tr.bal .spark span { background: #6f87c2; }
+.spark { display: inline-block; width: 48px; height: 13px; vertical-align: middle; }
 .snd-bar { background: linear-gradient(90deg, #0a1d4d 0%, #0a2463 100%); color: #ffffff; font-size: 12px; font-weight: 700;
            letter-spacing: .12em; text-transform: uppercase; padding: 7px 14px; border-radius: 8px 8px 0 0; margin-top: 6px; }
 .snd-head { display: flex; align-items: baseline; gap: 12px; margin: 2px 0 12px; }
@@ -190,15 +188,41 @@ def fpct(v, dec=1):
     return "" if pd.isna(v) else f"{v * 100:.{dec}f}%"
 
 
+SPARK_W, SPARK_H = 48, 13
+
+
 def sparkline(values) -> str:
-    """A tiny bar sparkline (Excel-style) over a row's own years: bar heights relative to that row's own min-max."""
+    """A tiny line sparkline (Excel-style) over a row's own years: reads better at this size than thin bars do."""
     vals = [float(v) for v in values if pd.notna(v)]
     if len(vals) < 2:
         return ""
     lo, hi = min(vals), max(vals)
     rng = (hi - lo) or 1.0
-    bars = "".join(f"<span style='height:{max(6, round((v - lo) / rng * 100))}%'></span>" for v in vals)
-    return f"<span class='spark'>{bars}</span>"
+    pad, n = 1.5, len(vals)
+    xs = [pad + i * (SPARK_W - 2 * pad) / (n - 1) for i in range(n)]
+    ys = [SPARK_H - pad - (v - lo) / rng * (SPARK_H - 2 * pad) for v in vals]
+    pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in zip(xs, ys))
+    return (f"<svg class='spark' viewBox='0 0 {SPARK_W} {SPARK_H}'>"
+            f"<polyline points='{pts}' fill='none' stroke='#5b7fc7' stroke-width='1.3' stroke-linejoin='round' stroke-linecap='round'/>"
+            f"<circle cx='{xs[-1]:.1f}' cy='{ys[-1]:.1f}' r='1.6' fill='#0a2463'/></svg>")
+
+
+def sparkline_balance(values) -> str:
+    """A tiny zero-baseline bar sparkline for the Balance row: green bars above the line (surplus), red below it (deficit)."""
+    vals = [float(v) for v in values if pd.notna(v)]
+    if len(vals) < 2:
+        return ""
+    m = max(abs(v) for v in vals) or 1.0
+    pad, n = 1.0, len(vals)
+    bw = (SPARK_W - 2 * pad) / n
+    mid = SPARK_H / 2
+    bars = ""
+    for i, v in enumerate(vals):
+        bh = max(abs(v) / m * (mid - 1.5), 0.6)
+        x = pad + i * bw + 0.3
+        y = mid - bh if v >= 0 else mid
+        bars += f"<rect x='{x:.1f}' y='{y:.1f}' width='{bw - 0.6:.1f}' height='{bh:.1f}' rx='0.4' fill='{GREEN if v >= 0 else RED}'/>"
+    return f"<svg class='spark' viewBox='0 0 {SPARK_W} {SPARK_H}'><line x1='0' y1='{mid}' x2='{SPARK_W}' y2='{mid}' stroke='rgba(0,0,0,.18)' stroke-width='0.6'/>{bars}</svg>"
 
 
 def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None) -> str:
@@ -245,7 +269,8 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
                     cls.append("chg")
                 title = f" data-k='{html.escape(k, quote=True)}' data-base='{'' if b is None or pd.isna(b) else b}'"
             cells += f"<td class='{' '.join(cls)}'{title}>{fmt(v)}{pop}</td>"
-        cells += f"<td class='spark-td'>{sparkline(vals[y] for y in shown)}</td>"
+        spark = sparkline_balance if kind == "bal" else sparkline
+        cells += f"<td class='spark-td'>{spark([vals[y] for y in shown])}</td>"
         return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>"
 
     out = []
