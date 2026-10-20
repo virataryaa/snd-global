@@ -113,6 +113,20 @@ table.snd tr.soft td, table.snd tr.soft td.lbl { color: #86868b !important; }
 table.snd tr.meta td, table.snd tr.meta td.lbl { color: #86868b !important; }
 table.snd td.neg { color: #d70015 !important; }
 .snd-bar { background: none !important; color: #0a2463 !important; letter-spacing: .08em !important; font-size: 11px !important; padding: 10px 0 4px !important; }
+
+/* ── Navy accents ── */
+div[role="radiogroup"] label:has(input:checked), [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked),
+[data-testid="stSidebar"] .st-key-sec_nav div[role="radiogroup"] label:has(input:checked) {
+    background: linear-gradient(180deg, #16338a 0%, #0a2463 100%) !important; box-shadow: 0 2px 6px rgba(10,36,99,.28) !important; }
+div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p,
+[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #ffffff !important; }
+table.snd th.y { background: #0a2463 !important; color: #ffffff !important; font-weight: 600 !important; padding: 5px 10px !important; border-bottom: 0 !important; }
+table.snd th.y.fc { background: #2541a8 !important; }
+table.snd th.y.first { border-radius: 8px 0 0 8px; }
+table.snd th.y:last-child { border-radius: 0 8px 8px 0; }
+table.snd tr.bal td { background: rgba(10,36,99,.06) !important; }
+table.snd tr.bal td.fc { background: rgba(37,65,168,.10) !important; }
+table.snd tr.bal td.lbl { color: #0a2463 !important; }
 </style>
 """,
     unsafe_allow_html=True,
