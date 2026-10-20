@@ -197,7 +197,7 @@ def fpct(v, dec=1):
 
 
 SPARK_W, SPARK_H = 48, 13
-DETAIL_W, DETAIL_H = 330, 170
+DETAIL_W, DETAIL_H = 390, 200
 
 
 def _spark_detail(pairs, kind, title) -> str:
@@ -222,12 +222,12 @@ def _spark_detail(pairs, kind, title) -> str:
 
     zero_y = Y(0)
     svg = f"<svg width='{DETAIL_W}' height='{DETAIL_H}' viewBox='0 0 {DETAIL_W} {DETAIL_H}'>"
-    svg += f"<text x='{DETAIL_W / 2:.1f}' y='12' font-size='9.5' font-weight='600' text-anchor='middle' fill='#0a2463'>{html.escape(title)}</text>"
+    svg += f"<text x='{DETAIL_W / 2:.1f}' y='12' font-size='11' font-weight='600' text-anchor='middle' fill='#0a2463'>{html.escape(title)}</text>"
     for v in (lo, (lo + hi) / 2, hi):
         yy = Y(v)
         svg += f"<line x1='{pad_l}' y1='{yy:.1f}' x2='{DETAIL_W - pad_r}' y2='{yy:.1f}' stroke='rgba(0,0,0,.08)' stroke-width='1'/>"
     for i, (y, _v) in enumerate(pts):                     # every year, small and rotated so they all fit without colliding
-        svg += (f"<text x='{xs[i]:.1f}' y='{DETAIL_H - 6}' font-size='6' text-anchor='middle' fill='#64748b' "
+        svg += (f"<text x='{xs[i]:.1f}' y='{DETAIL_H - 6}' font-size='7' text-anchor='middle' fill='#64748b' "
                 f"transform='rotate(-55 {xs[i]:.1f} {DETAIL_H - 6})'>{y[2:]}</text>")
     for i, (y, v) in enumerate(pts):
         top, bot = sorted([zero_y, Y(v)])
@@ -241,11 +241,11 @@ def _spark_detail(pairs, kind, title) -> str:
             color = NAVY
         svg += (f"<rect x='{xs[i] - bw / 2:.1f}' y='{top:.1f}' width='{bw:.1f}' height='{max(bot - top, 1):.1f}' "
                 f"fill='{color}' opacity='{op}' rx='1.5'/>"
-                f"<text x='{xs[i]:.1f}' y='{top - 3:.1f}' font-size='7' text-anchor='middle' fill='#1d1d1f'>{v:,.1f}</text>")
+                f"<text x='{xs[i]:.1f}' y='{top - 3:.1f}' font-size='8' text-anchor='middle' fill='#1d1d1f'>{v:,.1f}</text>")
         if kind == "growth" and prev:
             pct = (v / prev - 1) * 100
             arrow, pc = ("▲", GREEN) if pct >= 0 else ("▼", RED)
-            svg += f"<text x='{xs[i]:.1f}' y='{top - 11:.1f}' font-size='6.5' text-anchor='middle' fill='{pc}'>{arrow} {abs(pct):.0f}%</text>"
+            svg += f"<text x='{xs[i]:.1f}' y='{top - 11:.1f}' font-size='7.5' text-anchor='middle' fill='{pc}'>{arrow} {abs(pct):.0f}%</text>"
     svg += "</svg>"
     return f"<div class='spark-pop'>{svg}</div>"
 
@@ -277,18 +277,20 @@ def _rev_chart(revs) -> str:
     if len(pts) < 2:
         return ""
     vals = [v for _, v in pts]
-    w, h, pad = 130, 46, 14
+    w, h, pad_x, pad_t, pad_b = 190, 72, 18, 20, 16
     lo, hi = min(vals), max(vals)
     rng = (hi - lo) or 1.0
     n = len(pts)
-    xs = [pad + i * (w - 2 * pad) / (n - 1) for i in range(n)]
-    ys = [h - 10 - (v - lo) / rng * (h - 20) for v in vals]
+    xs = [pad_x + i * (w - 2 * pad_x) / (n - 1) for i in range(n)]
+    ys = [h - pad_b - (v - lo) / rng * (h - pad_t - pad_b) for v in vals]
     poly = " ".join(f"{x:.1f},{y:.1f}" for x, y in zip(xs, ys))
-    dots = "".join(f"<circle cx='{x:.1f}' cy='{y:.1f}' r='1.8' fill='#0a2463'/>" for x, y in zip(xs, ys))
+    dots = "".join(f"<circle cx='{x:.1f}' cy='{y:.1f}' r='2' fill='#0a2463'/>" for x, y in zip(xs, ys))
+    labels = "".join(f"<text x='{x:.1f}' y='{y - 5:.1f}' font-size='8' text-anchor='middle' fill='#1d1d1f'>{v:,.1f}</text>"
+                     for x, y, v in zip(xs, ys, vals))
     return (f"<svg width='{w}' height='{h}' style='display:block;margin-bottom:4px'>"
-            f"<polyline points='{poly}' fill='none' stroke='#5b7fc7' stroke-width='1.4'/>{dots}"
-            f"<text x='{xs[0]:.1f}' y='{h - 1}' font-size='7' fill='#9a9a9e'>{pts[0][0]}</text>"
-            f"<text x='{xs[-1]:.1f}' y='{h - 1}' font-size='7' fill='#9a9a9e' text-anchor='end'>{pts[-1][0]}</text></svg>")
+            f"<polyline points='{poly}' fill='none' stroke='#5b7fc7' stroke-width='1.5'/>{dots}{labels}"
+            f"<text x='{xs[0]:.1f}' y='{h - 2}' font-size='7.5' fill='#9a9a9e'>{pts[0][0]}</text>"
+            f"<text x='{xs[-1]:.1f}' y='{h - 2}' font-size='7.5' fill='#9a9a9e' text-anchor='end'>{pts[-1][0]}</text></svg>")
 
 
 def sparkline_balance(pairs, title) -> str:
