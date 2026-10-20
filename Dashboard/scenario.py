@@ -304,8 +304,8 @@ def sensitivity(df, meta, years):
     if st.session_state.get("sn_origin") not in options:
         st.session_state["sn_origin"] = default
     cyears = years[-6:]
-    if st.session_state.get("sn_year") not in cyears:
-        st.session_state["sn_year"] = cyears[-1]            # latest crop year by default
+    if st.session_state.get("sn_yr") not in cyears:
+        st.session_state["sn_yr"] = cyears[-1]            # latest crop year by default
 
     with st.container(border=True, key="sn_controls"):
         st.radio("Commodity", SENS_SCOPES, horizontal=True, key="sc_scope", label_visibility="collapsed")
@@ -325,7 +325,7 @@ def sensitivity(df, meta, years):
         if st.session_state.get("sn_vs") not in vs_options:
             st.session_state["sn_vs"] = vs_default
         y_key = c[4].selectbox("vs", vs_options, format_func=label, key="sn_vs")
-        year = c[5].selectbox("Crop year", cyears, key="sn_year")
+        year = c[5].selectbox("Crop year", cyears, key="sn_yr")
         compute = c[6].button("Compute", key="sn_compute", type="primary", width="stretch")
 
     sig = (key, y_key, year, n, step, unit, scope)
