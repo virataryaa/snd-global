@@ -130,6 +130,14 @@ table.snd tr.bal td.lbl { color: #0a2463 !important; }
 .st-key-mode_nav div[role="radiogroup"] label:has(input:checked) {
     background: linear-gradient(180deg, #c2410c 0%, #7c2d12 100%) !important; box-shadow: 0 2px 6px rgba(124,45,18,.35) !important; }
 .st-key-mode_nav div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #ffffff !important; }
+/* Sensitivity's controls row: compact, everything on one line */
+.st-key-sn_controls { padding: 8px 14px !important; }
+.st-key-sn_controls [data-testid="stWidgetLabel"] p { font-size: 9.5px !important; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #94a3b8 !important; margin-bottom: 1px !important; }
+.st-key-sn_controls div[role="radiogroup"] label { padding: 2px 9px !important; }
+.st-key-sn_controls div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 11px !important; }
+.st-key-sn_controls [data-baseweb="input"], .st-key-sn_controls [data-baseweb="select"] > div { min-height: 30px !important; }
+.st-key-sn_controls button { padding: 4px 10px !important; min-height: 30px !important; }
+
 /* multiselect pills: dark chip, so the text and the x must be white too */
 [data-baseweb="tag"] { background: #0a2463 !important; }
 [data-baseweb="tag"] span, [data-baseweb="tag"] div { color: #ffffff !important; }

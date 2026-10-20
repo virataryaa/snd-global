@@ -251,7 +251,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
         cells = "".join(f"<th class='y{' fc' if shaded(comm, y) else ''}'>{y}{'*' if starred(comm, y) else ''}</th>" for y in shown)
         return f"<tr><th class='y first'></th>{cells}<th class='y spark-h'>Trend</th></tr>"
 
-    def tr(label, vals, kind="", fmt=fnum, comm=None, item=None, neg_red=False):
+    def tr(label, vals, kind="", fmt=fnum, comm=None, item=None, neg_red=False, editable=True):
         cells = ""
         for y in shown:
             v = vals[y]
@@ -273,7 +273,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
                     for ts, o, n, r in revs[:8])
                 pop = f"<span class='rev-dot {dir_cls}'></span><div class='rev-pop'>{rows}</div>"
             title = ""
-            if edit and comm and item:                                   # an input cell: typed over in place
+            if edit and comm and item and editable:                      # an input cell: typed over in place
                 k = f"{comm}|{item}|{y}"
                 b = edit["base"].get(k)
                 cls.append("ed")
@@ -307,7 +307,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
     shared = set(ORIGINS["Arabica"]) & set(ORIGINS["Robusta"])             # "Brazil", "Others": in both lists, label which is which
     for comm, fr in comm_frames.items():
         for o in ORIGINS[comm]:
-            out.append(tr(f"{o} ({comm[0]})" if o in shared else o, fr.loc[o], comm=comm, item=o))
+            out.append(tr(f"{o} ({comm[0]})" if o in shared else o, fr.loc[o], comm=comm, item=o, editable=False))
     out.append(tr("Production", glob.loc["Production Global"], "b"))
     out.append(tr("Consumption", glob.loc["Consumption Global"], "b"))
     out.append(tr("Balance", glob.loc["Global Balance"], "bal", neg_red=True))

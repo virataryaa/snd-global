@@ -214,19 +214,30 @@ def _sensitivity_grid(df, meta, years, key, year, n, step, unit, progress=None):
 
 
 def _heatmap_fig(z, labels, x_label, y_label, metric, big=False):
+    """A white grid (not a coloured background): each cell instead gets a small bar growing from its own centre, green for above the
+    reference and red for below it. Balance's reference is zero (deficit vs surplus); S/U and End stock compare to the base case (the
+    middle cell, no change on either axis) since they have no natural zero."""
     fmt = {"S/U": "{:.1f}", "Balance": "{:+.1f}", "End stock": "{:.1f}"}[metric]
-    if metric == "Balance":                               # deficit vs surplus: red below zero, green above it
-        hm_kw = dict(colorscale=[[0, SOFT_RED], [0.5, SOFT_MID], [1, SOFT_GREEN]], zmid=0)
-    else:                                                  # S/U, End stock: one shade, low to high, no colour at the low end
-        hm_kw = dict(colorscale=[[0, "#ffffff"], [1, "#a9cfb8"]])
-    sz = 9.5 if big else 8.5
-    fig = go.Figure(go.Heatmap(z=z, x=labels, y=labels, **hm_kw,
-                               xgap=2, ygap=2,
-                               text=[[fmt.format(v) for v in row] for row in z], texttemplate="%{text}", textfont=dict(size=sz, color="#000000"),
-                               hovertemplate=f"{x_label} %{{x}}, {y_label} %{{y}}: %{{z:.1f}}<extra></extra>",
-                               colorbar=dict(thickness=8 if big else 7, tickfont=dict(size=sz - 0.5), outlinewidth=0)))
     n = (len(labels) - 1) // 2                              # the middle label is the base case, no change on either axis
     last = len(labels) - 1
+    ref = 0.0 if metric == "Balance" else z[n][n]
+    devs = [v - ref for row in z for v in row]
+    maxdev = max(abs(d) for d in devs) or 1.0
+
+    sz = 9.5 if big else 8.5
+    fig = go.Figure(go.Heatmap(z=z, x=labels, y=labels, colorscale=[[0, "rgba(255,255,255,0)"], [1, "rgba(255,255,255,0)"]], showscale=False,
+                               xgap=2, ygap=2,
+                               text=[[fmt.format(v) for v in row] for row in z], texttemplate="%{text}", textfont=dict(size=sz, color="#000000"),
+                               hovertemplate=f"{x_label} %{{x}}, {y_label} %{{y}}: %{{z:.1f}}<extra></extra>"))
+    bar_h, half_w_max = 0.6, 0.42                           # the bar band's height and its longest reach, as a fraction of one cell
+    for j, row in enumerate(z):
+        for i, v in enumerate(row):
+            w = min(abs(v - ref) / maxdev, 1.0) * half_w_max
+            if w < 0.01:
+                continue
+            x0, x1 = (i, i + w) if v >= ref else (i - w, i)
+            fig.add_shape(type="rect", x0=x0, x1=x1, y0=j - bar_h / 2, y1=j + bar_h / 2, line=dict(width=0),
+                          fillcolor=SOFT_GREEN if v >= ref else SOFT_RED, opacity=0.6, layer="below")
     for x0, x1, y0, y1 in [(n - 0.5, n + 0.5, -0.5, last + 0.5), (-0.5, last + 0.5, n - 0.5, n + 0.5)]:
         fig.add_shape(type="rect", x0=x0, x1=x1, y0=y0, y1=y1, line=dict(color="rgba(100,116,139,.55)", width=1.25),
                       fillcolor="rgba(0,0,0,0)", layer="above")
@@ -254,23 +265,18 @@ def sensitivity(df, meta, years):
     if st.session_state.get("sn_year") not in cyears:
         st.session_state["sn_year"] = cur if cur in cyears else cyears[-1]
 
-    with st.sidebar:
-        st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
-        st.markdown("<div class='sb-label'>Flex</div>", unsafe_allow_html=True)
-        key = st.selectbox("Flex", options, format_func=label, key="sn_origin", label_visibility="collapsed")
-        st.markdown("<div class='sb-label'>Crop year</div>", unsafe_allow_html=True)
-        year = st.selectbox("Crop year", cyears, key="sn_year", label_visibility="collapsed")
-
-    st.radio("Commodity", SCOPES, horizontal=True, key="sc_scope")
-
-    c = st.columns([1.3, 1.2, 1.4, 1.1], gap="small", vertical_alignment="bottom")
-    unit = c[0].radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit")
-    skey = f"sn_step_{unit}"
-    step = c[1].number_input("Step value (in Mn)" if unit == "m bags" else "Step value (%)", min_value=0.1,
-                             value=float(st.session_state.get(skey) or (5.0 if unit == "m bags" else 10.0)),
-                             step=0.5 if unit == "m bags" else 1.0, format="%.1f", key=skey) or (5.0 if unit == "m bags" else 10.0)
-    n = int(c[2].number_input("Steps each side", min_value=1, max_value=8, value=int(st.session_state.get("sn_n") or 5), step=1, key="sn_n") or 5)
-    compute = c[3].button("Compute", key="sn_compute", type="primary", width="stretch")
+    with st.container(border=True, key="sn_controls"):
+        c = st.columns([1.1, 0.9, 0.85, 0.95, 1.2, 0.95, 0.85], gap="small", vertical_alignment="bottom")
+        c[0].radio("Commodity", SCOPES, horizontal=True, key="sc_scope")
+        unit = c[1].radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit")
+        skey = f"sn_step_{unit}"
+        step = c[2].number_input("Step (Mn)" if unit == "m bags" else "Step (%)", min_value=0.1,
+                                 value=float(st.session_state.get(skey) or (5.0 if unit == "m bags" else 10.0)),
+                                 step=0.5 if unit == "m bags" else 1.0, format="%.1f", key=skey) or (5.0 if unit == "m bags" else 10.0)
+        n = int(c[3].number_input("Steps each side", min_value=1, max_value=8, value=int(st.session_state.get("sn_n") or 5), step=1, key="sn_n") or 5)
+        key = c[4].selectbox("Flex", options, format_func=label, key="sn_origin")
+        year = c[5].selectbox("Crop year", cyears, key="sn_year")
+        compute = c[6].button("Compute", key="sn_compute", type="primary", width="stretch")
 
     sig = (key, year, n, step, unit, scope)
     if compute:
