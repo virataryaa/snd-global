@@ -393,7 +393,8 @@ def render(view="Brazil SnD"):
         with st.sidebar:
             st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
             span = st.radio("Years", ["All", "Last 10"], horizontal=True, key="br_span")
-            mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="br_mode")
+            with st.container(key="mode_nav"):
+                mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="br_mode")
     shown = years if span == "All" else years[-10:]
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))

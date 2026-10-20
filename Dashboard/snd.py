@@ -76,6 +76,11 @@ table.snd td.rev:hover .rev-pop { display: block; }
 .rev-pop .row + .row { border-top: 1px solid rgba(255,255,255,.12); }
 .rev-pop .dt { color: #9a9a9e; margin-right: 6px; }
 .rev-pop .rs { color: #9a9a9e; margin-left: 6px; }
+table.snd td.spark-td, table.snd th.spark-h { border-left: 1px solid rgba(0,0,0,.06); padding-left: 10px; }
+table.snd th.spark-h { font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; }
+.spark { display: inline-flex; align-items: flex-end; gap: 1px; height: 13px; width: 48px; vertical-align: middle; }
+.spark span { flex: 1; background: #9db3e6; border-radius: 1px; min-height: 1px; }
+table.snd tr.bal .spark span { background: #6f87c2; }
 .snd-bar { background: linear-gradient(90deg, #0a1d4d 0%, #0a2463 100%); color: #ffffff; font-size: 12px; font-weight: 700;
            letter-spacing: .12em; text-transform: uppercase; padding: 7px 14px; border-radius: 8px 8px 0 0; margin-top: 6px; }
 .snd-head { display: flex; align-items: baseline; gap: 12px; margin: 2px 0 12px; }
@@ -185,9 +190,20 @@ def fpct(v, dec=1):
     return "" if pd.isna(v) else f"{v * 100:.{dec}f}%"
 
 
+def sparkline(values) -> str:
+    """A tiny bar sparkline (Excel-style) over a row's own years: bar heights relative to that row's own min-max."""
+    vals = [float(v) for v in values if pd.notna(v)]
+    if len(vals) < 2:
+        return ""
+    lo, hi = min(vals), max(vals)
+    rng = (hi - lo) or 1.0
+    bars = "".join(f"<span style='height:{max(6, round((v - lo) / rng * 100))}%'></span>" for v in vals)
+    return f"<span class='spark'>{bars}</span>"
+
+
 def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None) -> str:
     """The sheet's layout, quietly: Brazil Combo line, then Arabica / Robusta / Global blocks."""
-    ncol = len(shown) + 1
+    ncol = len(shown) + 2                                   # + the trailing Trend sparkline column
 
     def shaded(comm, y):
         return bool(comm) and is_estimate(y)
@@ -197,7 +213,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
 
     def head(comm=None):
         cells = "".join(f"<th class='y{' fc' if shaded(comm, y) else ''}'>{y}{'*' if starred(comm, y) else ''}</th>" for y in shown)
-        return f"<tr><th class='y first'></th>{cells}</tr>"
+        return f"<tr><th class='y first'></th>{cells}<th class='y spark-h'>Trend</th></tr>"
 
     def tr(label, vals, kind="", fmt=fnum, comm=None, item=None, neg_red=False):
         cells = ""
@@ -229,6 +245,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
                     cls.append("chg")
                 title = f" data-k='{html.escape(k, quote=True)}' data-base='{'' if b is None or pd.isna(b) else b}'"
             cells += f"<td class='{' '.join(cls)}'{title}>{fmt(v)}{pop}</td>"
+        cells += f"<td class='spark-td'>{sparkline(vals[y] for y in shown)}</td>"
         return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>"
 
     out = []
@@ -256,7 +273,8 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
     out.append(tr("Demand change", glob.loc["Global demand chg"], "soft", fpct))
     out.append(tr("Combined end season stock", glob.loc["Combined End Season Stock"], ""))
     out.append(tr("Combined S/U", glob.loc["Combined S/U"], "soft", fpct))
-    out.append(f"<tr class='meta'><td class='lbl'>Brazil combo (Arabica + Robusta)</td>{''.join(f'<td>{combo[y]:.1f}</td>' for y in shown)}</tr>")
+    out.append(f"<tr class='meta'><td class='lbl'>Brazil combo (Arabica + Robusta)</td>{''.join(f'<td>{combo[y]:.1f}</td>' for y in shown)}"
+               f"<td class='spark-td'>{sparkline(combo[y] for y in shown)}</td></tr>")
     return f"<div class='snd-wrap'><table class='snd'>{''.join(out)}</table></div>"
 
 
@@ -425,7 +443,8 @@ def render():
     df, meta, notes, years = load()
     with st.sidebar:
         st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
-        mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="snd_mode")
+        with st.container(key="mode_nav"):
+            mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="snd_mode")
     shown = years
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))

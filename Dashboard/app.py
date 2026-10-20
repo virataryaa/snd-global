@@ -106,8 +106,9 @@ table.snd td.lbl { color: #3a3a3c !important; }
 table.snd tr.comm th { background: none !important; color: #0a2463 !important; font-size: 11px !important; letter-spacing: .08em !important; padding: 14px 12px 4px !important;
     border-bottom: 0 !important; }
 table.snd th.y, table.snd th.y.fc { background: none !important; color: #86868b !important; font-weight: 500 !important; border-bottom: 1px solid rgba(0,0,0,.08) !important; }
-table.snd td.fc, table.snd tr.bal td.fc { background: rgba(10,36,99,.045) !important; }
-table.snd tr.bal td { background: none !important; border-top: 1px solid rgba(0,0,0,.08) !important; border-bottom: 1px solid rgba(0,0,0,.08) !important; }
+table.snd td.fc { background: none !important; }
+table.snd tr.b td { background: rgba(0,0,0,.03) !important; }
+table.snd tr.bal td { background: rgba(0,0,0,.08) !important; border-top: 1px solid rgba(0,0,0,.08) !important; border-bottom: 1px solid rgba(0,0,0,.08) !important; }
 table.snd tr.bal td.lbl { color: #1d1d1f !important; }
 table.snd tr.soft td, table.snd tr.soft td.lbl { color: #86868b !important; }
 table.snd tr.meta td, table.snd tr.meta td.lbl { color: #86868b !important; }
@@ -121,12 +122,15 @@ div[role="radiogroup"] label:has(input:checked), [data-testid="stSidebar"] div[r
 div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p,
 [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #ffffff !important; }
 table.snd th.y { background: #0a2463 !important; color: #ffffff !important; font-weight: 600 !important; padding: 5px 10px !important; border-bottom: 0 !important; }
-table.snd th.y.fc { background: #e2e2e4 !important; color: #b7791f !important; }
+table.snd th.y.fc { background: none !important; color: #b7791f !important; }
 table.snd th.y.first { border-radius: 8px 0 0 8px; }
 table.snd th.y:last-child { border-radius: 0 8px 8px 0; }
-table.snd tr.bal td { background: rgba(10,36,99,.06) !important; }
-table.snd tr.bal td.fc { background: rgba(37,65,168,.10) !important; }
+table.snd tr.bal td { background: rgba(15,23,42,.09) !important; }
 table.snd tr.bal td.lbl { color: #0a2463 !important; }
+/* Mode (View/Edit): deep dark orange instead of navy */
+.st-key-mode_nav div[role="radiogroup"] label:has(input:checked) {
+    background: linear-gradient(180deg, #c2410c 0%, #7c2d12 100%) !important; box-shadow: 0 2px 6px rgba(124,45,18,.35) !important; }
+.st-key-mode_nav div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #ffffff !important; }
 /* multiselect pills: dark chip, so the text and the x must be white too */
 [data-baseweb="tag"] { background: #0a2463 !important; }
 [data-baseweb="tag"] span, [data-baseweb="tag"] div { color: #ffffff !important; }

@@ -256,12 +256,12 @@ def sensitivity(df, meta, years):
 
     with st.sidebar:
         st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
-        st.markdown("<div class='sb-label'>Commodity</div>", unsafe_allow_html=True)
-        st.radio("Commodity", SCOPES, horizontal=True, key="sc_scope", label_visibility="collapsed")
         st.markdown("<div class='sb-label'>Flex</div>", unsafe_allow_html=True)
         key = st.selectbox("Flex", options, format_func=label, key="sn_origin", label_visibility="collapsed")
         st.markdown("<div class='sb-label'>Crop year</div>", unsafe_allow_html=True)
         year = st.selectbox("Crop year", cyears, key="sn_year", label_visibility="collapsed")
+
+    st.radio("Commodity", SCOPES, horizontal=True, key="sc_scope")
 
     c = st.columns([1.3, 1.2, 1.4, 1.1], gap="small", vertical_alignment="bottom")
     unit = c[0].radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit")
