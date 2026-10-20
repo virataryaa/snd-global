@@ -226,11 +226,9 @@ def _spark_detail(pairs, kind, title) -> str:
     for v in (lo, (lo + hi) / 2, hi):
         yy = Y(v)
         svg += f"<line x1='{pad_l}' y1='{yy:.1f}' x2='{DETAIL_W - pad_r}' y2='{yy:.1f}' stroke='rgba(0,0,0,.08)' stroke-width='1'/>"
-    step = max(round(n / 7), 1)                           # thin out the year labels so "16/17" etc. don't collide
-    for i, (y, _v) in enumerate(pts):
-        if i % step == 0 or i == n - 1:
-            svg += (f"<text x='{xs[i]:.1f}' y='{DETAIL_H - 6}' font-size='7.5' text-anchor='middle' fill='#64748b' "
-                    f"transform='rotate(-40 {xs[i]:.1f} {DETAIL_H - 6})'>{y[2:]}</text>")
+    for i, (y, _v) in enumerate(pts):                     # every year, small and rotated so they all fit without colliding
+        svg += (f"<text x='{xs[i]:.1f}' y='{DETAIL_H - 6}' font-size='6' text-anchor='middle' fill='#64748b' "
+                f"transform='rotate(-55 {xs[i]:.1f} {DETAIL_H - 6})'>{y[2:]}</text>")
     for i, (y, v) in enumerate(pts):
         top, bot = sorted([zero_y, Y(v)])
         op = 0.5 if is_estimate(y) else 1
@@ -318,8 +316,9 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
             if neg_red and pd.notna(v) and v < -0.049:
                 cls.append("neg")
             pop = ""
-            revs = notes.get((comm, item, y)) if comm else None
-            if revs:
+            is_input_cell = bool(edit and comm and item and editable)     # a cell the component will make contentEditable
+            revs = notes.get((comm, item, y)) if comm and not is_input_cell else None   # skip: a contentEditable td's textContent
+            if revs:                                                       # would otherwise include the hidden popover's own text
                 cls.append("rev")
                 last_old, last_new = revs[0][1], revs[0][2]
                 dir_cls = "up" if last_old is not None and last_new is not None and last_new > last_old \
