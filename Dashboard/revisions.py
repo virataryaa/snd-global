@@ -141,27 +141,22 @@ def render():
                 "<tr><th class='y first'>When</th><th class='y first'>Item</th><th class='y'>Year</th><th class='y'>Was</th><th class='y'>Now</th>"
                 f"<th class='y'>Effect</th><th class='y first'>Reason</th></tr>{body}</table></div>", unsafe_allow_html=True)
 
+    def _items(grp):
+        """'Brazil 2026/27: 51.0 -> 52.0, Colombia 2026/27: 14.5 -> 14.0' — the crop numbers, not just the item names."""
+        return ", ".join(f"{r.group + ' ' if r.group != 'Brazil' else ''}{r.item} {r.year}: {fnum(r.old)} &rarr; {fnum(r.new)}"
+                         for r in grp.itertuples())
+
     groups = list(real.groupby("when", sort=False))              # actionable: undo one of the real edits above
     revert_groups = list(last[is_revert].groupby("when", sort=False))
-    if revert_groups and gh.enabled():
-        with st.expander(f"Revert log ({len(revert_groups)})", expanded=False):
-            st.markdown("<div class='card-desc'>Every revert that's been saved, on its own, separate from the real edits above.</div>",
-                        unsafe_allow_html=True)
-            for ts, grp in revert_groups:
-                items = ", ".join(f"{r.group + ' ' if r.group != 'Brazil' else ''}{r.item} {r.year}" for r in grp.itertuples())
-                st.markdown(f"<div class='undo-row'><span class='undo-dt'>{ts:%d %b %Y, %H:%M}</span>"
-                           f"<span class='undo-items'>{html.escape(items)}</span>"
-                           f"<span class='undo-why'>{html.escape(grp['reason'].iloc[0])}</span></div>", unsafe_allow_html=True)
     if groups and gh.enabled():
         with st.expander(f"Undo a save ({len(groups)})", expanded=False):
             st.markdown("<div class='card-desc'>Sets that save's cells back to what they were before it — recorded as a new revision, "
                         "nothing above is erased.</div>", unsafe_allow_html=True)
             for ts, grp in groups:
-                items = ", ".join(f"{r.group + ' ' if r.group != 'Brazil' else ''}{r.item} {r.year}" for r in grp.itertuples())
                 why = grp["reason"].iloc[0]
                 c1, c2 = st.columns([7, 1], vertical_alignment="center")
                 c1.markdown(f"<div class='undo-row'><span class='undo-dt'>{ts:%d %b %Y, %H:%M}</span>"
-                            f"<span class='undo-items'>{html.escape(items)}</span>"
+                            f"<span class='undo-items'>{_items(grp)}</span>"
                             + (f"<span class='undo-why'>{html.escape(why)}</span>" if why else "") + "</div>", unsafe_allow_html=True)
                 if c2.button("Revert", key=f"rv_undo_{dataset}_{ts.value}", width="stretch"):
                     try:
@@ -172,3 +167,10 @@ def render():
                     else:
                         st.toast("Reverted.")
                         st.rerun()
+    if revert_groups and gh.enabled():
+        with st.expander(f"Revert log ({len(revert_groups)})", expanded=False):
+            st.markdown("<div class='card-desc'>Every revert that's been saved, on its own, separate from the real edits above.</div>",
+                        unsafe_allow_html=True)
+            for ts, grp in revert_groups:
+                st.markdown(f"<div class='undo-row'><span class='undo-dt'>{ts:%d %b %Y, %H:%M}</span>"
+                           f"<span class='undo-items'>{_items(grp)}</span></div>", unsafe_allow_html=True)
