@@ -141,9 +141,19 @@ def render():
                 "<tr><th class='y first'>When</th><th class='y first'>Item</th><th class='y'>Year</th><th class='y'>Was</th><th class='y'>Now</th>"
                 f"<th class='y'>Effect</th><th class='y first'>Reason</th></tr>{body}</table></div>", unsafe_allow_html=True)
 
-    groups = list(last.groupby("when", sort=False))
+    groups = list(real.groupby("when", sort=False))              # actionable: undo one of the real edits above
+    revert_groups = list(last[is_revert].groupby("when", sort=False))
+    if revert_groups and gh.enabled():
+        with st.expander(f"Revert log ({len(revert_groups)})", expanded=False):
+            st.markdown("<div class='card-desc'>Every revert that's been saved, on its own, separate from the real edits above.</div>",
+                        unsafe_allow_html=True)
+            for ts, grp in revert_groups:
+                items = ", ".join(f"{r.group + ' ' if r.group != 'Brazil' else ''}{r.item} {r.year}" for r in grp.itertuples())
+                st.markdown(f"<div class='undo-row'><span class='undo-dt'>{ts:%d %b %Y, %H:%M}</span>"
+                           f"<span class='undo-items'>{html.escape(items)}</span>"
+                           f"<span class='undo-why'>{html.escape(grp['reason'].iloc[0])}</span></div>", unsafe_allow_html=True)
     if groups and gh.enabled():
-        with st.expander(f"Undo a save ({len(groups)}) — includes reverts, collapsed so it doesn't get in the way", expanded=False):
+        with st.expander(f"Undo a save ({len(groups)})", expanded=False):
             st.markdown("<div class='card-desc'>Sets that save's cells back to what they were before it — recorded as a new revision, "
                         "nothing above is erased.</div>", unsafe_allow_html=True)
             for ts, grp in groups:
