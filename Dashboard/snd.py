@@ -269,7 +269,7 @@ def sparkline(pairs, title, kind="growth") -> str:
     return f"<span class='spark-wrap'>{svg}{_spark_detail(pts, kind, title)}</span>"
 
 
-def _rev_chart(revs) -> str:
+def _rev_chart(revs, title="") -> str:
     """A tiny line chart of the revision history itself: one point per saved change, oldest to newest, by date."""
     chrono = list(reversed(revs))                            # revs is newest-first; the chart reads left to right
     pts = [(chrono[0][0][:10], chrono[0][1])] if chrono[0][1] is not None else []
@@ -277,7 +277,7 @@ def _rev_chart(revs) -> str:
     if len(pts) < 2:
         return ""
     vals = [v for _, v in pts]
-    w, h, pad_x, pad_t, pad_b = 190, 72, 18, 20, 16
+    w, h, pad_x, pad_t, pad_b = 190, 84, 18, 30, 16
     lo, hi = min(vals), max(vals)
     rng = (hi - lo) or 1.0
     n = len(pts)
@@ -287,7 +287,8 @@ def _rev_chart(revs) -> str:
     dots = "".join(f"<circle cx='{x:.1f}' cy='{y:.1f}' r='2' fill='#0a2463'/>" for x, y in zip(xs, ys))
     labels = "".join(f"<text x='{x:.1f}' y='{y - 5:.1f}' font-size='8' text-anchor='middle' fill='#1d1d1f'>{v:,.1f}</text>"
                      for x, y, v in zip(xs, ys, vals))
-    return (f"<svg width='{w}' height='{h}' style='display:block;margin-bottom:4px'>"
+    head = f"<text x='{w / 2:.1f}' y='13' font-size='9.5' font-weight='600' text-anchor='middle' fill='#0a2463'>{html.escape(title)}</text>" if title else ""
+    return (f"<svg width='{w}' height='{h}' style='display:block;margin-bottom:4px'>{head}"
             f"<polyline points='{poly}' fill='none' stroke='#5b7fc7' stroke-width='1.5'/>{dots}{labels}"
             f"<text x='{xs[0]:.1f}' y='{h - 2}' font-size='7.5' fill='#9a9a9e'>{pts[0][0]}</text>"
             f"<text x='{xs[-1]:.1f}' y='{h - 2}' font-size='7.5' fill='#9a9a9e' text-anchor='end'>{pts[-1][0]}</text></svg>")
@@ -351,7 +352,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
                     f"<div class='row'><span class='dt'>{ts[:10]}</span>{fnum(o, 1) or '-'} &rarr; {fnum(n, 1) or '-'}"
                     + (f"<span class='rs'>{html.escape(r, quote=True)}</span>" if r else "") + "</div>"
                     for ts, o, n, r in revs[:8])
-                pop = f"<span class='rev-dot {dir_cls}'></span><div class='rev-pop'>{_rev_chart(revs)}{rows}</div>"
+                pop = f"<span class='rev-dot {dir_cls}'></span><div class='rev-pop'>{_rev_chart(revs, label)}{rows}</div>"
             title = ""
             if edit and comm and item and editable:                      # an input cell: typed over in place
                 k = f"{comm}|{item}|{y}"

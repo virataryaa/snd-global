@@ -130,6 +130,10 @@ table.snd tr.bal td.lbl { color: #0a2463 !important; }
 .st-key-mode_nav div[role="radiogroup"] label:has(input:checked) {
     background: linear-gradient(180deg, #c2410c 0%, #7c2d12 100%) !important; box-shadow: 0 2px 6px rgba(124,45,18,.35) !important; }
 .st-key-mode_nav div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #ffffff !important; }
+/* Analysis Page (Global SnD / Brazil Internal SnD): dark red, so it reads clearly without a "Page" caption above it */
+.st-key-an_page_nav div[role="radiogroup"] label:has(input:checked) {
+    background: linear-gradient(180deg, #991b1b 0%, #5c1414 100%) !important; box-shadow: 0 2px 6px rgba(92,20,20,.35) !important; }
+.st-key-an_page_nav div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #ffffff !important; }
 /* Sensitivity's controls row: compact, everything on one line */
 .st-key-sn_controls { padding: 6px 12px !important; }
 .st-key-sn_controls [data-testid="stWidgetLabel"] p { font-size: 9px !important; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: #94a3b8 !important; margin-bottom: 0 !important; }

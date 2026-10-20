@@ -119,7 +119,7 @@ def whatif(df, meta, years):
         sel = st.multiselect("Apply to crop years", opts, key="sc_years", label_visibility="collapsed")
         st.button("Reset", key="sc_reset", on_click=_reset, width="stretch")
 
-    scope = st.radio("Commodity", SCOPES, horizontal=True, key="sc_scope")
+    scope = st.radio("Commodity", SCOPES, horizontal=True, key="sc_scope", label_visibility="collapsed")
     if not sel:
         st.markdown("<div class='an-note'>Pick at least one crop year.</div>", unsafe_allow_html=True)
         return
@@ -256,7 +256,7 @@ def sensitivity(df, meta, years):
         st.session_state["sn_year"] = cur if cur in cyears else cyears[-1]
 
     with st.container(border=True, key="sn_controls"):
-        st.radio("Commodity", SCOPES, horizontal=True, key="sc_scope")
+        st.radio("Commodity", SCOPES, horizontal=True, key="sc_scope", label_visibility="collapsed")
         c = st.columns([0.8, 0.8, 0.85, 1.0, 1.0, 0.75, 0.75], gap="small", vertical_alignment="bottom")
         unit = c[0].radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit")
         skey = f"sn_step_{unit}"

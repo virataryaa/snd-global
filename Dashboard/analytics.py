@@ -242,7 +242,8 @@ def render():
     st.markdown(snd.CSS + CSS, unsafe_allow_html=True)
     df, meta, _notes, years = load()
     st.markdown("<div class='snd-head'><span class='t'>Analysis</span></div>", unsafe_allow_html=True)
-    page = st.radio("Page", ["Global SnD", "Brazil Internal SnD"], horizontal=True, key="an_page")
+    with st.container(key="an_page_nav"):
+        page = st.radio("Page", ["Global SnD", "Brazil Internal SnD"], horizontal=True, key="an_page", label_visibility="collapsed")
     frames = {c: block(df, meta, c, years) for c in ORIGINS}
     glob = global_block(frames["Arabica"], frames["Robusta"], years)
     if page == "Global SnD":
