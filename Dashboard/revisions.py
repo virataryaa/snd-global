@@ -66,8 +66,7 @@ PALETTE = ["#0a2463", "#3e5fa8", "#1f8a9c", "#b7791f", "#1f9d6f", "#c0392b", "#8
 def _revert(dataset, grp: pd.DataFrame):
     """Set every cell in one saved commit back to what it was before that save — as a new save, so the log keeps the full history."""
     when = grp["when"].iloc[0]
-    why = grp["reason"].iloc[0]
-    reason = f"revert of {when:%d %b %Y %H:%M}" + (f" ({why})" if why else "")
+    reason = f"revert of {when:%d %b %Y %H:%M}"               # never embed the old reason: reverting a revert would chain forever
     if dataset == "Coffee SnD":
         changes = [(r.group, r.item, r.year, r.new, None if pd.isna(r.old) else float(r.old)) for r in grp.itertuples()]
         snd._save_inputs(changes, reason)
@@ -131,19 +130,20 @@ def render():
         card(f"How every estimate for {year} was revised", "each line is one origin or item · each point is a saved revision")
         st.plotly_chart(revision_lines(sub, mode == "Level", dataset == "Coffee SnD" and group == "All"), width="stretch", key="rv_lines")
     last = rv.sort_values("when", ascending=False).head(30)
+    is_revert = last["reason"].str.startswith("revert of", na=False)
+    real = last[~is_revert]                                    # the top table: actual edits only, no "revert of revert of ..." noise
     body = "".join(f"<tr><td class='lbl'>{r.when:%d %b %Y %H:%M}</td><td class='lbl'>{r.group} {r.item}</td><td>{r.year}</td>"
                    f"<td>{fnum(r.old)}</td><td>{fnum(r.new)}</td>"
                    f"<td class='{'neg' if pd.notna(r.effect) and r.effect < 0 else ''}'>{'' if pd.isna(r.effect) else format(r.effect, '+.1f')}</td>"
                    f"<td class='lbl' style='min-width:220px'>{html.escape(r.reason)}</td></tr>"
-                   for r in last.itertuples())
+                   for r in real.itertuples())
     st.markdown("<div class='snd-bar'>Latest revisions</div><div class='snd-wrap' style='border-radius:0 0 8px 8px;margin-top:0'><table class='snd'>"
                 "<tr><th class='y first'>When</th><th class='y first'>Item</th><th class='y'>Year</th><th class='y'>Was</th><th class='y'>Now</th>"
                 f"<th class='y'>Effect</th><th class='y first'>Reason</th></tr>{body}</table></div>", unsafe_allow_html=True)
 
     groups = list(last.groupby("when", sort=False))
     if groups and gh.enabled():
-        with st.container(border=True):
-            card("Undo a save")
+        with st.expander(f"Undo a save ({len(groups)}) — includes reverts, collapsed so it doesn't get in the way", expanded=False):
             st.markdown("<div class='card-desc'>Sets that save's cells back to what they were before it — recorded as a new revision, "
                         "nothing above is erased.</div>", unsafe_allow_html=True)
             for ts, grp in groups:
