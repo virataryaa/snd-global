@@ -197,6 +197,7 @@ def whatif(df, meta, years):
 SOFT_RED, SOFT_MID, SOFT_GREEN = "#d79a93", "#f6f3ea", "#8fbfa3"
 
 
+@st.cache_data(ttl=600, show_spinner="Computing sensitivity grid...")
 def sensitivity_heatmap(df, meta, years, key, year, n, step, unit, metric):
     """A grid of the flexed item against its commodity's consumption (or, if Consumption was flexed, against its largest origin):
     every combination of the two, stepped the same way as the bar chart above (m bags or percent), with the given metric in each cell."""
@@ -232,10 +233,10 @@ def sensitivity_heatmap(df, meta, years, key, year, n, step, unit, metric):
             a, r, g = run(scen, meta, years, {})
             row.append(float(fn(scope, a, r, g)[year]) * scale)
         z.append(row)
-    if metric == "S/U":                                   # one shade, low to high: no colour at the low end, a light green at the high end
-        hm_kw = dict(colorscale=[[0, "#ffffff"], [1, "#a9cfb8"]])
-    else:                                                  # deficit vs surplus: red below zero, green above it
+    if metric == "Balance":                               # deficit vs surplus: red below zero, green above it
         hm_kw = dict(colorscale=[[0, SOFT_RED], [0.5, SOFT_MID], [1, SOFT_GREEN]], zmid=0)
+    else:                                                  # S/U, End stock: one shade, low to high, no colour at the low end
+        hm_kw = dict(colorscale=[[0, "#ffffff"], [1, "#a9cfb8"]])
     fig = go.Figure(go.Heatmap(z=z, x=labels, y=labels, **hm_kw,
                                xgap=2, ygap=2,
                                text=[[fmt.format(v) for v in row] for row in z], texttemplate="%{text}", textfont=dict(size=8.5, color="#3a3a3c"),
@@ -244,12 +245,14 @@ def sensitivity_heatmap(df, meta, years, key, year, n, step, unit, metric):
     zero = n                                                # steps.index(0): the base case, no change on either axis
     last = len(steps) - 1
     for x0, x1, y0, y1 in [(zero - 0.5, zero + 0.5, -0.5, last + 0.5), (-0.5, last + 0.5, zero - 0.5, zero + 0.5)]:
-        fig.add_shape(type="rect", x0=x0, x1=x1, y0=y0, y1=y1, line=dict(color="#0a2463", width=1.5), fillcolor="rgba(0,0,0,0)", layer="above")
-    fig.update_layout(template="plotly_white", height=235, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        fig.add_shape(type="rect", x0=x0, x1=x1, y0=y0, y1=y1, line=dict(color="rgba(100,116,139,.55)", width=1.25),
+                      fillcolor="rgba(0,0,0,0)", layer="above")
+    fig.update_layout(template="plotly_white", height=260, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                       margin=dict(t=4, b=28, l=50, r=6), font=dict(color="#1d1d1f", size=9.5),
-                      xaxis=dict(title=f"{x_label} change", type="category", tickfont=dict(size=8.5),
+                      xaxis=dict(title=f"{x_label} change", type="category", tickfont=dict(size=8.5), constrain="domain",
                                  showline=True, linewidth=1, linecolor="rgba(0,0,0,.15)", mirror=True),
-                      yaxis=dict(title=f"{y_label} change", type="category", tickfont=dict(size=8.5),
+                      yaxis=dict(title=f"{y_label} change", type="category", tickfont=dict(size=8.5), constrain="domain",
+                                 scaleanchor="x", scaleratio=1,
                                  showline=True, linewidth=1, linecolor="rgba(0,0,0,.15)", mirror=True))
     return fig, x_label, y_label
 
@@ -285,42 +288,12 @@ def sensitivity(df, meta, years):
                              step=0.5 if unit == "m bags" else 1.0, format="%.1f", key=skey) or (5.0 if unit == "m bags" else 10.0)
     n = int(c[2].number_input("Steps each side", min_value=1, max_value=8, value=int(st.session_state.get("sn_n") or 5), step=1, key="sn_n") or 5)
 
-    comm, item = key.split("|")
-    rows_ = (df["commodity"] == comm) & (df["item"] == item) & (df["year"] == year)
-    base_v = float(df.loc[rows_, "value"].iloc[0])
-    res = []
-    for k in range(-n, n + 1):
-        v = base_v + k * step if unit == "m bags" else base_v * (1 + k * step / 100)
-        if v <= 0:
-            continue
-        scen = df.copy()
-        scen.loc[rows_, "value"] = v
-        res.append((k, v, run(scen, meta, years, {})))
-
-    def series(f, sc=1):
-        return [float(f(scope, *frames)[year]) * sc for _k, _v, frames in res]
-
-    def vlabel(v):
-        return f"{v:.1f}m" if unit == "m bags" else f"{(v / base_v - 1) * 100:+.0f}%"
-
-    h1, h2 = st.columns(2, gap="small")
-    with h1, st.container(border=True):
-        fig, x_label, y_label = sensitivity_heatmap(df, meta, years, key, year, n, step, unit, "S/U")
-        card(f"{x_label} vs {y_label}: S/U at {year}")
-        st.plotly_chart(fig, width="stretch", key="sn_heat_su")
-    with h2, st.container(border=True):
-        fig2, _, _ = sensitivity_heatmap(df, meta, years, key, year, n, step, unit, "Balance")
-        card(f"{x_label} vs {y_label}: balance (deficit / surplus) at {year}")
-        st.plotly_chart(fig2, width="stretch", key="sn_heat_bal")
-
-    with st.container(border=True):
-        card(f"{label(key)} {year}: every step")
-        body = "".join(f"<tr class='{'b' if k == 0 else ''}'><td class='lbl'>{vlabel(v)}{' (ours)' if k == 0 else ''}</td><td>{(v - base_v):+.1f}</td>"
-                       f"<td>{s:.1f}%</td><td>{b:+.1f}</td><td>{t:.1f}</td></tr>"
-                       for (k, v, _f), s, b, t in zip(res, series(su, 100), series(bal), series(stock)))
-        st.markdown("<div class='snd-wrap' style='margin-top:0;width:100%'><table class='snd' style='width:100%'><tr><th class='y first'>Value</th>"
-                    f"<th class='y'>vs ours</th><th class='y'>S/U</th><th class='y'>Balance</th><th class='y'>End stock</th></tr>{body}</table></div>",
-                    unsafe_allow_html=True)
+    h1, h2, h3 = st.columns(3, gap="small")
+    for col, metric, key_sfx in ((h1, "S/U", "su"), (h2, "Balance", "bal"), (h3, "End stock", "stock")):
+        with col, st.container(border=True):
+            fig, x_label, y_label = sensitivity_heatmap(df, meta, years, key, year, n, step, unit, metric)
+            card(f"{x_label} vs {y_label}: {'balance (deficit / surplus)' if metric == 'Balance' else metric} at {year}")
+            st.plotly_chart(fig, width="stretch", key=f"sn_heat_{key_sfx}")
 
 
 def page():
