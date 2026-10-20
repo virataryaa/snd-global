@@ -222,7 +222,7 @@ def _heatmap_fig(z, labels, x_label, y_label, metric, big=False):
     sz = 9.5 if big else 8.5
     fig = go.Figure(go.Heatmap(z=z, x=labels, y=labels, **hm_kw,
                                xgap=2, ygap=2,
-                               text=[[fmt.format(v) for v in row] for row in z], texttemplate="%{text}", textfont=dict(size=sz, color="#3a3a3c"),
+                               text=[[fmt.format(v) for v in row] for row in z], texttemplate="%{text}", textfont=dict(size=sz, color="#000000"),
                                hovertemplate=f"{x_label} %{{x}}, {y_label} %{{y}}: %{{z:.1f}}<extra></extra>",
                                colorbar=dict(thickness=8 if big else 7, tickfont=dict(size=sz - 0.5), outlinewidth=0)))
     n = (len(labels) - 1) // 2                              # the middle label is the base case, no change on either axis
@@ -230,12 +230,12 @@ def _heatmap_fig(z, labels, x_label, y_label, metric, big=False):
     for x0, x1, y0, y1 in [(n - 0.5, n + 0.5, -0.5, last + 0.5), (-0.5, last + 0.5, n - 0.5, n + 0.5)]:
         fig.add_shape(type="rect", x0=x0, x1=x1, y0=y0, y1=y1, line=dict(color="rgba(100,116,139,.55)", width=1.25),
                       fillcolor="rgba(0,0,0,0)", layer="above")
-    fig.update_layout(template="plotly_white", height=310 if big else 295, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+    fig.update_layout(template="plotly_white", height=340 if big else 325, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                       margin=dict(t=4, b=28, l=50, r=6), font=dict(color="#1d1d1f", size=sz + 1),
-                      xaxis=dict(title=f"{x_label} change", type="category", tickfont=dict(size=sz), constrain="domain",
-                                 showline=True, linewidth=1, linecolor="rgba(0,0,0,.15)", mirror=True),
-                      yaxis=dict(title=f"{y_label} change", type="category", tickfont=dict(size=sz), constrain="domain",
-                                 scaleanchor="x", scaleratio=1,
+                      xaxis=dict(title=dict(text=f"{x_label} change", font=dict(color="#0a2463")), type="category", tickfont=dict(size=sz),
+                                 constrain="domain", showline=True, linewidth=1, linecolor="rgba(0,0,0,.15)", mirror=True),
+                      yaxis=dict(title=dict(text=f"{y_label} change", font=dict(color="#0a2463")), type="category", tickfont=dict(size=sz),
+                                 constrain="domain", scaleanchor="x", scaleratio=1,
                                  showline=True, linewidth=1, linecolor="rgba(0,0,0,.15)", mirror=True))
     return fig
 
