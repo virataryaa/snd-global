@@ -7,6 +7,7 @@ end stock = last year's end stock + balance (the first year's end stock is an in
 import html
 import io
 import json
+import re
 from datetime import date
 from pathlib import Path
 
@@ -17,7 +18,7 @@ import streamlit as st
 import ghstore as gh
 
 ROOT = Path(__file__).resolve().parent.parent
-CSV, META, NOTES = ROOT / "Database" / "coffee_snd.csv", ROOT / "Database" / "coffee_snd_meta.json", ROOT / "Database" / "coffee_snd_notes.csv"
+CSV, META = ROOT / "Database" / "coffee_snd.csv", ROOT / "Database" / "coffee_snd_meta.json"
 CSV_PATH, META_PATH = "Database/coffee_snd.csv", "Database/coffee_snd_meta.json"            # paths in the repo
 ORIGINS = {
     "Arabica": ["Brazil", "Colombia", "Honduras", "Super 5", "Ethiopia", "Peru", "Others"],
@@ -63,9 +64,18 @@ table.snd td.ed { cursor: text; }
 table.snd td.ed:hover { box-shadow: inset 0 0 0 1px #9db3e6; background: #f3f6fd; }
 table.snd td.ed:focus { outline: none; box-shadow: inset 0 0 0 2px #0a2463; background: #ffffff; }
 table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
-table.snd td.note { position: relative; cursor: help; }
-table.snd td.note::after { content: ""; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 6px 6px 0;
-                           border-color: transparent #a855f7 transparent transparent; }
+table.snd td.rev { position: relative; }
+.rev-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-left: 5px; vertical-align: middle; }
+.rev-dot.up { background: #1f9d6f; }
+.rev-dot.down { background: #c0392b; }
+.rev-pop { display: none; position: absolute; z-index: 60; top: 100%; right: 0; margin-top: 4px; background: #1d1d1f; color: #f5f5f7;
+           border-radius: 8px; padding: 7px 10px; font-size: 10.5px; white-space: nowrap; box-shadow: 0 6px 20px rgba(0,0,0,.25);
+           text-align: left; font-weight: 400; letter-spacing: 0; }
+table.snd td.rev:hover .rev-pop { display: block; }
+.rev-pop .row { padding: 2px 0; }
+.rev-pop .row + .row { border-top: 1px solid rgba(255,255,255,.12); }
+.rev-pop .dt { color: #9a9a9e; margin-right: 6px; }
+.rev-pop .rs { color: #9a9a9e; margin-left: 6px; }
 .snd-bar { background: linear-gradient(90deg, #0a1d4d 0%, #0a2463 100%); color: #ffffff; font-size: 12px; font-weight: 700;
            letter-spacing: .12em; text-transform: uppercase; padding: 7px 14px; border-radius: 8px 8px 0 0; margin-top: 6px; }
 .snd-head { display: flex; align-items: baseline; gap: 12px; margin: 2px 0 12px; }
@@ -92,13 +102,43 @@ def is_estimate(year: str) -> bool:
     return ystart(year) >= ystart(current_crop_year())
 
 
+COFFEE_LINE = re.compile(r"^(Arabica|Robusta) (.+) (\d{4}/\d{2}): (.*) -> (.*)$")
+REASON = re.compile(r"\| reason: (.*)$")
+
+
+def _rev_val(t):
+    t = t.strip()
+    return None if t in ("", "-") else float(t)
+
+
+@st.cache_data(ttl=300)
+def cell_history():
+    """{(commodity, item, year): [(when, old, new, reason), ...]} newest first, parsed from the GitHub save history
+    (the same commit log Revisions reads) — one entry per saved change to that cell."""
+    out = {}
+    if not gh.enabled():
+        return out
+    for ts, msg in gh.history(CSV_PATH):
+        first, _, body = msg.partition("\n")
+        if not first.startswith("Coffee SnD |"):
+            continue
+        why = REASON.search(first)
+        why = why.group(1).strip() if why else ""
+        for ln in body.splitlines():
+            m = COFFEE_LINE.match(ln.strip())
+            if not m:
+                continue
+            comm, item, year, old, new = m.groups()
+            out.setdefault((comm, item, year), []).append((ts, _rev_val(old), _rev_val(new), why))
+    return out
+
+
 @st.cache_data(ttl=600)
 def load():
     df = pd.read_csv(CSV)
     meta = json.loads(META.read_text(encoding="utf-8"))
-    notes = pd.read_csv(NOTES) if NOTES.exists() else pd.DataFrame(columns=["commodity", "item", "year", "note"])
     years = sorted(df["year"].unique(), key=ystart)
-    return df, meta, {(r.commodity, r.item, r.year): r.note for r in notes.itertuples()}, years
+    return df, meta, cell_history(), years
 
 
 def block(df, meta, comm, years) -> pd.DataFrame:
@@ -168,22 +208,30 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
                 cls.append("fc")
             if neg_red and pd.notna(v) and v < -0.049:
                 cls.append("neg")
+            pop = ""
+            revs = notes.get((comm, item, y)) if comm else None
+            if revs:
+                cls.append("rev")
+                last_old, last_new = revs[0][1], revs[0][2]
+                dir_cls = "up" if last_old is not None and last_new is not None and last_new > last_old \
+                    else "down" if last_old is not None and last_new is not None and last_new < last_old else ""
+                rows = "".join(
+                    f"<div class='row'><span class='dt'>{ts[:10]}</span>{fnum(o, 1) or '-'} &rarr; {fnum(n, 1) or '-'}"
+                    + (f"<span class='rs'>{html.escape(r, quote=True)}</span>" if r else "") + "</div>"
+                    for ts, o, n, r in revs[:8])
+                pop = f"<span class='rev-dot {dir_cls}'></span><div class='rev-pop'>{rows}</div>"
             title = ""
-            nt = notes.get((comm, item, y)) if comm else None
-            if nt:
-                cls.append("note")
-                title = f" title='{html.escape(nt, quote=True)}'"
             if edit and comm and item:                                   # an input cell: typed over in place
                 k = f"{comm}|{item}|{y}"
                 b = edit["base"].get(k)
                 cls.append("ed")
                 if k in edit["changed"]:
                     cls.append("chg")
-                title += f" data-k='{html.escape(k, quote=True)}' data-base='{'' if b is None or pd.isna(b) else b}'"
-            cells += f"<td class='{' '.join(cls)}'{title}>{fmt(v)}</td>"
+                title = f" data-k='{html.escape(k, quote=True)}' data-base='{'' if b is None or pd.isna(b) else b}'"
+            cells += f"<td class='{' '.join(cls)}'{title}>{fmt(v)}{pop}</td>"
         return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>"
 
-    out = [f"<tr class='meta'><td class='lbl'>Brazil combo</td>{''.join(f'<td>{combo[y]:.1f}</td>' for y in shown)}</tr>"]
+    out = []
     for comm, fr in comm_frames.items():
         if comm != "Arabica":
             out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
@@ -205,18 +253,10 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
     out.append(tr("Production", glob.loc["Production Global"], "b"))
     out.append(tr("Consumption", glob.loc["Consumption Global"], "b"))
     out.append(tr("Balance", glob.loc["Global Balance"], "bal", neg_red=True))
-    start = years.index(shown[0]) % 2                                 # the sheet pairs 2016/17 + 2017/18, 2018/19 + 2019/20, ...
-    lab, val = {}, {}
-    for i, y in enumerate(shown):
-        if (i + start) % 2 == 0 and i + 1 < len(shown):
-            lab[y] = f"{y[:4]}/{shown[i + 1][5:7]}"                  # 2016/17 + 2017/18 -> 2016/18
-            val[y] = glob.loc["Global Balance", y] + glob.loc["Global Balance", shown[i + 1]]
-    out.append("<tr class='soft'><td class='lbl'>2 year cycle</td>" + "".join(f"<td>{lab.get(y, '')}</td>" for y in shown) + "</tr>")
-    out.append("<tr class='b'><td class='lbl'>2 year balance</td>"
-               + "".join(f"<td class='{'neg' if val.get(y, 0) < -0.049 else ''}'>{fnum(val[y]) if y in val else ''}</td>" for y in shown) + "</tr>")
     out.append(tr("Demand change", glob.loc["Global demand chg"], "soft", fpct))
     out.append(tr("Combined end season stock", glob.loc["Combined End Season Stock"], ""))
     out.append(tr("Combined S/U", glob.loc["Combined S/U"], "soft", fpct))
+    out.append(f"<tr class='meta'><td class='lbl'>Brazil combo (Arabica + Robusta)</td>{''.join(f'<td>{combo[y]:.1f}</td>' for y in shown)}</tr>")
     return f"<div class='snd-wrap'><table class='snd'>{''.join(out)}</table></div>"
 
 
@@ -385,9 +425,8 @@ def render():
     df, meta, notes, years = load()
     with st.sidebar:
         st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
-        span = st.radio("Years", ["Last 10", "All"], horizontal=True, key="snd_span")
         mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="snd_mode")
-    shown = years[-10:] if span == "Last 10" else years
+    shown = years
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))
     a, r = block(df, meta, "Arabica", years), block(df, meta, "Robusta", years)

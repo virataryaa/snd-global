@@ -88,16 +88,25 @@ def bridge_fig(frames, years, y, scope, height=330):
 
 
 def view_bridge(frames, years, meta):
-    scope = st.radio("Scope", ["Global", "Arabica", "Robusta"], horizontal=True, key="an_br_scope", label_visibility="collapsed")
+    """Global, Arabica and Robusta bridges stacked one over another, all for the same four crop years (picked from a Start year dropdown)."""
     cur = snd.current_crop_year()
     at = years.index(cur) if cur in years else len(years) - 1
-    targets = [y for y in years[max(1, at - 1):at + 3]]                        # previous, current, next (and the one after, when there is one)
+    options = years[1:]                                           # a bridge needs a previous year, so the first year can't start one
+    default = years[max(1, at - 1)]
+    start = st.selectbox("Start year", options, index=options.index(default), key="an_br_start", label_visibility="collapsed")
+    si = years.index(start)
+    targets = years[si:si + 4]
     names = {at - 1: "previous", at: "current", at + 1: "next", at + 2: "year after"}
-    cols = st.columns(len(targets), gap="small")
-    for col, y in zip(cols, targets):
-        with col, st.container(border=True):
-            card(f"{y} <span class='pill'>{names.get(years.index(y), '')}</span>")
-            st.plotly_chart(bridge_fig(frames, years, y, scope, height=330 if len(targets) > 2 else 380), width="stretch", key=f"an_bridge_{y}")
+    for scope in ["Global", "Arabica", "Robusta"]:
+        with st.container(border=True):
+            card(scope)
+            cols = st.columns(len(targets), gap="small")
+            for col, y in zip(cols, targets):
+                with col:
+                    tag = names.get(years.index(y), "")
+                    st.markdown(f"<div style='font-size:11px;color:#64748b;margin-bottom:2px'>{y}"
+                                + (f" <span class='pill'>{tag}</span>" if tag else "") + "</div>", unsafe_allow_html=True)
+                    st.plotly_chart(bridge_fig(frames, years, y, scope, height=260), width="stretch", key=f"an_bridge_{scope}_{y}")
     st.markdown("<div style='font-size:10.5px;color:#94a3b8;margin-top:-4px'>Hatched bars = demand, shown as its effect on the balance "
                 "(more demand is red). Origin moves under 0.3m bags are grouped as Other.</div>", unsafe_allow_html=True)
 

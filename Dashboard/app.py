@@ -121,7 +121,7 @@ div[role="radiogroup"] label:has(input:checked), [data-testid="stSidebar"] div[r
 div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p,
 [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #ffffff !important; }
 table.snd th.y { background: #0a2463 !important; color: #ffffff !important; font-weight: 600 !important; padding: 5px 10px !important; border-bottom: 0 !important; }
-table.snd th.y.fc { background: #0a2463 !important; }
+table.snd th.y.fc { background: #e2e2e4 !important; color: #b7791f !important; }
 table.snd th.y.first { border-radius: 8px 0 0 8px; }
 table.snd th.y:last-child { border-radius: 0 8px 8px 0; }
 table.snd tr.bal td { background: rgba(10,36,99,.06) !important; }
@@ -166,14 +166,14 @@ with st.sidebar:
         section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Revisions"], index=0, label_visibility="collapsed", key="section")
 
 if section == "SnD":
-    _old = {"Brazil": "Brazil Internal SnD", "Coffee": "Global SnD"}           # old labels
+    _old = {"Brazil": "Brazil Internal SnD", "Coffee": "Global SnD", "AgriAcies format": "Brazil Internal SnD"}   # old labels
     if st.session_state.get("snd_page") in _old:
         st.session_state["snd_page"] = _old[st.session_state["snd_page"]]
-    page = st.radio("Page", ["Global SnD", "Brazil Internal SnD", "AgriAcies format"], horizontal=True, key="snd_page", label_visibility="collapsed")
+    page = st.radio("Page", ["Global SnD", "Brazil Internal SnD"], horizontal=True, key="snd_page", label_visibility="collapsed")
     if page == "Global SnD":
         snd.render()
     else:
-        brazil.render("Brazil SnD" if page == "Brazil Internal SnD" else "AgriAcies format")
+        brazil.render("Brazil SnD")
 elif section == "Analysis":
     analytics.render()
 elif section == "Scenarios":
