@@ -79,6 +79,10 @@ table.snd td.rev:hover .rev-pop { display: block; }
 table.snd td.spark-td, table.snd th.spark-h { border-left: 1px solid rgba(0,0,0,.06); padding-left: 10px; }
 table.snd th.spark-h { font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; }
 .spark { display: inline-block; width: 48px; height: 13px; vertical-align: middle; }
+.spark-wrap { position: relative; display: inline-block; cursor: crosshair; }
+.spark-pop { display: none; position: absolute; z-index: 70; top: 100%; right: 0; margin-top: 4px; background: #ffffff;
+             border: 1px solid rgba(0,0,0,.08); border-radius: 8px; padding: 4px 6px 2px; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+.spark-wrap:hover .spark-pop { display: block; }
 .snd-bar { background: linear-gradient(90deg, #0a1d4d 0%, #0a2463 100%); color: #ffffff; font-size: 12px; font-weight: 700;
            letter-spacing: .12em; text-transform: uppercase; padding: 7px 14px; border-radius: 8px 8px 0 0; margin-top: 6px; }
 .snd-head { display: flex; align-items: baseline; gap: 12px; margin: 2px 0 12px; }
@@ -189,6 +193,54 @@ def fpct(v, dec=1):
 
 
 SPARK_W, SPARK_H = 48, 13
+DETAIL_W, DETAIL_H = 230, 110
+
+
+def _spark_detail(pairs, kind="line") -> str:
+    """The sparkline's full-size version, shown on hover: crop year on x, value on y, with gridlines and labels."""
+    pts = [(y, float(v)) for y, v in pairs if pd.notna(v)]
+    if len(pts) < 2:
+        return ""
+    vals = [v for _, v in pts]
+    pad_l, pad_r, pad_t, pad_b = 30, 6, 6, 15
+    plot_w, plot_h = DETAIL_W - pad_l - pad_r, DETAIL_H - pad_t - pad_b
+    lo, hi = (min(min(vals), 0), max(max(vals), 0)) if kind == "bar" else (min(vals), max(vals))
+    rng = (hi - lo) or 1.0
+    n = len(pts)
+    xs = [pad_l + i * plot_w / (n - 1) for i in range(n)]
+
+    def Y(v):
+        return pad_t + plot_h - (v - lo) / rng * plot_h
+
+    svg = f"<svg width='{DETAIL_W}' height='{DETAIL_H}' viewBox='0 0 {DETAIL_W} {DETAIL_H}'>"
+    for v in (lo, (lo + hi) / 2, hi):
+        yy = Y(v)
+        svg += (f"<line x1='{pad_l}' y1='{yy:.1f}' x2='{DETAIL_W - pad_r}' y2='{yy:.1f}' stroke='rgba(0,0,0,.08)' stroke-width='1'/>"
+                f"<text x='{pad_l - 4}' y='{yy + 3:.1f}' font-size='8' text-anchor='end' fill='#64748b'>{v:.1f}</text>")
+    for i, (y, _v) in enumerate(pts):
+        if i % max(n // 7, 1) == 0 or i == n - 1:
+            svg += f"<text x='{xs[i]:.1f}' y='{DETAIL_H - 3}' font-size='7.5' text-anchor='middle' fill='#64748b'>{y[2:4]}</text>"
+    if kind == "bar":
+        zero_y, bw = Y(0), plot_w / n * 0.6
+        for i, (y, v) in enumerate(pts):
+            top, bot = sorted([zero_y, Y(v)])
+            op = 0.5 if is_estimate(y) else 1
+            svg += (f"<rect x='{xs[i] - bw / 2:.1f}' y='{top:.1f}' width='{bw:.1f}' height='{max(bot - top, 1):.1f}' "
+                    f"fill='{GREEN if v >= 0 else RED}' opacity='{op}' rx='1.5'/>")
+    else:
+        ys = [Y(v) for v in vals]
+        split = next((i for i, (y, _) in enumerate(pts) if is_estimate(y)), n)
+        solid_end = max(split, 1)
+        solid = " ".join(f"{xs[i]:.1f},{ys[i]:.1f}" for i in range(solid_end))
+        dotted = " ".join(f"{xs[i]:.1f},{ys[i]:.1f}" for i in range(solid_end - 1, n)) if solid_end < n else ""
+        svg += f"<polyline points='{solid}' fill='none' stroke='#2a4a9e' stroke-width='2' stroke-linejoin='round' stroke-linecap='round'/>"
+        if dotted:
+            svg += (f"<polyline points='{dotted}' fill='none' stroke='#2a4a9e' stroke-width='2' stroke-dasharray='3,2.5' "
+                    f"stroke-linejoin='round' stroke-linecap='round'/>")
+        for i in range(n):
+            svg += f"<circle cx='{xs[i]:.1f}' cy='{ys[i]:.1f}' r='2.2' fill='#0a2463'/>"
+    svg += "</svg>"
+    return f"<div class='spark-pop'>{svg}</div>"
 
 
 def sparkline(pairs) -> str:
@@ -213,7 +265,7 @@ def sparkline(pairs) -> str:
         svg += (f"<polyline points='{dotted}' fill='none' stroke='#5b7fc7' stroke-width='1.3' stroke-dasharray='1.8,1.6' "
                 f"stroke-linejoin='round' stroke-linecap='round'/>")
     svg += f"<circle cx='{xs[-1]:.1f}' cy='{ys[-1]:.1f}' r='1.6' fill='#0a2463'/></svg>"
-    return svg
+    return f"<span class='spark-wrap'>{svg}{_spark_detail(pts, 'line')}</span>"
 
 
 def sparkline_balance(pairs) -> str:
@@ -234,7 +286,9 @@ def sparkline_balance(pairs) -> str:
         yy = mid - bh if v >= 0 else mid
         op = 0.5 if is_estimate(y) else 1
         bars += f"<rect x='{x:.1f}' y='{yy:.1f}' width='{bw - 0.6:.1f}' height='{bh:.1f}' rx='0.4' fill='{GREEN if v >= 0 else RED}' opacity='{op}'/>"
-    return f"<svg class='spark' viewBox='0 0 {SPARK_W} {SPARK_H}'><line x1='0' y1='{mid}' x2='{SPARK_W}' y2='{mid}' stroke='rgba(0,0,0,.18)' stroke-width='0.6'/>{bars}</svg>"
+    svg = (f"<svg class='spark' viewBox='0 0 {SPARK_W} {SPARK_H}'><line x1='0' y1='{mid}' x2='{SPARK_W}' y2='{mid}' "
+          f"stroke='rgba(0,0,0,.18)' stroke-width='0.6'/>{bars}</svg>")
+    return f"<span class='spark-wrap'>{svg}{_spark_detail(pts, 'bar')}</span>"
 
 
 def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None) -> str:
