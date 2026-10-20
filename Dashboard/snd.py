@@ -486,6 +486,7 @@ def _save_inputs(changes, reason=""):
     with open(CSV, "w", encoding="utf-8", newline="") as f:
         f.write(new_text)
     load.clear()
+    cell_history.clear()
 
 
 def _save_meta(label, old, new, mutate):

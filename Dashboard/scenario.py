@@ -1,8 +1,8 @@
-"""Scenarios: two tools on one page.
+"""Scenarios: two tools on one page, picked from a sidebar Tool switch.
 
-1. What-if: change production by origin or consumption (percent), for the crop years you pick, and read the balance and stocks.
+1. What-if: change production by origin or consumption (percent or m bags), for the crop years you pick, and read the balance and stocks.
 2. Sensitivity: flex one origin (or consumption) in one crop year by a step size you choose and see what stocks-to-use, the balance or the
-   end stock do. Nothing here is saved or changes the data.
+   end stock do, plus a heatmap of that origin against its commodity's consumption. Nothing here is saved or changes the data.
 """
 import numpy as np
 import pandas as pd
@@ -12,7 +12,7 @@ import streamlit as st
 import analytics
 import snd
 from analytics import _fig, card
-from snd import AMBER, NAVY, ORIGINS, block, fnum, fpct, global_block, ystart
+from snd import AMBER, GREEN, NAVY, ORIGINS, RED, block, fnum, fpct, global_block, ystart
 
 PROD_KEYS = [f"{c}|{o}" for c in ORIGINS for o in ORIGINS[c]]
 CONS_KEYS = [f"{c}|Consumption" for c in ORIGINS]
@@ -96,6 +96,15 @@ def _reset():
             st.session_state[_skey(k, unit)] = 0.0
 
 
+def _chart_years(years, show_all):
+    """Last 3 actual years plus every upcoming (estimate) year, unless 'All' is picked."""
+    if show_all:
+        return years
+    actual = [y for y in years if not snd.is_estimate(y)]
+    est = [y for y in years if snd.is_estimate(y)]
+    return actual[-3:] + est
+
+
 # ── what-if ──────────────────────────────────────────────────────────────────────────────────────────────────
 def whatif(df, meta, years):
     est = [y for y in years if snd.is_estimate(y)] or years[-1:]
@@ -103,11 +112,14 @@ def whatif(df, meta, years):
     st.session_state.setdefault("sc_years", est[:2])
     st.session_state.setdefault("sc_scope", "Combined")
 
-    bar = st.columns([2.4, 1.5, 3.6, 1.1], vertical_alignment="bottom")
-    scope = bar[0].radio("Commodity", SCOPES, horizontal=True, key="sc_scope")
-    unit = bar[1].radio("Change in", UNITS, horizontal=True, key="sc_unit")
-    sel = bar[2].multiselect("Apply to crop years", opts, key="sc_years")
-    bar[3].button("Reset", key="sc_reset", on_click=_reset, width="stretch")
+    with st.sidebar:
+        st.markdown("<div class='sb-label'>Change in</div>", unsafe_allow_html=True)
+        unit = st.radio("Change in", UNITS, horizontal=True, key="sc_unit", label_visibility="collapsed")
+        st.markdown("<div class='sb-label'>Apply to crop years</div>", unsafe_allow_html=True)
+        sel = st.multiselect("Apply to crop years", opts, key="sc_years", label_visibility="collapsed")
+        st.button("Reset", key="sc_reset", on_click=_reset, width="stretch")
+
+    scope = st.radio("Commodity", SCOPES, horizontal=True, key="sc_scope")
     if not sel:
         st.markdown("<div class='an-note'>Pick at least one crop year.</div>", unsafe_allow_html=True)
         return
@@ -162,21 +174,72 @@ def whatif(df, meta, years):
         st.markdown(f"<div class='snd-wrap' style='width:100%;margin:4px 0 0'><table class='snd' style='width:100%'>{head}{''.join(rows)}</table></div>",
                     unsafe_allow_html=True)
 
-    short = [y[2:] for y in years]                                   # the charts show every crop year
-    for title, fn, k, color, fmt, key in (("Stocks to use, %", su, 100, NAVY, ".1f", "sc_bar_su"),
-                                           ("Balance, m bags", bal, 1, AMBER, ",.1f", "sc_bar_bal")):
+    span_l, span_r = st.columns([5, 1], vertical_alignment="center")
+    span_r.radio("Range", ["Recent", "All"], horizontal=True, key="sc_bar_span", label_visibility="collapsed")
+    chart_years = _chart_years(years, st.session_state.get("sc_bar_span") == "All")
+    short = [y[2:] for y in chart_years]
+    for title, fn, k, color, fmt, key in (("Balance, m bags", bal, 1, AMBER, ",.1f", "sc_bar_bal"),
+                                           ("Stocks to use, %", su, 100, NAVY, ".1f", "sc_bar_su")):
         with st.container(border=True):
+            bv = (fn(scope, *base)[chart_years] * k).values
+            sv = (fn(scope, *scen)[chart_years] * k).values
             fig = go.Figure()
-            fig.add_trace(go.Bar(x=short, y=(fn(scope, *base)[years] * k).values, name="Base", marker_color="#c3cbe0", marker_line_width=0))
-            fig.add_trace(go.Bar(x=short, y=(fn(scope, *scen)[years] * k).values, name="Scenario", marker_color=color, marker_line_width=0,
-                                 text=[f"{v:.1f}" for v in (fn(scope, *scen)[years] * k).values], textposition="outside", textfont=dict(size=8.5)))
+            fig.add_trace(go.Bar(x=short, y=bv, name="Base", marker_color="#c3cbe0", marker_line_width=0,
+                                 text=[f"{v:.1f}" for v in bv], textposition="outside", textfont=dict(size=8.5)))
+            fig.add_trace(go.Bar(x=short, y=sv, name="Scenario", marker_color=color, marker_line_width=0,
+                                 text=[f"{v:.1f}" for v in sv], textposition="outside", textfont=dict(size=8.5)))
             _fig(fig, height=230, fmt=fmt).update_layout(barmode="group", bargap=0.3, legend=dict(orientation="h", x=0, y=1.15, font=dict(size=10)))
             card(title)
             st.plotly_chart(fig, width="stretch", key=key)
 
 
 # ── sensitivity ──────────────────────────────────────────────────────────────────────────────────────────────
+def sensitivity_heatmap(df, meta, years, key, year, n, hstep):
+    """A grid of the flexed item against its commodity's consumption (or, if Consumption was flexed, against its largest origin):
+    every combination of the two, both varied by the same percent steps, with the chosen metric in each cell."""
+    comm, item = key.split("|")
+    if item == "Consumption":
+        x_key, y_key = key, f"{comm}|{ORIGINS[comm][0]}"
+    else:
+        x_key, y_key = key, f"{comm}|Consumption"
+    x_label, y_label = x_key.split("|")[1], y_key.split("|")[1]
+    scope = st.session_state.get("sc_scope", "Combined")
+    metric = st.session_state.get("sn_metric", "S/U")
+    fn, scale, fmt = {"S/U": (su, 100, "{:.1f}"), "Balance": (bal, 1, "{:+.1f}"), "End stock": (stock, 1, "{:.1f}")}[metric]
+
+    def base_val(k):
+        c, it = k.split("|")
+        rows_ = (df["commodity"] == c) & (df["item"] == it) & (df["year"] == year)
+        return float(df.loc[rows_, "value"].iloc[0])
+
+    xb, yb = base_val(x_key), base_val(y_key)
+    xr_mask = (df["commodity"] == x_key.split("|")[0]) & (df["item"] == x_key.split("|")[1]) & (df["year"] == year)
+    yr_mask = (df["commodity"] == y_key.split("|")[0]) & (df["item"] == y_key.split("|")[1]) & (df["year"] == year)
+    steps = list(range(-n, n + 1))
+    labels = [f"{k * hstep:+.0f}%" for k in steps]
+    z = []
+    for yk in steps:
+        row = []
+        for xk in steps:
+            scen = df.copy()
+            scen.loc[xr_mask, "value"] = max(xb * (1 + xk * hstep / 100), 0.0)
+            scen.loc[yr_mask, "value"] = max(yb * (1 + yk * hstep / 100), 0.0)
+            a, r, g = run(scen, meta, years, {})
+            row.append(float(fn(scope, a, r, g)[year]) * scale)
+        z.append(row)
+    mid = float(np.median(z))
+    fig = go.Figure(go.Heatmap(z=z, x=labels, y=labels, zmid=mid, colorscale=[[0, RED], [0.5, "#f7f3e8"], [1, GREEN]],
+                               text=[[fmt.format(v) for v in row] for row in z], texttemplate="%{text}", textfont=dict(size=10),
+                               hovertemplate=f"{x_label} %{{x}}, {y_label} %{{y}}: %{{z:.1f}}<extra></extra>",
+                               colorbar=dict(thickness=9, tickfont=dict(size=9), outlinewidth=0)))
+    fig.update_layout(template="plotly_white", height=330, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                      margin=dict(t=8, b=34, l=60, r=10), font=dict(color="#1d1d1f", size=10.5),
+                      xaxis=dict(title=f"{x_label} change", type="category"), yaxis=dict(title=f"{y_label} change", type="category"))
+    return fig, x_label, y_label
+
+
 def sensitivity(df, meta, years):
+    st.session_state.setdefault("sc_scope", "Combined")
     scope = st.session_state.get("sc_scope", "Combined")
     comms = _comms(scope)
     options = [f"{c}|{it}" for c in comms for it in ORIGINS[c] + ["Consumption"]]
@@ -189,16 +252,24 @@ def sensitivity(df, meta, years):
     if st.session_state.get("sn_year") not in cyears:
         st.session_state["sn_year"] = cur if cur in cyears else cyears[-1]
 
-    st.markdown("<div class='sec-title'>Sensitivity</div>", unsafe_allow_html=True)
-    c = st.columns([2.2, 1.3, 1.5, 1.2, 1.2, 2.2], vertical_alignment="bottom")
-    key = c[0].selectbox("Flex", options, format_func=label, key="sn_origin")
-    year = c[1].selectbox("Crop year", cyears, key="sn_year")
-    unit = c[2].radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit")
-    skey = f"sn_step_{unit}"
-    step = c[3].number_input("Step", min_value=0.1, value=float(st.session_state.get(skey) or (5.0 if unit == "m bags" else 10.0)),
-                             step=0.5 if unit == "m bags" else 1.0, format="%.1f", key=skey) or (5.0 if unit == "m bags" else 10.0)
-    n = int(c[4].number_input("Steps each side", min_value=1, max_value=6, value=int(st.session_state.get("sn_n") or 2), step=1, key="sn_n") or 2)
-    metric = c[5].radio("Show", ["S/U", "Balance", "End stock"], horizontal=True, key="sn_metric")
+    with st.sidebar:
+        st.markdown("<div class='sb-label'>Commodity</div>", unsafe_allow_html=True)
+        st.radio("Commodity", SCOPES, horizontal=True, key="sc_scope", label_visibility="collapsed")
+        st.markdown("<div class='sb-label'>Flex</div>", unsafe_allow_html=True)
+        key = st.selectbox("Flex", options, format_func=label, key="sn_origin", label_visibility="collapsed")
+        st.markdown("<div class='sb-label'>Crop year</div>", unsafe_allow_html=True)
+        year = st.selectbox("Crop year", cyears, key="sn_year", label_visibility="collapsed")
+        st.markdown("<div class='sb-label'>Step in</div>", unsafe_allow_html=True)
+        unit = st.radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit", label_visibility="collapsed")
+        skey = f"sn_step_{unit}"
+        step = st.number_input("Step", min_value=0.1, value=float(st.session_state.get(skey) or (5.0 if unit == "m bags" else 10.0)),
+                               step=0.5 if unit == "m bags" else 1.0, format="%.1f", key=skey) or (5.0 if unit == "m bags" else 10.0)
+        n = int(st.number_input("Steps each side", min_value=1, max_value=6, value=int(st.session_state.get("sn_n") or 2), step=1, key="sn_n") or 2)
+        st.markdown("<div class='sb-label'>Show</div>", unsafe_allow_html=True)
+        metric = st.radio("Show", ["S/U", "Balance", "End stock"], horizontal=True, key="sn_metric", label_visibility="collapsed")
+        st.markdown("<div class='sb-label'>Heatmap step, %</div>", unsafe_allow_html=True)
+        hstep = st.number_input("Heatmap step %", min_value=0.5, value=float(st.session_state.get("sn_hstep") or 3.0), step=0.5,
+                                format="%.1f", key="sn_hstep", label_visibility="collapsed") or 3.0
 
     comm, item = key.split("|")
     rows_ = (df["commodity"] == comm) & (df["item"] == item) & (df["year"] == year)
@@ -235,11 +306,22 @@ def sensitivity(df, meta, years):
         st.markdown("<div class='snd-wrap' style='margin-top:0'><table class='snd'><tr><th class='y first'>Value</th><th class='y'>vs ours</th>"
                     f"<th class='y'>S/U</th><th class='y'>Balance</th><th class='y'>End stock</th></tr>{body}</table></div>", unsafe_allow_html=True)
 
+    with st.container(border=True):
+        fig, x_label, y_label = sensitivity_heatmap(df, meta, years, key, year, n, hstep)
+        card(f"{x_label} vs {y_label}: {metric} at {year}")
+        st.plotly_chart(fig, width="stretch", key="sn_heat")
+
 
 def page():
-    """The Scenarios section."""
+    """The Scenarios section: What-if and Sensitivity, picked from a sidebar Tool switch."""
     st.markdown(snd.CSS + analytics.CSS + CSS, unsafe_allow_html=True)
     df, meta, _notes, years = snd.load()
+    with st.sidebar:
+        st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
+        st.markdown("<div class='sb-label'>Tool</div>", unsafe_allow_html=True)
+        tool = st.radio("Tool", ["What-if", "Sensitivity"], horizontal=True, key="sc_tool", label_visibility="collapsed")
     st.markdown("<div class='snd-head'><span class='t'>Scenarios</span></div>", unsafe_allow_html=True)
-    whatif(df, meta, years)
-    sensitivity(df, meta, years)
+    if tool == "What-if":
+        whatif(df, meta, years)
+    else:
+        sensitivity(df, meta, years)

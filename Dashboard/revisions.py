@@ -63,6 +63,19 @@ def _rows(dataset):
 PALETTE = ["#0a2463", "#3e5fa8", "#1f8a9c", "#b7791f", "#1f9d6f", "#c0392b", "#8a5fb0", "#7f9bd1", "#e2b768", "#94a3b8", "#0f172a", "#8fc7d0", "#c9a227", "#d9534f"]
 
 
+def _revert(dataset, grp: pd.DataFrame):
+    """Set every cell in one saved commit back to what it was before that save — as a new save, so the log keeps the full history."""
+    when = grp["when"].iloc[0]
+    why = grp["reason"].iloc[0]
+    reason = f"revert of {when:%d %b %Y %H:%M}" + (f" ({why})" if why else "")
+    if dataset == "Coffee SnD":
+        changes = [(r.group, r.item, r.year, r.new, None if pd.isna(r.old) else float(r.old)) for r in grp.itertuples()]
+        snd._save_inputs(changes, reason)
+    else:
+        changes = [(r.item, r.year, r.new, None if pd.isna(r.old) else float(r.old)) for r in grp.itertuples()]
+        brazil._save(changes, reason)
+
+
 def revision_lines(sub: pd.DataFrame, level: bool, with_commodity: bool):
     """One step line per origin / item: its estimate over time, from the first number to every saved revision.
     level=False plots the change against the first estimate, so origins of very different size sit on one axis."""
@@ -123,3 +136,25 @@ def render():
     st.markdown("<div class='snd-bar'>Latest revisions</div><div class='snd-wrap' style='border-radius:0 0 8px 8px;margin-top:0'><table class='snd'>"
                 "<tr><th class='y first'>When</th><th class='y first'>Item</th><th class='y'>Year</th><th class='y'>Was</th><th class='y'>Now</th>"
                 f"<th class='y'>Effect</th><th class='y first'>Reason</th></tr>{body}</table></div>", unsafe_allow_html=True)
+
+    groups = list(last.groupby("when", sort=False))
+    if groups and gh.enabled():
+        st.markdown("<div class='sb-label' style='margin:18px 0 2px;color:#8fa3d1!important'>Undo a save</div>"
+                    "<div class='an-note' style='margin-top:-2px'>Sets that save's cells back to what they were before it — saved as a new "
+                    "revision, so nothing is erased from the log above.</div>", unsafe_allow_html=True)
+        for ts, grp in groups:
+            items = ", ".join(f"{r.group + ' ' if r.group != 'Brazil' else ''}{r.item} {r.year}" for r in grp.itertuples())
+            why = grp["reason"].iloc[0]
+            c1, c2, c3 = st.columns([1.6, 5.3, 1.1], vertical_alignment="center")
+            c1.markdown(f"<div class='card-desc' style='margin:0'>{ts:%d %b %Y %H:%M}</div>", unsafe_allow_html=True)
+            c2.markdown(f"<div class='card-desc' style='margin:0'>{html.escape(items)}"
+                        + (f" &mdash; {html.escape(why)}" if why else "") + "</div>", unsafe_allow_html=True)
+            if c3.button("Revert", key=f"rv_undo_{dataset}_{ts.value}", width="stretch"):
+                try:
+                    with st.spinner("Reverting..."):
+                        _revert(dataset, grp)
+                except Exception as ex:
+                    st.error(f"Revert failed: {ex}")
+                else:
+                    st.toast("Reverted.")
+                    st.rerun()

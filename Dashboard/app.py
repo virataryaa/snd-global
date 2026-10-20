@@ -153,8 +153,9 @@ def _gate():
 
 _gate()
 
-KEEP = (["section", "snd_page", "snd_span", "snd_mode", "an_view", "an_br_scope", "br_span", "br_mode", "rv_set",
-         "sc_years", "sc_scope", "sn_origin", "sn_year", "sn_unit", "sn_step_m bags", "sn_step_%", "sn_n", "sn_metric"] + [scenario._skey(k, u) for k in scenario.ALL_KEYS for u in scenario.UNITS] + ["sc_unit"])
+KEEP = (["section", "snd_page", "snd_span", "snd_mode", "an_view", "an_br_scope", "an_br_start", "br_span", "br_mode", "rv_set",
+         "sc_tool", "sc_bar_span", "sc_years", "sc_scope", "sn_origin", "sn_year", "sn_unit", "sn_step_m bags", "sn_step_%", "sn_n",
+         "sn_metric", "sn_hstep"] + [scenario._skey(k, u) for k in scenario.ALL_KEYS for u in scenario.UNITS] + ["sc_unit"])
 for _k in KEEP:
     if _k not in st.session_state and f"_keep_{_k}" in st.session_state:
         st.session_state[_k] = st.session_state[f"_keep_{_k}"]
