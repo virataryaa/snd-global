@@ -12,7 +12,7 @@ import streamlit as st
 import analytics
 import snd
 from analytics import _fig, card
-from snd import AMBER, GREEN, NAVY, ORIGINS, RED, block, fnum, fpct, global_block, ystart
+from snd import AMBER, GREEN, NAVY, ORIGINS, RED, block, global_block, ystart
 
 PROD_KEYS = [f"{c}|{o}" for c in ORIGINS for o in ORIGINS[c]]
 CONS_KEYS = [f"{c}|Consumption" for c in ORIGINS]
@@ -127,52 +127,24 @@ def whatif(df, meta, years):
     params = current_params(sel, scope, unit)
     base = run(df, meta, years, {})
     scen = run(df, meta, years, params)
-    first = years.index(min(sel, key=ystart))
-    ys, ly = years[first:], max(sel, key=ystart)
 
-    # the result table (built first, shown next to the inputs)
-    def cell(new, old, fmt):
-        d = new - old
-        cls = "" if abs(d) < 0.0005 else ("up" if d > 0 else "dn")
-        dl = "" if abs(d) < 0.0005 else f"<span class='dl {cls}'>{('+' if d > 0 else '')}{fmt(d) if fmt is not fpct else format(d * 100, '.1f') + 'pp'}</span>"
-        return f"<td>{fmt(new)}{dl}</td>"
-
-    rows = []
-    for comm, i in (("Arabica", 0), ("Robusta", 1)):
-        if comm not in comms:
-            continue
-        b, s_ = base[i], scen[i]
-        for label, key, f in (("Balance", "Balance", fnum), ("End season stock", "End Season Stock", fnum), ("S/U", "S/U", fpct)):
-            rows.append(f"<tr class='{'bal' if key == 'Balance' else ''}'><td class='lbl'>{comm} {label.lower()}</td>"
-                        + "".join(cell(s_.loc[key, y], b.loc[key, y], f) for y in ys) + "</tr>")
-    if scope == "Combined":
-        rows.append("<tr class='bal'><td class='lbl'>Global balance</td>" + "".join(cell(scen[2].loc["Global Balance", y], base[2].loc["Global Balance", y], fnum) for y in ys) + "</tr>")
-        rows.append("<tr><td class='lbl'>Combined S/U</td>" + "".join(cell(scen[2].loc["Combined S/U", y], base[2].loc["Combined S/U", y], fpct) for y in ys) + "</tr>")
-    head = "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if y in sel else ''}'>{y}</th>" for y in ys) + "</tr>"
-
-    left, right = st.columns([1.25, 1], gap="small")
-    with left, st.container(border=True):
+    with st.container(border=True):
         card(f"Change vs base, {unit}")
         for comm in comms:
             if len(comms) > 1:
                 st.markdown(f"<div class='sb-label' style='color:#64748b!important;margin:8px 0 2px'>{comm}</div>", unsafe_allow_html=True)
             items = ORIGINS[comm] + ["Consumption"]
-            for row in range(0, len(items), 4):
-                cols = st.columns(4, gap="small")
-                for col, it in zip(cols, items[row:row + 4]):
-                    key = _skey(f"{comm}|{it}", unit)
-                    start = float(st.session_state.get(key) or 0.0)       # always an explicit number: without one the box shows its minimum
-                    if unit == "m bags":                                 # absolute change in million bags
-                        lim = 20.0 if it == "Consumption" else 30.0
-                        col.number_input(it, min_value=-lim, max_value=lim, value=start, step=0.5, format="%.1f", key=key)
-                    elif it == "Consumption":
-                        col.number_input("Consumption", min_value=-10.0, max_value=10.0, value=start, step=0.5, format="%.1f", key=key)
-                    else:
-                        col.number_input(it, min_value=-50.0, max_value=50.0, value=start, step=1.0, format="%.0f", key=key)
-    with right, st.container(border=True):
-        card("Result")
-        st.markdown(f"<div class='snd-wrap' style='width:100%;margin:4px 0 0'><table class='snd' style='width:100%'>{head}{''.join(rows)}</table></div>",
-                    unsafe_allow_html=True)
+            cols = st.columns(len(items), gap="small")
+            for col, it in zip(cols, items):
+                key = _skey(f"{comm}|{it}", unit)
+                start = float(st.session_state.get(key) or 0.0)       # always an explicit number: without one the box shows its minimum
+                if unit == "m bags":                                 # absolute change in million bags
+                    lim = 20.0 if it == "Consumption" else 30.0
+                    col.number_input(it, min_value=-lim, max_value=lim, value=start, step=0.5, format="%.1f", key=key)
+                elif it == "Consumption":
+                    col.number_input("Consumption", min_value=-10.0, max_value=10.0, value=start, step=0.5, format="%.1f", key=key)
+                else:
+                    col.number_input(it, min_value=-50.0, max_value=50.0, value=start, step=1.0, format="%.0f", key=key)
 
     span_l, span_r = st.columns([5, 1], vertical_alignment="center")
     span_r.radio("Range", ["Recent", "All"], horizontal=True, key="sc_bar_span", label_visibility="collapsed")
@@ -258,7 +230,7 @@ def _heatmap_fig(z, labels, x_label, y_label, metric, big=False):
     for x0, x1, y0, y1 in [(n - 0.5, n + 0.5, -0.5, last + 0.5), (-0.5, last + 0.5, n - 0.5, n + 0.5)]:
         fig.add_shape(type="rect", x0=x0, x1=x1, y0=y0, y1=y1, line=dict(color="rgba(100,116,139,.55)", width=1.25),
                       fillcolor="rgba(0,0,0,0)", layer="above")
-    fig.update_layout(template="plotly_white", height=360 if big else 260, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+    fig.update_layout(template="plotly_white", height=310 if big else 295, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                       margin=dict(t=4, b=28, l=50, r=6), font=dict(color="#1d1d1f", size=sz + 1),
                       xaxis=dict(title=f"{x_label} change", type="category", tickfont=dict(size=sz), constrain="domain",
                                  showline=True, linewidth=1, linecolor="rgba(0,0,0,.15)", mirror=True),
@@ -321,7 +293,7 @@ def sensitivity(df, meta, years):
         card(f"{x_label} vs {y_label}: End stock at {year}")
         st.plotly_chart(_heatmap_fig(z["End stock"], labels, x_label, y_label, "End stock"), width="stretch", key="sn_heat_stock")
 
-    _, mid, _ = st.columns([1, 3, 1], gap="small")
+    _, mid, _ = st.columns([1, 2.1, 1], gap="small")
     with mid, st.container(border=True):
         card(f"{x_label} vs {y_label}: S/U at {year}")
         st.plotly_chart(_heatmap_fig(z["S/U"], labels, x_label, y_label, "S/U", big=True), width="stretch", key="sn_heat_su")
