@@ -18,6 +18,7 @@ PROD_KEYS = [f"{c}|{o}" for c in ORIGINS for o in ORIGINS[c]]
 CONS_KEYS = [f"{c}|Consumption" for c in ORIGINS]
 ALL_KEYS = PROD_KEYS + CONS_KEYS
 SCOPES = ["Arabica", "Robusta", "Combined"]
+SENS_SCOPES = ["Arabica", "Robusta"]                      # Sensitivity: no Combined, for now
 
 CSS = """
 <style>
@@ -96,6 +97,49 @@ def _reset():
             st.session_state[_skey(k, unit)] = 0.0
 
 
+def _origin_contrib(df, meta, years, scope, params, year):
+    """One Balance waterfall bar per origin that's actually been changed, applied cumulatively, for one crop year."""
+    unit_key = "pct" if "pct" in params else "abs"
+    changed = params.get(unit_key, {})
+    if not changed:
+        return None
+    base = run(df, meta, years, {})
+    base_bal = float(bal(scope, *base)[year])
+    order = [f"{c}|{it}" for c in ORIGINS for it in ORIGINS[c] + ["Consumption"] if f"{c}|{it}" in changed]
+    multi = len({k.split("|")[0] for k in order}) > 1
+    active, running, names, deltas = {}, base_bal, [], []
+    for key in order:
+        active[key] = changed[key]
+        a, r, g = run(df, meta, years, {"years": [year], unit_key: dict(active)})
+        new_bal = float(bal(scope, a, r, g)[year])
+        comm, item = key.split("|")
+        names.append(f"{comm} {_disp(item)}" if multi else _disp(item))
+        deltas.append(new_bal - running)
+        running = new_bal
+    return base_bal, names, deltas, running
+
+
+def _waterfall_fig(base_bal, names, deltas, running):
+    xs, bases, h, colors, texts = ["Base"], [0.0], [base_bal], [NAVY], [f"{base_bal:+.1f}"]
+    r_ = base_bal
+    for name, d in zip(names, deltas):
+        xs.append(name)
+        bases.append(min(r_, r_ + d))
+        h.append(abs(d))
+        colors.append(GREEN if d >= 0 else RED)
+        texts.append(f"{d:+.1f}")
+        r_ += d
+    xs.append("Scenario")
+    bases.append(0.0)
+    h.append(running)
+    colors.append(NAVY)
+    texts.append(f"{running:+.1f}")
+    fig = go.Figure(go.Bar(x=xs, y=h, base=bases, marker_color=colors, marker_line_width=0,
+                           text=texts, textposition="outside", textfont=dict(size=10),
+                           hovertemplate="%{x}: %{text}<extra></extra>"))
+    return _fig(fig, height=300, legend=False).update_layout(hovermode="closest", bargap=0.3)
+
+
 def _chart_years(years, show_all):
     """Last 3 actual years plus every upcoming (estimate) year, unless 'All' is picked."""
     if show_all:
@@ -127,6 +171,13 @@ def whatif(df, meta, years):
     params = current_params(sel, scope, unit)
     base = run(df, meta, years, {})
     scen = run(df, meta, years, params)
+
+    ly = max(sel, key=ystart)
+    wf = _origin_contrib(df, meta, years, scope, params, ly)
+    if wf:
+        with st.container(border=True):
+            card(f"Balance waterfall at {ly}: base to scenario, by origin")
+            st.plotly_chart(_waterfall_fig(*wf), width="stretch", key="wf_chart")
 
     with st.container(border=True):
         card(f"Change vs base, {unit}")
@@ -242,8 +293,10 @@ def _disp(item):
 
 
 def sensitivity(df, meta, years):
-    st.session_state.setdefault("sc_scope", "Combined")
-    scope = st.session_state.get("sc_scope", "Combined")
+    st.session_state.setdefault("sc_scope", "Arabica")
+    scope = st.session_state.get("sc_scope", "Arabica")
+    if scope not in SENS_SCOPES:                           # e.g. left over as "Combined" from Scenarios
+        scope = st.session_state["sc_scope"] = "Arabica"
     comms = _comms(scope)
     options = [f"{c}|{it}" for c in comms for it in ORIGINS[c] + ["Consumption"]]
     label = (lambda k: f"{k.split('|')[0]} · {_disp(k.split('|')[1])}") if len(comms) > 1 else (lambda k: _disp(k.split("|")[1]))
@@ -251,18 +304,17 @@ def sensitivity(df, meta, years):
     if st.session_state.get("sn_origin") not in options:
         st.session_state["sn_origin"] = default
     cyears = years[-6:]
-    cur = snd.current_crop_year()
     if st.session_state.get("sn_year") not in cyears:
-        st.session_state["sn_year"] = cur if cur in cyears else cyears[-1]
+        st.session_state["sn_year"] = cyears[-1]            # latest crop year by default
 
     with st.container(border=True, key="sn_controls"):
-        st.radio("Commodity", SCOPES, horizontal=True, key="sc_scope", label_visibility="collapsed")
+        st.radio("Commodity", SENS_SCOPES, horizontal=True, key="sc_scope", label_visibility="collapsed")
         c = st.columns([0.8, 0.8, 0.85, 1.0, 1.0, 0.75, 0.75], gap="small", vertical_alignment="bottom")
-        unit = c[0].radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit")
+        unit = c[0].radio("Step in", ["%", "m bags"], horizontal=True, key="sn_unit")
         skey = f"sn_step_{unit}"
         step = c[1].number_input("Step (Mn)" if unit == "m bags" else "Step (%)", min_value=0.1,
-                                 value=float(st.session_state.get(skey) or (5.0 if unit == "m bags" else 10.0)),
-                                 step=0.5 if unit == "m bags" else 1.0, format="%.1f", key=skey) or (5.0 if unit == "m bags" else 10.0)
+                                 value=float(st.session_state.get(skey) or (5.0 if unit == "m bags" else 1.0)),
+                                 step=0.5 if unit == "m bags" else 1.0, format="%.1f", key=skey) or (5.0 if unit == "m bags" else 1.0)
         n = int(c[2].number_input("Steps each side", min_value=1, max_value=8, value=int(st.session_state.get("sn_n") or 5), step=1, key="sn_n") or 5)
         key = c[3].selectbox("Flex", options, format_func=label, key="sn_origin")
         comm, item = key.split("|")
@@ -314,74 +366,9 @@ def page():
     whatif(df, meta, years)
 
 
-def multi_waterfall(df, meta, years):
-    """Several origins flexed together, by the same percent, stacking one at a time onto the Balance — base, each origin's own push,
-    then the combined deficit/surplus they land on."""
-    scope = st.session_state.get("sc_scope", "Combined")
-    comms = _comms(scope)
-    options = [f"{c}|{it}" for c in comms for it in ORIGINS[c] + ["Consumption"]]
-    label = (lambda k: f"{k.split('|')[0]} · {_disp(k.split('|')[1])}") if len(comms) > 1 else (lambda k: _disp(k.split("|")[1]))
-    cyears = years[-6:]
-    cur = snd.current_crop_year()
-    default_year = cur if cur in cyears else cyears[-1]
-
-    c = st.columns([2.6, 1, 1.1, 2], gap="small", vertical_alignment="bottom")
-    picks = c[0].multiselect("Origins", options, format_func=label, key="mw_picks")
-    pct = c[1].number_input("% change", value=float(st.session_state.get("mw_pct") or -10.0), step=1.0, format="%.0f", key="mw_pct")
-    year = c[2].selectbox("Crop year", cyears, index=cyears.index(default_year), key="mw_year")
-    run_it = c[3].button("Run waterfall", key="mw_run", type="primary", width="stretch")
-
-    if not run_it and "mw_result" not in st.session_state:
-        st.markdown("<div class='an-note'>Pick the origins to move together, the percent change, and press Run.</div>", unsafe_allow_html=True)
-        return
-    if run_it:
-        if not picks:
-            st.markdown("<div class='an-note'>Pick at least one origin.</div>", unsafe_allow_html=True)
-            return
-        base = run(df, meta, years, {})
-        base_bal = float(bal(scope, *base)[year])
-        scen, names, deltas, running = df.copy(), [], [], base_bal
-        for key in picks:
-            comm, item = key.split("|")
-            mask = (scen["commodity"] == comm) & (scen["item"] == item) & (scen["year"] == year)
-            old_v = float(scen.loc[mask, "value"].iloc[0])
-            scen.loc[mask, "value"] = max(old_v * (1 + pct / 100), 0.0)
-            a, r, g = run(scen, meta, years, {})
-            new_bal = float(bal(scope, a, r, g)[year])
-            names.append(label(key))
-            deltas.append(new_bal - running)
-            running = new_bal
-        st.session_state["mw_result"] = (base_bal, names, deltas, running)
-
-    base_bal, names, deltas, running = st.session_state["mw_result"]
-    xs, bases, h, colors, texts = ["Base"], [0.0], [base_bal], [NAVY], [f"{base_bal:+.1f}"]
-    r_ = base_bal
-    for name, d in zip(names, deltas):
-        xs.append(name)
-        bases.append(min(r_, r_ + d))
-        h.append(abs(d))
-        colors.append(GREEN if d >= 0 else RED)
-        texts.append(f"{d:+.1f}")
-        r_ += d
-    xs.append("Combined")
-    bases.append(0.0)
-    h.append(running)
-    colors.append(NAVY)
-    texts.append(f"{running:+.1f}")
-    fig = go.Figure(go.Bar(x=xs, y=h, base=bases, marker_color=colors, marker_line_width=0,
-                           text=texts, textposition="outside", textfont=dict(size=10),
-                           hovertemplate="%{x}: %{text}<extra></extra>"))
-    _fig(fig, height=330, legend=False).update_layout(hovermode="closest", bargap=0.3)
-    with st.container(border=True):
-        card(f"{', '.join(names)}: combined balance at {year} ({pct:+.0f}% each)")
-        st.plotly_chart(fig, width="stretch", key="mw_chart")
-
-
 def sensitivity_page():
     """The Sensitivity section, beneath Scenarios in the sidebar."""
     st.markdown(snd.CSS + analytics.CSS + CSS, unsafe_allow_html=True)
     df, meta, _notes, years = snd.load()
     st.markdown("<div class='snd-head'><span class='t'>Sensitivity</span></div>", unsafe_allow_html=True)
     sensitivity(df, meta, years)
-    st.markdown("<div class='sec-title'>Multi-origin waterfall</div>", unsafe_allow_html=True)
-    multi_waterfall(df, meta, years)
