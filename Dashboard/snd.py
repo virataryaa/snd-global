@@ -68,20 +68,21 @@ table.snd td.rev { position: relative; }
 .rev-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-left: 5px; vertical-align: middle; }
 .rev-dot.up { background: #1f9d6f; }
 .rev-dot.down { background: #c0392b; }
-.rev-pop { display: none; position: absolute; z-index: 60; top: 100%; right: 0; margin-top: 4px; background: #1d1d1f; color: #f5f5f7;
-           border-radius: 8px; padding: 7px 10px; font-size: 10.5px; white-space: nowrap; box-shadow: 0 6px 20px rgba(0,0,0,.25);
-           text-align: left; font-weight: 400; letter-spacing: 0; }
+.rev-pop { display: none; position: absolute; z-index: 60; top: 100%; right: 0; margin-top: 4px; background: #ffffff; color: #1d1d1f;
+           border: 1px solid rgba(0,0,0,.08); border-radius: 8px; padding: 7px 10px; font-size: 10.5px; white-space: nowrap;
+           box-shadow: 0 6px 20px rgba(0,0,0,.18); text-align: left; font-weight: 400; letter-spacing: 0; }
 table.snd td.rev:hover .rev-pop { display: block; }
 .rev-pop .row { padding: 2px 0; }
-.rev-pop .row + .row { border-top: 1px solid rgba(255,255,255,.12); }
-.rev-pop .dt { color: #9a9a9e; margin-right: 6px; }
-.rev-pop .rs { color: #9a9a9e; margin-left: 6px; }
+.rev-pop .row + .row { border-top: 1px solid rgba(0,0,0,.08); }
+.rev-pop .dt { color: #86868b; margin-right: 6px; }
+.rev-pop .rs { color: #86868b; margin-left: 6px; }
 table.snd td.spark-td, table.snd th.spark-h { border-left: 1px solid rgba(0,0,0,.06); padding-left: 10px; }
 table.snd th.spark-h { font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; }
 .spark { display: inline-block; width: 48px; height: 13px; vertical-align: middle; }
 .spark-wrap { position: relative; display: inline-block; cursor: crosshair; }
-.spark-pop { display: none; position: absolute; z-index: 70; top: 100%; right: 0; margin-top: 4px; background: #ffffff;
-             border: 1px solid rgba(0,0,0,.08); border-radius: 8px; padding: 4px 6px 2px; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+/* fixed (not absolute) so it escapes the table's horizontal-scroll clipping and always lands fully on screen, on the right */
+.spark-pop { display: none; position: fixed; z-index: 9999; top: 50%; right: 24px; transform: translateY(-50%);
+             background: #ffffff; border: 1px solid rgba(0,0,0,.08); border-radius: 8px; padding: 4px 6px 2px; box-shadow: 0 10px 28px rgba(0,0,0,.22); }
 .spark-wrap:hover .spark-pop { display: block; }
 .snd-bar { background: linear-gradient(90deg, #0a1d4d 0%, #0a2463 100%); color: #ffffff; font-size: 12px; font-weight: 700;
            letter-spacing: .12em; text-transform: uppercase; padding: 7px 14px; border-radius: 8px 8px 0 0; margin-top: 6px; }
@@ -193,7 +194,7 @@ def fpct(v, dec=1):
 
 
 SPARK_W, SPARK_H = 48, 13
-DETAIL_W, DETAIL_H = 230, 110
+DETAIL_W, DETAIL_H = 270, 140
 
 
 def _spark_detail(pairs, kind="line") -> str:
@@ -202,7 +203,7 @@ def _spark_detail(pairs, kind="line") -> str:
     if len(pts) < 2:
         return ""
     vals = [v for _, v in pts]
-    pad_l, pad_r, pad_t, pad_b = 30, 6, 6, 15
+    pad_l, pad_r, pad_t, pad_b = 28, 8, 16, 28           # extra top for value labels, extra bottom for rotated year labels
     plot_w, plot_h = DETAIL_W - pad_l - pad_r, DETAIL_H - pad_t - pad_b
     lo, hi = (min(min(vals), 0), max(max(vals), 0)) if kind == "bar" else (min(vals), max(vals))
     rng = (hi - lo) or 1.0
@@ -217,16 +218,20 @@ def _spark_detail(pairs, kind="line") -> str:
         yy = Y(v)
         svg += (f"<line x1='{pad_l}' y1='{yy:.1f}' x2='{DETAIL_W - pad_r}' y2='{yy:.1f}' stroke='rgba(0,0,0,.08)' stroke-width='1'/>"
                 f"<text x='{pad_l - 4}' y='{yy + 3:.1f}' font-size='8' text-anchor='end' fill='#64748b'>{v:.1f}</text>")
+    step = max(round(n / 7), 1)                          # thin out the year labels so "16/17" etc. don't collide
     for i, (y, _v) in enumerate(pts):
-        if i % max(n // 7, 1) == 0 or i == n - 1:
-            svg += f"<text x='{xs[i]:.1f}' y='{DETAIL_H - 3}' font-size='7.5' text-anchor='middle' fill='#64748b'>{y[2:4]}</text>"
+        if i % step == 0 or i == n - 1:
+            svg += (f"<text x='{xs[i]:.1f}' y='{DETAIL_H - 6}' font-size='7.5' text-anchor='middle' fill='#64748b' "
+                    f"transform='rotate(-40 {xs[i]:.1f} {DETAIL_H - 6})'>{y[2:]}</text>")
     if kind == "bar":
         zero_y, bw = Y(0), plot_w / n * 0.6
         for i, (y, v) in enumerate(pts):
             top, bot = sorted([zero_y, Y(v)])
             op = 0.5 if is_estimate(y) else 1
+            lbl_y = top - 3 if v >= 0 else bot + 8
             svg += (f"<rect x='{xs[i] - bw / 2:.1f}' y='{top:.1f}' width='{bw:.1f}' height='{max(bot - top, 1):.1f}' "
-                    f"fill='{GREEN if v >= 0 else RED}' opacity='{op}' rx='1.5'/>")
+                    f"fill='{GREEN if v >= 0 else RED}' opacity='{op}' rx='1.5'/>"
+                    f"<text x='{xs[i]:.1f}' y='{lbl_y:.1f}' font-size='7' text-anchor='middle' fill='#1d1d1f'>{v:+.1f}</text>")
     else:
         ys = [Y(v) for v in vals]
         split = next((i for i, (y, _) in enumerate(pts) if is_estimate(y)), n)
@@ -238,7 +243,8 @@ def _spark_detail(pairs, kind="line") -> str:
             svg += (f"<polyline points='{dotted}' fill='none' stroke='#2a4a9e' stroke-width='2' stroke-dasharray='3,2.5' "
                     f"stroke-linejoin='round' stroke-linecap='round'/>")
         for i in range(n):
-            svg += f"<circle cx='{xs[i]:.1f}' cy='{ys[i]:.1f}' r='2.2' fill='#0a2463'/>"
+            svg += (f"<circle cx='{xs[i]:.1f}' cy='{ys[i]:.1f}' r='2.2' fill='#0a2463'/>"
+                    f"<text x='{xs[i]:.1f}' y='{ys[i] - 5:.1f}' font-size='7' text-anchor='middle' fill='#1d1d1f'>{vals[i]:.1f}</text>")
     svg += "</svg>"
     return f"<div class='spark-pop'>{svg}</div>"
 
