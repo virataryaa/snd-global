@@ -172,13 +172,6 @@ def whatif(df, meta, years):
     base = run(df, meta, years, {})
     scen = run(df, meta, years, params)
 
-    ly = max(sel, key=ystart)
-    wf = _origin_contrib(df, meta, years, scope, params, ly)
-    if wf:
-        with st.container(border=True):
-            card(f"Balance waterfall at {ly}: base to scenario, by origin")
-            st.plotly_chart(_waterfall_fig(*wf), width="stretch", key="wf_chart")
-
     with st.container(border=True):
         card(f"Change vs base, {unit}")
         for comm in comms:
@@ -214,6 +207,13 @@ def whatif(df, meta, years):
             _fig(fig, height=230, fmt=fmt).update_layout(barmode="group", bargap=0.3, legend=dict(orientation="h", x=0, y=1.15, font=dict(size=10)))
             card(title)
             st.plotly_chart(fig, width="stretch", key=key)
+
+    ly = max(sel, key=ystart)
+    wf = _origin_contrib(df, meta, years, scope, params, ly)
+    if wf:
+        with st.container(border=True):
+            card(f"Balance waterfall at {ly}: base to scenario, by origin")
+            st.plotly_chart(_waterfall_fig(*wf), width="stretch", key="wf_chart")
 
 
 # ── sensitivity ──────────────────────────────────────────────────────────────────────────────────────────────
