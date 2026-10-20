@@ -80,8 +80,11 @@ table.snd td.spark-td, table.snd th.spark-h { border-left: 1px solid rgba(0,0,0,
 table.snd th.spark-h { font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; }
 .spark { display: inline-block; width: 48px; height: 13px; vertical-align: middle; }
 .spark-wrap { position: relative; display: inline-block; cursor: crosshair; }
-/* fixed (not absolute) so it escapes the table's horizontal-scroll clipping and always lands fully on screen, on the right */
-.spark-pop { display: none; position: fixed; z-index: 9999; top: 50%; right: 24px; transform: translateY(-50%);
+/* the table scrolls horizontally, which would clip a popover opening past its right edge — so while any sparkline in it is
+   hovered, its wrap stops clipping (:has needs a Chromium-based browser, which Streamlit's always is) and the popover, anchored
+   to that exact row, opens to the right of it without being cut off */
+.snd-wrap:has(.spark-wrap:hover) { overflow: visible; }
+.spark-pop { display: none; position: absolute; z-index: 9999; top: 50%; left: 100%; margin-left: 8px; transform: translateY(-50%);
              background: #ffffff; border: 1px solid rgba(0,0,0,.08); border-radius: 8px; padding: 4px 6px 2px; box-shadow: 0 10px 28px rgba(0,0,0,.22); }
 .spark-wrap:hover .spark-pop { display: block; }
 .snd-bar { background: linear-gradient(90deg, #0a1d4d 0%, #0a2463 100%); color: #ffffff; font-size: 12px; font-weight: 700;
@@ -194,87 +197,81 @@ def fpct(v, dec=1):
 
 
 SPARK_W, SPARK_H = 48, 13
-DETAIL_W, DETAIL_H = 270, 140
+DETAIL_W, DETAIL_H = 290, 150
 
 
-def _spark_detail(pairs, kind="line") -> str:
-    """The sparkline's full-size version, shown on hover: crop year on x, value on y, with gridlines and labels."""
+def _spark_detail(pairs, kind, title) -> str:
+    """The sparkline's full-size version, shown on hover: crop year on x, value on y, bars throughout.
+    kind "growth" (origins, Production, Consumption, End season stock): bars coloured by whether that year is up or down on the year
+    before, with the value and the %+/- on top. kind "plain" (S/U, Consumption %, demand-share rows): plain navy bars, value only.
+    kind "bal": the Balance row's own red (deficit) / green (surplus) convention, value only."""
     pts = [(y, float(v)) for y, v in pairs if pd.notna(v)]
     if len(pts) < 2:
         return ""
     vals = [v for _, v in pts]
-    pad_l, pad_r, pad_t, pad_b = 28, 8, 16, 28           # extra top for value labels, extra bottom for rotated year labels
+    pad_l, pad_r, pad_t, pad_b = 28, 8, 30, 30            # extra top for the title + value/%, extra bottom for rotated year labels
     plot_w, plot_h = DETAIL_W - pad_l - pad_r, DETAIL_H - pad_t - pad_b
-    lo, hi = (min(min(vals), 0), max(max(vals), 0)) if kind == "bar" else (min(vals), max(vals))
+    lo, hi = min(min(vals), 0), max(max(vals), 0)
     rng = (hi - lo) or 1.0
     n = len(pts)
-    xs = [pad_l + i * plot_w / (n - 1) for i in range(n)]
+    xs = [pad_l + (i + 0.5) * plot_w / n for i in range(n)]
+    bw = plot_w / n * 0.62
 
     def Y(v):
         return pad_t + plot_h - (v - lo) / rng * plot_h
 
+    zero_y = Y(0)
     svg = f"<svg width='{DETAIL_W}' height='{DETAIL_H}' viewBox='0 0 {DETAIL_W} {DETAIL_H}'>"
+    svg += f"<text x='{DETAIL_W / 2:.1f}' y='12' font-size='9.5' font-weight='600' text-anchor='middle' fill='#0a2463'>{html.escape(title)}</text>"
     for v in (lo, (lo + hi) / 2, hi):
         yy = Y(v)
-        svg += (f"<line x1='{pad_l}' y1='{yy:.1f}' x2='{DETAIL_W - pad_r}' y2='{yy:.1f}' stroke='rgba(0,0,0,.08)' stroke-width='1'/>"
-                f"<text x='{pad_l - 4}' y='{yy + 3:.1f}' font-size='8' text-anchor='end' fill='#64748b'>{v:.1f}</text>")
-    step = max(round(n / 7), 1)                          # thin out the year labels so "16/17" etc. don't collide
+        svg += f"<line x1='{pad_l}' y1='{yy:.1f}' x2='{DETAIL_W - pad_r}' y2='{yy:.1f}' stroke='rgba(0,0,0,.08)' stroke-width='1'/>"
+    step = max(round(n / 7), 1)                           # thin out the year labels so "16/17" etc. don't collide
     for i, (y, _v) in enumerate(pts):
         if i % step == 0 or i == n - 1:
             svg += (f"<text x='{xs[i]:.1f}' y='{DETAIL_H - 6}' font-size='7.5' text-anchor='middle' fill='#64748b' "
                     f"transform='rotate(-40 {xs[i]:.1f} {DETAIL_H - 6})'>{y[2:]}</text>")
-    if kind == "bar":
-        zero_y, bw = Y(0), plot_w / n * 0.6
-        for i, (y, v) in enumerate(pts):
-            top, bot = sorted([zero_y, Y(v)])
-            op = 0.5 if is_estimate(y) else 1
-            lbl_y = top - 3 if v >= 0 else bot + 8
-            svg += (f"<rect x='{xs[i] - bw / 2:.1f}' y='{top:.1f}' width='{bw:.1f}' height='{max(bot - top, 1):.1f}' "
-                    f"fill='{GREEN if v >= 0 else RED}' opacity='{op}' rx='1.5'/>"
-                    f"<text x='{xs[i]:.1f}' y='{lbl_y:.1f}' font-size='7' text-anchor='middle' fill='#1d1d1f'>{v:+.1f}</text>")
-    else:
-        ys = [Y(v) for v in vals]
-        split = next((i for i, (y, _) in enumerate(pts) if is_estimate(y)), n)
-        solid_end = max(split, 1)
-        solid = " ".join(f"{xs[i]:.1f},{ys[i]:.1f}" for i in range(solid_end))
-        dotted = " ".join(f"{xs[i]:.1f},{ys[i]:.1f}" for i in range(solid_end - 1, n)) if solid_end < n else ""
-        svg += f"<polyline points='{solid}' fill='none' stroke='#2a4a9e' stroke-width='2' stroke-linejoin='round' stroke-linecap='round'/>"
-        if dotted:
-            svg += (f"<polyline points='{dotted}' fill='none' stroke='#2a4a9e' stroke-width='2' stroke-dasharray='3,2.5' "
-                    f"stroke-linejoin='round' stroke-linecap='round'/>")
-        for i in range(n):
-            svg += (f"<circle cx='{xs[i]:.1f}' cy='{ys[i]:.1f}' r='2.2' fill='#0a2463'/>"
-                    f"<text x='{xs[i]:.1f}' y='{ys[i] - 5:.1f}' font-size='7' text-anchor='middle' fill='#1d1d1f'>{vals[i]:.1f}</text>")
+    for i, (y, v) in enumerate(pts):
+        top, bot = sorted([zero_y, Y(v)])
+        op = 0.5 if is_estimate(y) else 1
+        prev = vals[i - 1] if i > 0 else None
+        if kind == "bal":
+            color = GREEN if v >= 0 else RED
+        elif kind == "growth" and prev is not None:
+            color = GREEN if v >= prev else RED
+        else:
+            color = NAVY
+        svg += (f"<rect x='{xs[i] - bw / 2:.1f}' y='{top:.1f}' width='{bw:.1f}' height='{max(bot - top, 1):.1f}' "
+                f"fill='{color}' opacity='{op}' rx='1.5'/>"
+                f"<text x='{xs[i]:.1f}' y='{top - 3:.1f}' font-size='7' text-anchor='middle' fill='#1d1d1f'>{v:,.1f}</text>")
+        if kind == "growth" and prev:
+            pct = (v / prev - 1) * 100
+            arrow, pc = ("▲", GREEN) if pct >= 0 else ("▼", RED)
+            svg += f"<text x='{xs[i]:.1f}' y='{top - 11:.1f}' font-size='6.5' text-anchor='middle' fill='{pc}'>{arrow} {abs(pct):.0f}%</text>"
     svg += "</svg>"
     return f"<div class='spark-pop'>{svg}</div>"
 
 
-def sparkline(pairs) -> str:
-    """A tiny line sparkline (Excel-style) over a row's own years: reads better at this size than thin bars do. The forecast years
-    (is_estimate) draw as a dotted continuation of the same line, same as the dotted estimate convention on the full charts."""
+def sparkline(pairs, title, kind="growth") -> str:
+    """A tiny bar sparkline (Excel-style) over a row's own years. Hover it for the full chart (see _spark_detail)."""
     pts = [(y, float(v)) for y, v in pairs if pd.notna(v)]
     if len(pts) < 2:
         return ""
     vals = [v for _, v in pts]
-    lo, hi = min(vals), max(vals)
-    rng = (hi - lo) or 1.0
-    pad, n = 1.5, len(pts)
-    xs = [pad + i * (SPARK_W - 2 * pad) / (n - 1) for i in range(n)]
-    ys = [SPARK_H - pad - (v - lo) / rng * (SPARK_H - 2 * pad) for v in vals]
-    split = next((i for i, (y, _) in enumerate(pts) if is_estimate(y)), n)   # first forecast point, if any
-    solid_end = max(split, 1)
-    solid = " ".join(f"{xs[i]:.1f},{ys[i]:.1f}" for i in range(solid_end))
-    dotted = " ".join(f"{xs[i]:.1f},{ys[i]:.1f}" for i in range(solid_end - 1, n)) if solid_end < n else ""
-    svg = f"<svg class='spark' viewBox='0 0 {SPARK_W} {SPARK_H}'>"
-    svg += f"<polyline points='{solid}' fill='none' stroke='#5b7fc7' stroke-width='1.3' stroke-linejoin='round' stroke-linecap='round'/>"
-    if dotted:
-        svg += (f"<polyline points='{dotted}' fill='none' stroke='#5b7fc7' stroke-width='1.3' stroke-dasharray='1.8,1.6' "
-                f"stroke-linejoin='round' stroke-linecap='round'/>")
-    svg += f"<circle cx='{xs[-1]:.1f}' cy='{ys[-1]:.1f}' r='1.6' fill='#0a2463'/></svg>"
-    return f"<span class='spark-wrap'>{svg}{_spark_detail(pts, 'line')}</span>"
+    hi = max(vals) or 1.0
+    pad, n = 1.0, len(pts)
+    bw = (SPARK_W - 2 * pad) / n
+    bars = ""
+    for i, (y, v) in enumerate(pts):
+        bh = max(v / hi * (SPARK_H - 2), 0.6)
+        x = pad + i * bw + 0.3
+        op = 0.5 if is_estimate(y) else 1
+        bars += f"<rect x='{x:.1f}' y='{SPARK_H - bh:.1f}' width='{bw - 0.6:.1f}' height='{bh:.1f}' rx='0.4' fill='#5b7fc7' opacity='{op}'/>"
+    svg = f"<svg class='spark' viewBox='0 0 {SPARK_W} {SPARK_H}'>{bars}</svg>"
+    return f"<span class='spark-wrap'>{svg}{_spark_detail(pts, kind, title)}</span>"
 
 
-def sparkline_balance(pairs) -> str:
+def sparkline_balance(pairs, title) -> str:
     """A tiny zero-baseline bar sparkline for the Balance row: green bars above the line (surplus), red below it (deficit);
     forecast years are the same colours, just faded."""
     pts = [(y, float(v)) for y, v in pairs if pd.notna(v)]
@@ -294,7 +291,7 @@ def sparkline_balance(pairs) -> str:
         bars += f"<rect x='{x:.1f}' y='{yy:.1f}' width='{bw - 0.6:.1f}' height='{bh:.1f}' rx='0.4' fill='{GREEN if v >= 0 else RED}' opacity='{op}'/>"
     svg = (f"<svg class='spark' viewBox='0 0 {SPARK_W} {SPARK_H}'><line x1='0' y1='{mid}' x2='{SPARK_W}' y2='{mid}' "
           f"stroke='rgba(0,0,0,.18)' stroke-width='0.6'/>{bars}</svg>")
-    return f"<span class='spark-wrap'>{svg}{_spark_detail(pts, 'bar')}</span>"
+    return f"<span class='spark-wrap'>{svg}{_spark_detail(pts, 'bal', title)}</span>"
 
 
 def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None) -> str:
@@ -341,8 +338,11 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
                     cls.append("chg")
                 title = f" data-k='{html.escape(k, quote=True)}' data-base='{'' if b is None or pd.isna(b) else b}'"
             cells += f"<td class='{' '.join(cls)}'{title}>{fmt(v)}{pop}</td>"
-        spark = sparkline_balance if kind == "bal" else sparkline
-        cells += f"<td class='spark-td'>{spark([(y, vals[y]) for y in shown])}</td>"
+        if kind == "bal":
+            spark_html = sparkline_balance([(y, vals[y]) for y in shown], label)
+        else:
+            spark_html = sparkline([(y, vals[y]) for y in shown], label, "plain" if fmt is fpct else "growth")
+        cells += f"<td class='spark-td'>{spark_html}</td>"
         return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>"
 
     out = []
@@ -375,7 +375,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
     out.append(tr("Combined end season stock", glob.loc["Combined End Season Stock"], ""))
     out.append(tr("Combined S/U", glob.loc["Combined S/U"], "soft", fpct))
     out.append(f"<tr class='meta'><td class='lbl'>Brazil combo (Arabica + Robusta)</td>{''.join(f'<td>{combo[y]:.1f}</td>' for y in shown)}"
-               f"<td class='spark-td'>{sparkline([(y, combo[y]) for y in shown])}</td></tr>")
+               f"<td class='spark-td'>{sparkline([(y, combo[y]) for y in shown], 'Brazil combo (Arabica + Robusta)')}</td></tr>")
     return f"<div class='snd-wrap'><table class='snd'>{''.join(out)}</table></div>"
 
 

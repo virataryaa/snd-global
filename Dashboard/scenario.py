@@ -173,7 +173,7 @@ def _sensitivity_grid(df, meta, years, key, y_key, year, n, step, unit, progress
     """The flexed item against the second item you picked to pair it with (any other origin or Consumption): every combination of the
     two, stepped in m bags or percent, with all three metrics read off the same model run (one run per cell, not one per metric)."""
     x_key = key
-    x_label, y_label = x_key.split("|")[1], y_key.split("|")[1]
+    x_label, y_label = _disp(x_key.split("|")[1]), _disp(y_key.split("|")[1])
     scope = st.session_state.get("sc_scope", "Combined")
 
     def base_val(k):
@@ -224,7 +224,7 @@ def _heatmap_fig(z, labels, x_label, y_label, metric, big=False):
                                text=[[fmt.format(v) for v in row] for row in z], texttemplate="%{text}", textfont=dict(size=sz, color="#000000"),
                                customdata=z, hovertemplate=f"{x_label} %{{x}}, {y_label} %{{y}}: %{{customdata:.1f}}<extra></extra>"))
     for x0, x1, y0, y1 in [(n - 0.5, n + 0.5, -0.5, last + 0.5), (-0.5, last + 0.5, n - 0.5, n + 0.5)]:
-        fig.add_shape(type="rect", x0=x0, x1=x1, y0=y0, y1=y1, line=dict(color="rgba(100,116,139,.55)", width=1.25),
+        fig.add_shape(type="rect", x0=x0, x1=x1, y0=y0, y1=y1, line=dict(color="#000000", width=1.5),
                       fillcolor="rgba(0,0,0,0)", layer="above")
     fig.update_layout(template="plotly_white", height=340 if big else 325, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                       margin=dict(t=4, b=28, l=50, r=6), font=dict(color="#1d1d1f", size=sz + 1),
@@ -236,12 +236,16 @@ def _heatmap_fig(z, labels, x_label, y_label, metric, big=False):
     return fig
 
 
+def _disp(item):
+    return "Overall Consumption" if item == "Consumption" else item
+
+
 def sensitivity(df, meta, years):
     st.session_state.setdefault("sc_scope", "Combined")
     scope = st.session_state.get("sc_scope", "Combined")
     comms = _comms(scope)
     options = [f"{c}|{it}" for c in comms for it in ORIGINS[c] + ["Consumption"]]
-    label = (lambda k: k.replace("|", " · ")) if len(comms) > 1 else (lambda k: k.split("|")[1])
+    label = (lambda k: f"{k.split('|')[0]} · {_disp(k.split('|')[1])}") if len(comms) > 1 else (lambda k: _disp(k.split("|")[1]))
     default = "Robusta|Vietnam" if scope == "Robusta" else "Arabica|Brazil"
     if st.session_state.get("sn_origin") not in options:
         st.session_state["sn_origin"] = default
@@ -251,15 +255,15 @@ def sensitivity(df, meta, years):
         st.session_state["sn_year"] = cur if cur in cyears else cyears[-1]
 
     with st.container(border=True, key="sn_controls"):
-        c = st.columns([1.0, 0.85, 0.8, 0.85, 1.05, 1.05, 0.8, 0.8], gap="small", vertical_alignment="bottom")
-        c[0].radio("Commodity", SCOPES, horizontal=True, key="sc_scope")
-        unit = c[1].radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit")
+        st.radio("Commodity", SCOPES, horizontal=True, key="sc_scope")
+        c = st.columns([0.8, 0.8, 0.85, 1.0, 1.0, 0.75, 0.75], gap="small", vertical_alignment="bottom")
+        unit = c[0].radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit")
         skey = f"sn_step_{unit}"
-        step = c[2].number_input("Step (Mn)" if unit == "m bags" else "Step (%)", min_value=0.1,
+        step = c[1].number_input("Step (Mn)" if unit == "m bags" else "Step (%)", min_value=0.1,
                                  value=float(st.session_state.get(skey) or (5.0 if unit == "m bags" else 10.0)),
                                  step=0.5 if unit == "m bags" else 1.0, format="%.1f", key=skey) or (5.0 if unit == "m bags" else 10.0)
-        n = int(c[3].number_input("Steps each side", min_value=1, max_value=8, value=int(st.session_state.get("sn_n") or 5), step=1, key="sn_n") or 5)
-        key = c[4].selectbox("Flex", options, format_func=label, key="sn_origin")
+        n = int(c[2].number_input("Steps each side", min_value=1, max_value=8, value=int(st.session_state.get("sn_n") or 5), step=1, key="sn_n") or 5)
+        key = c[3].selectbox("Flex", options, format_func=label, key="sn_origin")
         comm, item = key.split("|")
         vs_options = [o for o in options if o != key]                 # every other origin or Consumption, to pair against Flex
         vs_default = f"{comm}|{ORIGINS[comm][0]}" if item == "Consumption" else f"{comm}|Consumption"
@@ -267,9 +271,9 @@ def sensitivity(df, meta, years):
             vs_default = vs_options[0]
         if st.session_state.get("sn_vs") not in vs_options:
             st.session_state["sn_vs"] = vs_default
-        y_key = c[5].selectbox("vs", vs_options, format_func=label, key="sn_vs")
-        year = c[6].selectbox("Crop year", cyears, key="sn_year")
-        compute = c[7].button("Compute", key="sn_compute", type="primary", width="stretch")
+        y_key = c[4].selectbox("vs", vs_options, format_func=label, key="sn_vs")
+        year = c[5].selectbox("Crop year", cyears, key="sn_year")
+        compute = c[6].button("Compute", key="sn_compute", type="primary", width="stretch")
 
     sig = (key, y_key, year, n, step, unit, scope)
     if compute:
