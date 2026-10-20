@@ -191,37 +191,49 @@ def fpct(v, dec=1):
 SPARK_W, SPARK_H = 48, 13
 
 
-def sparkline(values) -> str:
-    """A tiny line sparkline (Excel-style) over a row's own years: reads better at this size than thin bars do."""
-    vals = [float(v) for v in values if pd.notna(v)]
-    if len(vals) < 2:
+def sparkline(pairs) -> str:
+    """A tiny line sparkline (Excel-style) over a row's own years: reads better at this size than thin bars do. The forecast years
+    (is_estimate) draw as a dotted continuation of the same line, same as the dotted estimate convention on the full charts."""
+    pts = [(y, float(v)) for y, v in pairs if pd.notna(v)]
+    if len(pts) < 2:
         return ""
+    vals = [v for _, v in pts]
     lo, hi = min(vals), max(vals)
     rng = (hi - lo) or 1.0
-    pad, n = 1.5, len(vals)
+    pad, n = 1.5, len(pts)
     xs = [pad + i * (SPARK_W - 2 * pad) / (n - 1) for i in range(n)]
     ys = [SPARK_H - pad - (v - lo) / rng * (SPARK_H - 2 * pad) for v in vals]
-    pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in zip(xs, ys))
-    return (f"<svg class='spark' viewBox='0 0 {SPARK_W} {SPARK_H}'>"
-            f"<polyline points='{pts}' fill='none' stroke='#5b7fc7' stroke-width='1.3' stroke-linejoin='round' stroke-linecap='round'/>"
-            f"<circle cx='{xs[-1]:.1f}' cy='{ys[-1]:.1f}' r='1.6' fill='#0a2463'/></svg>")
+    split = next((i for i, (y, _) in enumerate(pts) if is_estimate(y)), n)   # first forecast point, if any
+    solid_end = max(split, 1)
+    solid = " ".join(f"{xs[i]:.1f},{ys[i]:.1f}" for i in range(solid_end))
+    dotted = " ".join(f"{xs[i]:.1f},{ys[i]:.1f}" for i in range(solid_end - 1, n)) if solid_end < n else ""
+    svg = f"<svg class='spark' viewBox='0 0 {SPARK_W} {SPARK_H}'>"
+    svg += f"<polyline points='{solid}' fill='none' stroke='#5b7fc7' stroke-width='1.3' stroke-linejoin='round' stroke-linecap='round'/>"
+    if dotted:
+        svg += (f"<polyline points='{dotted}' fill='none' stroke='#5b7fc7' stroke-width='1.3' stroke-dasharray='1.8,1.6' "
+                f"stroke-linejoin='round' stroke-linecap='round'/>")
+    svg += f"<circle cx='{xs[-1]:.1f}' cy='{ys[-1]:.1f}' r='1.6' fill='#0a2463'/></svg>"
+    return svg
 
 
-def sparkline_balance(values) -> str:
-    """A tiny zero-baseline bar sparkline for the Balance row: green bars above the line (surplus), red below it (deficit)."""
-    vals = [float(v) for v in values if pd.notna(v)]
-    if len(vals) < 2:
+def sparkline_balance(pairs) -> str:
+    """A tiny zero-baseline bar sparkline for the Balance row: green bars above the line (surplus), red below it (deficit);
+    forecast years are the same colours, just faded."""
+    pts = [(y, float(v)) for y, v in pairs if pd.notna(v)]
+    if len(pts) < 2:
         return ""
+    vals = [v for _, v in pts]
     m = max(abs(v) for v in vals) or 1.0
-    pad, n = 1.0, len(vals)
+    pad, n = 1.0, len(pts)
     bw = (SPARK_W - 2 * pad) / n
     mid = SPARK_H / 2
     bars = ""
-    for i, v in enumerate(vals):
+    for i, (y, v) in enumerate(pts):
         bh = max(abs(v) / m * (mid - 1.5), 0.6)
         x = pad + i * bw + 0.3
-        y = mid - bh if v >= 0 else mid
-        bars += f"<rect x='{x:.1f}' y='{y:.1f}' width='{bw - 0.6:.1f}' height='{bh:.1f}' rx='0.4' fill='{GREEN if v >= 0 else RED}'/>"
+        yy = mid - bh if v >= 0 else mid
+        op = 0.5 if is_estimate(y) else 1
+        bars += f"<rect x='{x:.1f}' y='{yy:.1f}' width='{bw - 0.6:.1f}' height='{bh:.1f}' rx='0.4' fill='{GREEN if v >= 0 else RED}' opacity='{op}'/>"
     return f"<svg class='spark' viewBox='0 0 {SPARK_W} {SPARK_H}'><line x1='0' y1='{mid}' x2='{SPARK_W}' y2='{mid}' stroke='rgba(0,0,0,.18)' stroke-width='0.6'/>{bars}</svg>"
 
 
@@ -270,7 +282,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
                 title = f" data-k='{html.escape(k, quote=True)}' data-base='{'' if b is None or pd.isna(b) else b}'"
             cells += f"<td class='{' '.join(cls)}'{title}>{fmt(v)}{pop}</td>"
         spark = sparkline_balance if kind == "bal" else sparkline
-        cells += f"<td class='spark-td'>{spark([vals[y] for y in shown])}</td>"
+        cells += f"<td class='spark-td'>{spark([(y, vals[y]) for y in shown])}</td>"
         return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>"
 
     out = []
@@ -292,6 +304,10 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
     out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
     out.append(f"<tr class='comm'><th colspan='{ncol}'>Global</th></tr>")
     out.append(head(None))
+    shared = set(ORIGINS["Arabica"]) & set(ORIGINS["Robusta"])             # "Brazil", "Others": in both lists, label which is which
+    for comm, fr in comm_frames.items():
+        for o in ORIGINS[comm]:
+            out.append(tr(f"{o} ({comm[0]})" if o in shared else o, fr.loc[o], comm=comm, item=o))
     out.append(tr("Production", glob.loc["Production Global"], "b"))
     out.append(tr("Consumption", glob.loc["Consumption Global"], "b"))
     out.append(tr("Balance", glob.loc["Global Balance"], "bal", neg_red=True))
@@ -299,7 +315,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
     out.append(tr("Combined end season stock", glob.loc["Combined End Season Stock"], ""))
     out.append(tr("Combined S/U", glob.loc["Combined S/U"], "soft", fpct))
     out.append(f"<tr class='meta'><td class='lbl'>Brazil combo (Arabica + Robusta)</td>{''.join(f'<td>{combo[y]:.1f}</td>' for y in shown)}"
-               f"<td class='spark-td'>{sparkline(combo[y] for y in shown)}</td></tr>")
+               f"<td class='spark-td'>{sparkline([(y, combo[y]) for y in shown])}</td></tr>")
     return f"<div class='snd-wrap'><table class='snd'>{''.join(out)}</table></div>"
 
 

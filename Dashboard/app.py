@@ -101,7 +101,7 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 h1, h2, h3, h4, h5, h6 { color: #1d1d1f !important; }
 /* table: no colour bands, hairlines, typography does the work */
 table.snd { color: #1d1d1f !important; font-size: 12.5px !important; }
-table.snd td { border-bottom: 1px solid rgba(0,0,0,.05) !important; padding: 3px 10px !important; }
+table.snd td { border-bottom: 1px solid rgba(0,0,0,.05) !important; padding: 5px 10px !important; }
 table.snd td.lbl { color: #3a3a3c !important; }
 table.snd tr.comm th { background: none !important; color: #0a2463 !important; font-size: 11px !important; letter-spacing: .08em !important; padding: 14px 12px 4px !important;
     border-bottom: 0 !important; }
@@ -121,7 +121,7 @@ div[role="radiogroup"] label:has(input:checked), [data-testid="stSidebar"] div[r
     background: linear-gradient(180deg, #16338a 0%, #0a2463 100%) !important; box-shadow: 0 2px 6px rgba(10,36,99,.28) !important; }
 div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p,
 [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #ffffff !important; }
-table.snd th.y { background: #0a2463 !important; color: #ffffff !important; font-weight: 600 !important; padding: 5px 10px !important; border-bottom: 0 !important; }
+table.snd th.y { background: #0a2463 !important; color: #ffffff !important; font-weight: 600 !important; padding: 7px 10px !important; border-bottom: 0 !important; }
 table.snd th.y.first { border-radius: 8px 0 0 8px; }
 table.snd th.y:last-child { border-radius: 0 8px 8px 0; }
 table.snd tr.bal td { background: rgba(15,23,42,.09) !important; }
