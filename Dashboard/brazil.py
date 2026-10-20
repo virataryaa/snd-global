@@ -6,8 +6,10 @@ Inputs live in Database/brazil_snd.csv (hard-coded cells of the Excel sheet); ev
     consumption (typed from 2020/21),
   * stock change = production - exports - consumption, closing stock = last year's closing stock + stock change (the first year's is typed).
 """
+import html
 import io
 import json
+import re
 
 import numpy as np
 import pandas as pd
@@ -139,35 +141,78 @@ EDITABLE = {
     "Overall Brazil": {},
 }
 
+_LINE_RX = re.compile(r"^(.+) (\d{4}/\d{2}): (.*) -> (.*)$")
+_REASON_RX = re.compile(r"\| reason: (.*)$")
 
-def block_html(title, fr, shown, edit=None) -> str:
-    ncol = len(shown) + 1
+
+def _val(t):
+    t = t.strip()
+    return None if t in ("", "-") else float(t)
+
+
+@st.cache_data(ttl=300)
+def cell_history():
+    """{(series, year): [(when, old, new, reason), ...]} newest first, from the GitHub save history — same convention as snd.cell_history."""
+    out = {}
+    if not gh.enabled():
+        return out
+    for ts, msg in gh.history(INP_PATH):
+        first, _, body = msg.partition("\n")
+        if not first.startswith("Brazil SnD |"):
+            continue
+        why = _REASON_RX.search(first)
+        why = why.group(1).strip() if why else ""
+        for ln in body.splitlines():
+            m = _LINE_RX.match(ln.strip())
+            if not m:
+                continue
+            series, year, old, new = m.groups()
+            out.setdefault((series, year), []).append((ts, _val(old), _val(new), why))
+    return out
+
+
+def block_html(title, fr, shown, edit=None, hist=None) -> str:
+    ncol = len(shown) + 2                                     # + the trailing Trend sparkline column
     out = [f"<tr class='comm'><th colspan='{ncol}'>{title}</th></tr>",
            "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if snd.is_estimate(y) else ''}'>{short(y)}{'*' if snd.is_estimate(y) else ''}</th>"
-                                                    for y in shown) + "</tr>"]
+                                                    for y in shown) + "<th class='y spark-h'>Trend</th></tr>"]
     for label, kind, fmt in LAYOUT[title]:
         neg = label == "Stock Change"
         series = EDITABLE[title].get(label) if edit else None
+        hseries = EDITABLE[title].get(label)                  # revision history is keyed the same way, independent of edit mode
 
         def cell(y):
             cls = ("fc " if snd.is_estimate(y) else "") + ("neg" if neg and pd.notna(fr.loc[label, y]) and fr.loc[label, y] < -0.049 else "")
-            attrs = ""
+            attrs, pop = "", ""
+            is_input = bool(series)
             if series:                                                   # an input cell: typed over in place
                 k = f"{series}|{y}"
                 b = edit["base"].get(k)
                 cls += " ed" + (" chg" if k in edit["changed"] else "")
                 attrs = (f" data-k='{k}' data-base='{'' if b is None or pd.isna(b) else b}'"
                          + (" data-pct='1'" if series in PCT_SERIES else ""))
-            return f"<td class='{cls.strip()}'{attrs}>{fmt(fr.loc[label, y])}</td>"
+            revs = hist.get((hseries, y)) if hist and hseries and not is_input else None
+            if revs:
+                cls += " rev"
+                lo, ln = revs[0][1], revs[0][2]
+                dc = "up" if lo is not None and ln is not None and ln > lo else "down" if lo is not None and ln is not None and ln < lo else ""
+                rows = "".join(f"<div class='row'><span class='dt'>{ts[:10]}</span>{snd.fnum(o, 1) or '-'} &rarr; {snd.fnum(n, 1) or '-'}"
+                               + (f"<span class='rs'>{html.escape(r, quote=True)}</span>" if r else "") + "</div>" for ts, o, n, r in revs[:8])
+                pop = f"<span class='rev-dot {dc}'></span><div class='rev-pop'>{snd._rev_chart(revs)}{rows}</div>"
+            return f"<td class='{cls.strip()}'{attrs}>{fmt(fr.loc[label, y])}{pop}</td>"
         cells = "".join(cell(y) for y in shown)
-        out.append(f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>")
+        skind = "bal" if kind == "bal" else ("plain" if fmt in (p0, p1) else "growth")
+        spark = (snd.sparkline_balance if skind == "bal" else snd.sparkline)
+        spark_html = spark([(y, fr.loc[label, y]) for y in shown], label) if skind == "bal" else spark([(y, fr.loc[label, y]) for y in shown], label, skind)
+        out.append(f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}<td class='spark-td'>{spark_html}</td></tr>")
     return "".join(out)
 
 
 def full_table(A, C, O, shown, edit=None) -> str:
-    gap = f"<tr class='gap'><td colspan='{len(shown) + 1}'></td></tr>"
-    return (f"<div class='snd-wrap'><table class='snd'>{block_html('Arabica', A, shown, edit)}{gap}{block_html('Conillon', C, shown, edit)}{gap}"
-            f"{block_html('Overall Brazil', O, shown, edit)}</table></div>")
+    hist = cell_history()
+    gap = f"<tr class='gap'><td colspan='{len(shown) + 2}'></td></tr>"
+    return (f"<div class='snd-wrap'><table class='snd'>{block_html('Arabica', A, shown, edit, hist)}{gap}{block_html('Conillon', C, shown, edit, hist)}{gap}"
+            f"{block_html('Overall Brazil', O, shown, edit, hist)}</table></div>")
 
 
 # ── AgriAcies format ──────────────────────────────────────────────────────────
@@ -239,6 +284,7 @@ def _save(changes, reason=""):
     with open(INP, "w", encoding="utf-8", newline="") as f:
         f.write(new_text)
     load.clear()
+    cell_history.clear()
 
 
 # ── Page ──────────────────────────────────────────────────────────────────────

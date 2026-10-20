@@ -65,7 +65,7 @@ table.snd td.ed:hover { box-shadow: inset 0 0 0 1px #9db3e6; background: #f3f6fd
 table.snd td.ed:focus { outline: none; box-shadow: inset 0 0 0 2px #0a2463; background: #ffffff; }
 table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
 table.snd td.rev { position: relative; }
-.rev-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-left: 5px; vertical-align: middle; }
+.rev-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-left: 5px; vertical-align: middle; background: #94a3b8; }
 .rev-dot.up { background: #1f9d6f; }
 .rev-dot.down { background: #c0392b; }
 .rev-pop { display: none; position: absolute; z-index: 60; top: 100%; right: 0; margin-top: 4px; background: #ffffff; color: #1d1d1f;
@@ -82,9 +82,9 @@ table.snd th.spark-h { font-size: 9.5px; text-transform: uppercase; letter-spaci
 .spark-wrap { position: relative; display: inline-block; cursor: crosshair; }
 /* the table scrolls horizontally, which would clip a popover opening past its right edge — so while any sparkline in it is
    hovered, its wrap stops clipping (:has needs a Chromium-based browser, which Streamlit's always is) and the popover, anchored
-   to that exact row, opens to the right of it without being cut off */
+   to that exact row, opens to the left of it without being cut off */
 .snd-wrap:has(.spark-wrap:hover) { overflow: visible; }
-.spark-pop { display: none; position: absolute; z-index: 9999; top: 50%; left: 100%; margin-left: 8px; transform: translateY(-50%);
+.spark-pop { display: none; position: absolute; z-index: 9999; top: 50%; right: 100%; margin-right: 8px; transform: translateY(-50%);
              background: #ffffff; border: 1px solid rgba(0,0,0,.08); border-radius: 8px; padding: 4px 6px 2px; box-shadow: 0 10px 28px rgba(0,0,0,.22); }
 .spark-wrap:hover .spark-pop { display: block; }
 .snd-bar { background: linear-gradient(90deg, #0a1d4d 0%, #0a2463 100%); color: #ffffff; font-size: 12px; font-weight: 700;
@@ -197,7 +197,7 @@ def fpct(v, dec=1):
 
 
 SPARK_W, SPARK_H = 48, 13
-DETAIL_W, DETAIL_H = 290, 150
+DETAIL_W, DETAIL_H = 330, 170
 
 
 def _spark_detail(pairs, kind, title) -> str:
@@ -235,8 +235,8 @@ def _spark_detail(pairs, kind, title) -> str:
         prev = vals[i - 1] if i > 0 else None
         if kind == "bal":
             color = GREEN if v >= 0 else RED
-        elif kind == "growth" and prev is not None:
-            color = GREEN if v >= prev else RED
+        elif kind == "growth":
+            color = GREY if prev is None else (GREEN if v >= prev else RED)   # no prior year to compare: grey, not a colour claim
         else:
             color = NAVY
         svg += (f"<rect x='{xs[i] - bw / 2:.1f}' y='{top:.1f}' width='{bw:.1f}' height='{max(bot - top, 1):.1f}' "
@@ -267,6 +267,28 @@ def sparkline(pairs, title, kind="growth") -> str:
         bars += f"<rect x='{x:.1f}' y='{SPARK_H - bh:.1f}' width='{bw - 0.6:.1f}' height='{bh:.1f}' rx='0.4' fill='#5b7fc7' opacity='{op}'/>"
     svg = f"<svg class='spark' viewBox='0 0 {SPARK_W} {SPARK_H}'>{bars}</svg>"
     return f"<span class='spark-wrap'>{svg}{_spark_detail(pts, kind, title)}</span>"
+
+
+def _rev_chart(revs) -> str:
+    """A tiny line chart of the revision history itself: one point per saved change, oldest to newest, by date."""
+    chrono = list(reversed(revs))                            # revs is newest-first; the chart reads left to right
+    pts = [(chrono[0][0][:10], chrono[0][1])] if chrono[0][1] is not None else []
+    pts += [(ts[:10], n) for ts, _o, n, _r in chrono if n is not None]
+    if len(pts) < 2:
+        return ""
+    vals = [v for _, v in pts]
+    w, h, pad = 130, 46, 14
+    lo, hi = min(vals), max(vals)
+    rng = (hi - lo) or 1.0
+    n = len(pts)
+    xs = [pad + i * (w - 2 * pad) / (n - 1) for i in range(n)]
+    ys = [h - 10 - (v - lo) / rng * (h - 20) for v in vals]
+    poly = " ".join(f"{x:.1f},{y:.1f}" for x, y in zip(xs, ys))
+    dots = "".join(f"<circle cx='{x:.1f}' cy='{y:.1f}' r='1.8' fill='#0a2463'/>" for x, y in zip(xs, ys))
+    return (f"<svg width='{w}' height='{h}' style='display:block;margin-bottom:4px'>"
+            f"<polyline points='{poly}' fill='none' stroke='#5b7fc7' stroke-width='1.4'/>{dots}"
+            f"<text x='{xs[0]:.1f}' y='{h - 1}' font-size='7' fill='#9a9a9e'>{pts[0][0]}</text>"
+            f"<text x='{xs[-1]:.1f}' y='{h - 1}' font-size='7' fill='#9a9a9e' text-anchor='end'>{pts[-1][0]}</text></svg>")
 
 
 def sparkline_balance(pairs, title) -> str:
@@ -327,7 +349,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
                     f"<div class='row'><span class='dt'>{ts[:10]}</span>{fnum(o, 1) or '-'} &rarr; {fnum(n, 1) or '-'}"
                     + (f"<span class='rs'>{html.escape(r, quote=True)}</span>" if r else "") + "</div>"
                     for ts, o, n, r in revs[:8])
-                pop = f"<span class='rev-dot {dir_cls}'></span><div class='rev-pop'>{rows}</div>"
+                pop = f"<span class='rev-dot {dir_cls}'></span><div class='rev-pop'>{_rev_chart(revs)}{rows}</div>"
             title = ""
             if edit and comm and item and editable:                      # an input cell: typed over in place
                 k = f"{comm}|{item}|{y}"

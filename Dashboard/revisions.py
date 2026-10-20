@@ -100,7 +100,10 @@ def revision_lines(sub: pd.DataFrame, level: bool, with_commodity: bool):
 
 
 def render():
-    st.markdown(snd.CSS + analytics.CSS, unsafe_allow_html=True)
+    st.markdown(snd.CSS + analytics.CSS + "<style>"
+                ".undo-row { display: flex; align-items: center; gap: 10px; padding: 7px 2px; border-bottom: 1px solid rgba(0,0,0,.06); "
+                "font-size: 12px; } .undo-dt { color: #94a3b8; font-size: 10.5px; white-space: nowrap; min-width: 110px; } "
+                ".undo-items { color: #1d1d1f; } .undo-why { color: #94a3b8; font-style: italic; }</style>", unsafe_allow_html=True)
     st.markdown("<div class='snd-head'><span class='t'>Revisions</span><span class='s'></span></div>",
                 unsafe_allow_html=True)
     dataset = st.radio("Dataset", ["Coffee SnD", "Brazil SnD"], horizontal=True, key="rv_set", label_visibility="collapsed")
@@ -139,22 +142,23 @@ def render():
 
     groups = list(last.groupby("when", sort=False))
     if groups and gh.enabled():
-        st.markdown("<div class='sb-label' style='margin:18px 0 2px;color:#8fa3d1!important'>Undo a save</div>"
-                    "<div class='an-note' style='margin-top:-2px'>Sets that save's cells back to what they were before it — saved as a new "
-                    "revision, so nothing is erased from the log above.</div>", unsafe_allow_html=True)
-        for ts, grp in groups:
-            items = ", ".join(f"{r.group + ' ' if r.group != 'Brazil' else ''}{r.item} {r.year}" for r in grp.itertuples())
-            why = grp["reason"].iloc[0]
-            c1, c2, c3 = st.columns([1.6, 5.3, 1.1], vertical_alignment="center")
-            c1.markdown(f"<div class='card-desc' style='margin:0'>{ts:%d %b %Y %H:%M}</div>", unsafe_allow_html=True)
-            c2.markdown(f"<div class='card-desc' style='margin:0'>{html.escape(items)}"
-                        + (f" &mdash; {html.escape(why)}" if why else "") + "</div>", unsafe_allow_html=True)
-            if c3.button("Revert", key=f"rv_undo_{dataset}_{ts.value}", width="stretch"):
-                try:
-                    with st.spinner("Reverting..."):
-                        _revert(dataset, grp)
-                except Exception as ex:
-                    st.error(f"Revert failed: {ex}")
-                else:
-                    st.toast("Reverted.")
-                    st.rerun()
+        with st.container(border=True):
+            card("Undo a save")
+            st.markdown("<div class='card-desc'>Sets that save's cells back to what they were before it — recorded as a new revision, "
+                        "nothing above is erased.</div>", unsafe_allow_html=True)
+            for ts, grp in groups:
+                items = ", ".join(f"{r.group + ' ' if r.group != 'Brazil' else ''}{r.item} {r.year}" for r in grp.itertuples())
+                why = grp["reason"].iloc[0]
+                c1, c2 = st.columns([7, 1], vertical_alignment="center")
+                c1.markdown(f"<div class='undo-row'><span class='undo-dt'>{ts:%d %b %Y, %H:%M}</span>"
+                            f"<span class='undo-items'>{html.escape(items)}</span>"
+                            + (f"<span class='undo-why'>{html.escape(why)}</span>" if why else "") + "</div>", unsafe_allow_html=True)
+                if c2.button("Revert", key=f"rv_undo_{dataset}_{ts.value}", width="stretch"):
+                    try:
+                        with st.spinner("Reverting..."):
+                            _revert(dataset, grp)
+                    except Exception as ex:
+                        st.error(f"Revert failed: {ex}")
+                    else:
+                        st.toast("Reverted.")
+                        st.rerun()

@@ -20,9 +20,6 @@ table.snd span.dl.up { color: #1f9d6f; } table.snd span.dl.dn { color: #c0392b; 
 .an-note { color: #64748b; font-size: 12.5px; margin: 2px 0 10px; }
 </style>
 """
-VIEWS = ["Balance bridge", "Stocks to use", "Brazil crop cycle"]
-
-
 @st.cache_data(ttl=600)
 def load_su() -> pd.DataFrame:
     return pd.read_csv(SU_HIST)
@@ -245,12 +242,14 @@ def render():
     st.markdown(snd.CSS + CSS, unsafe_allow_html=True)
     df, meta, _notes, years = load()
     st.markdown("<div class='snd-head'><span class='t'>Analysis</span></div>", unsafe_allow_html=True)
-    view = st.radio("View", VIEWS, horizontal=True, key="an_view", label_visibility="collapsed")
+    page = st.radio("Page", ["Global SnD", "Brazil Internal SnD"], horizontal=True, key="an_page")
     frames = {c: block(df, meta, c, years) for c in ORIGINS}
     glob = global_block(frames["Arabica"], frames["Robusta"], years)
-    if view == "Balance bridge":
-        view_bridge(frames, years, meta)
-    elif view == "Stocks to use":
-        view_su(frames, years, meta, glob)
+    if page == "Global SnD":
+        view = st.radio("View", ["Balance bridge", "Stocks to use"], horizontal=True, key="an_view", label_visibility="collapsed")
+        if view == "Balance bridge":
+            view_bridge(frames, years, meta)
+        else:
+            view_su(frames, years, meta, glob)
     else:
         view_cycle(frames, years, meta)

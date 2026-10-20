@@ -188,7 +188,8 @@ def _sensitivity_grid(df, meta, years, key, y_key, year, n, step, unit, progress
     xr_mask = (df["commodity"] == x_key.split("|")[0]) & (df["item"] == x_key.split("|")[1]) & (df["year"] == year)
     yr_mask = (df["commodity"] == y_key.split("|")[0]) & (df["item"] == y_key.split("|")[1]) & (df["year"] == year)
     steps = list(range(-n, n + 1))
-    labels = [f"{k * step:+.0f}m" if unit == "m bags" else f"{k * step:+.0f}%" for k in steps]
+    dec = 0 if step == int(step) else 1                       # a 0.5 step rounded to whole numbers was showing duplicate "+0" labels
+    labels = [f"{k * step:+.{dec}f}m" if unit == "m bags" else f"{k * step:+.{dec}f}%" for k in steps]
     z = {"S/U": [], "Balance": [], "End stock": []}
     total, done = len(steps) ** 2, 0
     for yk in steps:
