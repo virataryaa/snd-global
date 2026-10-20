@@ -137,7 +137,7 @@ def _waterfall_fig(base_bal, names, deltas, running):
     fig = go.Figure(go.Bar(x=xs, y=h, base=bases, marker_color=colors, marker_line_width=0,
                            text=texts, textposition="outside", textfont=dict(size=10),
                            hovertemplate="%{x}: %{text}<extra></extra>"))
-    return _fig(fig, height=300, legend=False).update_layout(hovermode="closest", bargap=0.3)
+    return _fig(fig, height=210, legend=False).update_layout(hovermode="closest", bargap=0.3)
 
 
 def _chart_years(years, show_all):
@@ -194,17 +194,18 @@ def whatif(df, meta, years):
     span_r.radio("Range", ["Recent", "All"], horizontal=True, key="sc_bar_span", label_visibility="collapsed")
     chart_years = _chart_years(years, st.session_state.get("sc_bar_span") == "All")
     short = [y[2:] for y in chart_years]
-    for title, fn, k, color, fmt, key in (("Balance, m bags", bal, 1, AMBER, ",.1f", "sc_bar_bal"),
-                                           ("Stocks to use, %", su, 100, NAVY, ".1f", "sc_bar_su")):
-        with st.container(border=True):
+    bar_l, bar_r = st.columns(2, gap="small")
+    for col, (title, fn, k, color, fmt, key) in zip((bar_l, bar_r), (("Balance, m bags", bal, 1, AMBER, ",.1f", "sc_bar_bal"),
+                                                                     ("Stocks to use, %", su, 100, NAVY, ".1f", "sc_bar_su"))):
+        with col, st.container(border=True):
             bv = (fn(scope, *base)[chart_years] * k).values
             sv = (fn(scope, *scen)[chart_years] * k).values
             fig = go.Figure()
             fig.add_trace(go.Bar(x=short, y=bv, name="Base", marker_color="#c3cbe0", marker_line_width=0,
-                                 text=[f"{v:.1f}" for v in bv], textposition="outside", textfont=dict(size=8.5)))
+                                 text=[f"{v:.1f}" for v in bv], textposition="outside", textfont=dict(size=7.5)))
             fig.add_trace(go.Bar(x=short, y=sv, name="Scenario", marker_color=color, marker_line_width=0,
-                                 text=[f"{v:.1f}" for v in sv], textposition="outside", textfont=dict(size=8.5)))
-            _fig(fig, height=230, fmt=fmt).update_layout(barmode="group", bargap=0.3, legend=dict(orientation="h", x=0, y=1.15, font=dict(size=10)))
+                                 text=[f"{v:.1f}" for v in sv], textposition="outside", textfont=dict(size=7.5)))
+            _fig(fig, height=170, fmt=fmt).update_layout(barmode="group", bargap=0.3, legend=dict(orientation="h", x=0, y=1.15, font=dict(size=9)))
             card(title)
             st.plotly_chart(fig, width="stretch", key=key)
 
