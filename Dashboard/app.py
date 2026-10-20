@@ -69,6 +69,50 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .dtab td.dt { text-align: center; background: #f7f8fb; }
 .dtab td.b { font-weight: 700; }
 .dtab td.ts { font-size: 10.5px; color: #94a3b8; text-align: left; }
+
+/* ── Polish: light, quiet, Apple-like. Later rules override the ones above. ── */
+html, body, [class*="css"], [data-testid="stAppViewContainer"], .stMarkdown, button, input, textarea {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', sans-serif !important; -webkit-font-smoothing: antialiased; }
+[data-testid="stAppViewContainer"], [data-testid="stMain"], .main { background: #f5f5f7 !important; }
+.block-container { padding-top: 2.4rem; }
+[data-testid="stSidebar"] { background: rgba(255,255,255,.72) !important; backdrop-filter: saturate(180%) blur(20px);
+    border-right: 1px solid rgba(0,0,0,.06) !important; }
+[data-testid="stSidebar"] * { color: #1d1d1f; }
+.sb-title { color: #1d1d1f !important; font-size: 1.05rem; font-weight: 600; }
+.sb-label, [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p { color: #86868b !important; letter-spacing: .06em; }
+.sb-sep { border-top: 1px solid rgba(0,0,0,.06); }
+/* segmented controls: grey track, white raised pill */
+div[role="radiogroup"], [data-testid="stSidebar"] div[role="radiogroup"] { background: rgba(118,118,128,.12) !important; border-radius: 10px; padding: 2px; }
+div[role="radiogroup"] label { border-radius: 8px !important; transition: background .15s ease; }
+div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p,
+[data-testid="stSidebar"] div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { color: #3a3a3c !important; font-weight: 500; }
+div[role="radiogroup"] label:has(input:checked), [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+    background: #ffffff !important; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.04); }
+div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p,
+[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #0a2463 !important; font-weight: 600; }
+[data-testid="stSidebar"] .st-key-sec_nav div[role="radiogroup"] { background: transparent !important; padding: 0; }
+[data-testid="stSidebar"] .st-key-sec_nav div[role="radiogroup"] label:has(input:checked) { background: rgba(10,36,99,.08) !important; box-shadow: none; }
+/* cards */
+[data-testid="stVerticalBlockBorderWrapper"]:has(> div > [data-testid="stVerticalBlock"]), .snd-wrap {
+    background: #ffffff; border: 0 !important; border-radius: 18px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04); }
+.snd-wrap { padding: 10px 14px 14px; }
+.chart-head { color: #1d1d1f; font-weight: 600; font-size: .9rem; letter-spacing: -.01em; }
+.snd-head .t, .page-title { color: #1d1d1f !important; font-weight: 700; letter-spacing: -.02em; font-size: 26px; }
+h1, h2, h3, h4, h5, h6 { color: #1d1d1f !important; }
+/* table: no colour bands, hairlines, typography does the work */
+table.snd { color: #1d1d1f !important; font-size: 12.5px !important; }
+table.snd td { border-bottom: 1px solid rgba(0,0,0,.05) !important; padding: 3px 10px !important; }
+table.snd td.lbl { color: #3a3a3c !important; }
+table.snd tr.comm th { background: none !important; color: #0a2463 !important; font-size: 11px !important; letter-spacing: .08em !important; padding: 14px 12px 4px !important;
+    border-bottom: 0 !important; }
+table.snd th.y, table.snd th.y.fc { background: none !important; color: #86868b !important; font-weight: 500 !important; border-bottom: 1px solid rgba(0,0,0,.08) !important; }
+table.snd td.fc, table.snd tr.bal td.fc { background: rgba(10,36,99,.025) !important; }
+table.snd tr.bal td { background: none !important; border-top: 1px solid rgba(0,0,0,.08) !important; border-bottom: 1px solid rgba(0,0,0,.08) !important; }
+table.snd tr.bal td.lbl { color: #1d1d1f !important; }
+table.snd tr.soft td, table.snd tr.soft td.lbl { color: #86868b !important; }
+table.snd tr.meta td, table.snd tr.meta td.lbl { color: #86868b !important; }
+table.snd td.neg { color: #d70015 !important; }
+.snd-bar { background: none !important; color: #0a2463 !important; letter-spacing: .08em !important; font-size: 11px !important; padding: 10px 0 4px !important; }
 </style>
 """,
     unsafe_allow_html=True,
