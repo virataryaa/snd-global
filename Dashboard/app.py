@@ -158,7 +158,7 @@ def _gate():
 _gate()
 
 KEEP = (["section", "snd_page", "snd_span", "snd_mode", "an_view", "an_br_scope", "an_br_start", "br_span", "br_mode", "rv_set",
-         "sc_tool", "sc_bar_span", "sc_years", "sc_scope", "sn_origin", "sn_year", "sn_unit", "sn_step_m bags", "sn_step_%", "sn_n",
+         "sc_bar_span", "sc_years", "sc_scope", "sn_origin", "sn_year", "sn_unit", "sn_step_m bags", "sn_step_%", "sn_n",
          "sn_metric", "sn_hstep"] + [scenario._skey(k, u) for k in scenario.ALL_KEYS for u in scenario.UNITS] + ["sc_unit"])
 for _k in KEEP:
     if _k not in st.session_state and f"_keep_{_k}" in st.session_state:
@@ -168,7 +168,7 @@ with st.sidebar:
     st.markdown("<div class='sb-title'>Global SnD</div>", unsafe_allow_html=True)
     st.markdown("<div class='sb-label'>Section</div>", unsafe_allow_html=True)
     with st.container(key="sec_nav"):
-        section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Revisions"], index=0, label_visibility="collapsed", key="section")
+        section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Sensitivity", "Revisions"], index=0, label_visibility="collapsed", key="section")
 
 if section == "SnD":
     _old = {"Brazil": "Brazil Internal SnD", "Coffee": "Global SnD", "AgriAcies format": "Brazil Internal SnD"}   # old labels
@@ -183,6 +183,8 @@ elif section == "Analysis":
     analytics.render()
 elif section == "Scenarios":
     scenario.page()
+elif section == "Sensitivity":
+    scenario.sensitivity_page()
 else:
     revisions.render()
 

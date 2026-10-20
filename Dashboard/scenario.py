@@ -194,9 +194,9 @@ def whatif(df, meta, years):
 
 
 # ── sensitivity ──────────────────────────────────────────────────────────────────────────────────────────────
-def sensitivity_heatmap(df, meta, years, key, year, n, hstep):
+def sensitivity_heatmap(df, meta, years, key, year, n, hstep, metric):
     """A grid of the flexed item against its commodity's consumption (or, if Consumption was flexed, against its largest origin):
-    every combination of the two, both varied by the same percent steps, with the chosen metric in each cell."""
+    every combination of the two, both varied by the same percent steps, with the given metric in each cell."""
     comm, item = key.split("|")
     if item == "Consumption":
         x_key, y_key = key, f"{comm}|{ORIGINS[comm][0]}"
@@ -204,7 +204,6 @@ def sensitivity_heatmap(df, meta, years, key, year, n, hstep):
         x_key, y_key = key, f"{comm}|Consumption"
     x_label, y_label = x_key.split("|")[1], y_key.split("|")[1]
     scope = st.session_state.get("sc_scope", "Combined")
-    metric = st.session_state.get("sn_metric", "S/U")
     fn, scale, fmt = {"S/U": (su, 100, "{:.1f}"), "Balance": (bal, 1, "{:+.1f}"), "End stock": (stock, 1, "{:.1f}")}[metric]
 
     def base_val(k):
@@ -229,12 +228,13 @@ def sensitivity_heatmap(df, meta, years, key, year, n, hstep):
         z.append(row)
     mid = float(np.median(z))
     fig = go.Figure(go.Heatmap(z=z, x=labels, y=labels, zmid=mid, colorscale=[[0, RED], [0.5, "#f7f3e8"], [1, GREEN]],
-                               text=[[fmt.format(v) for v in row] for row in z], texttemplate="%{text}", textfont=dict(size=10),
+                               text=[[fmt.format(v) for v in row] for row in z], texttemplate="%{text}", textfont=dict(size=8.5),
                                hovertemplate=f"{x_label} %{{x}}, {y_label} %{{y}}: %{{z:.1f}}<extra></extra>",
-                               colorbar=dict(thickness=9, tickfont=dict(size=9), outlinewidth=0)))
-    fig.update_layout(template="plotly_white", height=330, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                      margin=dict(t=8, b=34, l=60, r=10), font=dict(color="#1d1d1f", size=10.5),
-                      xaxis=dict(title=f"{x_label} change", type="category"), yaxis=dict(title=f"{y_label} change", type="category"))
+                               colorbar=dict(thickness=7, tickfont=dict(size=8), outlinewidth=0)))
+    fig.update_layout(template="plotly_white", height=235, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                      margin=dict(t=4, b=28, l=50, r=6), font=dict(color="#1d1d1f", size=9.5),
+                      xaxis=dict(title=f"{x_label} change", type="category", tickfont=dict(size=8.5)),
+                      yaxis=dict(title=f"{y_label} change", type="category", tickfont=dict(size=8.5)))
     return fig, x_label, y_label
 
 
@@ -253,23 +253,23 @@ def sensitivity(df, meta, years):
         st.session_state["sn_year"] = cur if cur in cyears else cyears[-1]
 
     with st.sidebar:
+        st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
         st.markdown("<div class='sb-label'>Commodity</div>", unsafe_allow_html=True)
         st.radio("Commodity", SCOPES, horizontal=True, key="sc_scope", label_visibility="collapsed")
         st.markdown("<div class='sb-label'>Flex</div>", unsafe_allow_html=True)
         key = st.selectbox("Flex", options, format_func=label, key="sn_origin", label_visibility="collapsed")
         st.markdown("<div class='sb-label'>Crop year</div>", unsafe_allow_html=True)
         year = st.selectbox("Crop year", cyears, key="sn_year", label_visibility="collapsed")
-        st.markdown("<div class='sb-label'>Step in</div>", unsafe_allow_html=True)
-        unit = st.radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit", label_visibility="collapsed")
-        skey = f"sn_step_{unit}"
-        step = st.number_input("Step", min_value=0.1, value=float(st.session_state.get(skey) or (5.0 if unit == "m bags" else 10.0)),
-                               step=0.5 if unit == "m bags" else 1.0, format="%.1f", key=skey) or (5.0 if unit == "m bags" else 10.0)
-        n = int(st.number_input("Steps each side", min_value=1, max_value=6, value=int(st.session_state.get("sn_n") or 2), step=1, key="sn_n") or 2)
-        st.markdown("<div class='sb-label'>Show</div>", unsafe_allow_html=True)
-        metric = st.radio("Show", ["S/U", "Balance", "End stock"], horizontal=True, key="sn_metric", label_visibility="collapsed")
-        st.markdown("<div class='sb-label'>Heatmap step, %</div>", unsafe_allow_html=True)
-        hstep = st.number_input("Heatmap step %", min_value=0.5, value=float(st.session_state.get("sn_hstep") or 3.0), step=0.5,
-                                format="%.1f", key="sn_hstep", label_visibility="collapsed") or 3.0
+
+    c = st.columns([1.3, 1.1, 1.3, 1.8, 1.4], gap="small", vertical_alignment="bottom")
+    unit = c[0].radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit")
+    skey = f"sn_step_{unit}"
+    step = c[1].number_input("Step", min_value=0.1, value=float(st.session_state.get(skey) or (5.0 if unit == "m bags" else 10.0)),
+                             step=0.5 if unit == "m bags" else 1.0, format="%.1f", key=skey) or (5.0 if unit == "m bags" else 10.0)
+    n = int(c[2].number_input("Steps each side", min_value=1, max_value=6, value=int(st.session_state.get("sn_n") or 2), step=1, key="sn_n") or 2)
+    metric = c[3].radio("Show", ["S/U", "Balance", "End stock"], horizontal=True, key="sn_metric")
+    hstep = c[4].number_input("Heatmap step, %", min_value=0.5, value=float(st.session_state.get("sn_hstep") or 3.0), step=0.5,
+                              format="%.1f", key="sn_hstep") or 3.0
 
     comm, item = key.split("|")
     rows_ = (df["commodity"] == comm) & (df["item"] == item) & (df["year"] == year)
@@ -306,22 +306,28 @@ def sensitivity(df, meta, years):
         st.markdown("<div class='snd-wrap' style='margin-top:0'><table class='snd'><tr><th class='y first'>Value</th><th class='y'>vs ours</th>"
                     f"<th class='y'>S/U</th><th class='y'>Balance</th><th class='y'>End stock</th></tr>{body}</table></div>", unsafe_allow_html=True)
 
-    with st.container(border=True):
-        fig, x_label, y_label = sensitivity_heatmap(df, meta, years, key, year, n, hstep)
-        card(f"{x_label} vs {y_label}: {metric} at {year}")
-        st.plotly_chart(fig, width="stretch", key="sn_heat")
+    h1, h2 = st.columns(2, gap="small")
+    with h1, st.container(border=True):
+        fig, x_label, y_label = sensitivity_heatmap(df, meta, years, key, year, n, hstep, "S/U")
+        card(f"{x_label} vs {y_label}: S/U at {year}")
+        st.plotly_chart(fig, width="stretch", key="sn_heat_su")
+    with h2, st.container(border=True):
+        fig2, _, _ = sensitivity_heatmap(df, meta, years, key, year, n, hstep, "Balance")
+        card(f"{x_label} vs {y_label}: balance (deficit / surplus) at {year}")
+        st.plotly_chart(fig2, width="stretch", key="sn_heat_bal")
 
 
 def page():
-    """The Scenarios section: What-if and Sensitivity, picked from a sidebar Tool switch."""
+    """The Scenarios section: What-if."""
     st.markdown(snd.CSS + analytics.CSS + CSS, unsafe_allow_html=True)
     df, meta, _notes, years = snd.load()
-    with st.sidebar:
-        st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
-        st.markdown("<div class='sb-label'>Tool</div>", unsafe_allow_html=True)
-        tool = st.radio("Tool", ["What-if", "Sensitivity"], horizontal=True, key="sc_tool", label_visibility="collapsed")
     st.markdown("<div class='snd-head'><span class='t'>Scenarios</span></div>", unsafe_allow_html=True)
-    if tool == "What-if":
-        whatif(df, meta, years)
-    else:
-        sensitivity(df, meta, years)
+    whatif(df, meta, years)
+
+
+def sensitivity_page():
+    """The Sensitivity section, beneath Scenarios in the sidebar."""
+    st.markdown(snd.CSS + analytics.CSS + CSS, unsafe_allow_html=True)
+    df, meta, _notes, years = snd.load()
+    st.markdown("<div class='snd-head'><span class='t'>Sensitivity</span></div>", unsafe_allow_html=True)
+    sensitivity(df, meta, years)
