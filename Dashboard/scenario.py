@@ -210,30 +210,19 @@ def _sensitivity_grid(df, meta, years, key, y_key, year, n, step, unit, progress
 
 
 def _heatmap_fig(z, labels, x_label, y_label, metric, big=False):
-    """A white grid (not a coloured background): each cell instead gets a small bar growing from its own centre, green for above the
-    reference and red for below it. Balance's reference is zero (deficit vs surplus); S/U and End stock compare to the base case (the
-    middle cell, no change on either axis) since they have no natural zero."""
+    """A coloured grid: green/red shading by cell, same convention as the bars did (Balance diverges at zero; S/U and End stock compare
+    to the base case, the middle cell, since they have no natural zero)."""
     fmt = {"S/U": "{:.1f}", "Balance": "{:+.1f}", "End stock": "{:.1f}"}[metric]
     n = (len(labels) - 1) // 2                              # the middle label is the base case, no change on either axis
     last = len(labels) - 1
     ref = 0.0 if metric == "Balance" else z[n][n]
-    devs = [v - ref for row in z for v in row]
-    maxdev = max(abs(d) for d in devs) or 1.0
+    zdev = [[v - ref for v in row] for row in z]
 
-    sz = 9.5 if big else 8.5
-    fig = go.Figure(go.Heatmap(z=z, x=labels, y=labels, colorscale=[[0, "rgba(255,255,255,0)"], [1, "rgba(255,255,255,0)"]], showscale=False,
-                               xgap=2, ygap=2,
+    sz = 11 if big else 10
+    fig = go.Figure(go.Heatmap(z=zdev, x=labels, y=labels, zmid=0, colorscale=[[0, SOFT_RED], [0.5, SOFT_MID], [1, SOFT_GREEN]],
+                               showscale=False, xgap=2, ygap=2,
                                text=[[fmt.format(v) for v in row] for row in z], texttemplate="%{text}", textfont=dict(size=sz, color="#000000"),
-                               hovertemplate=f"{x_label} %{{x}}, {y_label} %{{y}}: %{{z:.1f}}<extra></extra>"))
-    bar_h, half_w_max = 0.6, 0.42                           # the bar band's height and its longest reach, as a fraction of one cell
-    for j, row in enumerate(z):
-        for i, v in enumerate(row):
-            w = min(abs(v - ref) / maxdev, 1.0) * half_w_max
-            if w < 0.01:
-                continue
-            x0, x1 = (i, i + w) if v >= ref else (i - w, i)
-            fig.add_shape(type="rect", x0=x0, x1=x1, y0=j - bar_h / 2, y1=j + bar_h / 2, line=dict(width=0),
-                          fillcolor=SOFT_GREEN if v >= ref else SOFT_RED, opacity=0.6, layer="below")
+                               customdata=z, hovertemplate=f"{x_label} %{{x}}, {y_label} %{{y}}: %{{customdata:.1f}}<extra></extra>"))
     for x0, x1, y0, y1 in [(n - 0.5, n + 0.5, -0.5, last + 0.5), (-0.5, last + 0.5, n - 0.5, n + 0.5)]:
         fig.add_shape(type="rect", x0=x0, x1=x1, y0=y0, y1=y1, line=dict(color="rgba(100,116,139,.55)", width=1.25),
                       fillcolor="rgba(0,0,0,0)", layer="above")
@@ -295,17 +284,20 @@ def sensitivity(df, meta, years):
         return
     z, labels, x_label, y_label = result["z"], result["labels"], result["x_label"], result["y_label"]
 
+    def heat_title(text):
+        st.markdown(f"<div class='chart-head' style='text-align:center'>{text}</div>", unsafe_allow_html=True)
+
     top_l, top_r = st.columns(2, gap="small")
     with top_l, st.container(border=True):
-        card(f"{x_label} vs {y_label}: balance (deficit / surplus) at {year}")
+        heat_title(f"{x_label} vs {y_label}: balance (deficit / surplus) at {year}")
         st.plotly_chart(_heatmap_fig(z["Balance"], labels, x_label, y_label, "Balance"), width="stretch", key="sn_heat_bal")
     with top_r, st.container(border=True):
-        card(f"{x_label} vs {y_label}: End stock at {year}")
+        heat_title(f"{x_label} vs {y_label}: End stock at {year}")
         st.plotly_chart(_heatmap_fig(z["End stock"], labels, x_label, y_label, "End stock"), width="stretch", key="sn_heat_stock")
 
     _, mid, _ = st.columns([1, 2.1, 1], gap="small")
     with mid, st.container(border=True):
-        card(f"{x_label} vs {y_label}: S/U at {year}")
+        heat_title(f"{x_label} vs {y_label}: S/U at {year}")
         st.plotly_chart(_heatmap_fig(z["S/U"], labels, x_label, y_label, "S/U", big=True), width="stretch", key="sn_heat_su")
 
 
