@@ -169,14 +169,10 @@ def whatif(df, meta, years):
 SOFT_RED, SOFT_MID, SOFT_GREEN = "#d79a93", "#f6f3ea", "#8fbfa3"
 
 
-def _sensitivity_grid(df, meta, years, key, year, n, step, unit, progress=None):
-    """The flexed item against its commodity's consumption (or, if Consumption was flexed, against its largest origin): every combination
-    of the two, stepped in m bags or percent, with all three metrics read off the same model run (one run per cell, not one per metric)."""
-    comm, item = key.split("|")
-    if item == "Consumption":
-        x_key, y_key = key, f"{comm}|{ORIGINS[comm][0]}"
-    else:
-        x_key, y_key = key, f"{comm}|Consumption"
+def _sensitivity_grid(df, meta, years, key, y_key, year, n, step, unit, progress=None):
+    """The flexed item against the second item you picked to pair it with (any other origin or Consumption): every combination of the
+    two, stepped in m bags or percent, with all three metrics read off the same model run (one run per cell, not one per metric)."""
+    x_key = key
     x_label, y_label = x_key.split("|")[1], y_key.split("|")[1]
     scope = st.session_state.get("sc_scope", "Combined")
 
@@ -266,7 +262,7 @@ def sensitivity(df, meta, years):
         st.session_state["sn_year"] = cur if cur in cyears else cyears[-1]
 
     with st.container(border=True, key="sn_controls"):
-        c = st.columns([1.1, 0.9, 0.85, 0.95, 1.2, 0.95, 0.85], gap="small", vertical_alignment="bottom")
+        c = st.columns([1.0, 0.85, 0.8, 0.85, 1.05, 1.05, 0.8, 0.8], gap="small", vertical_alignment="bottom")
         c[0].radio("Commodity", SCOPES, horizontal=True, key="sc_scope")
         unit = c[1].radio("Step in", ["m bags", "%"], horizontal=True, key="sn_unit")
         skey = f"sn_step_{unit}"
@@ -275,13 +271,21 @@ def sensitivity(df, meta, years):
                                  step=0.5 if unit == "m bags" else 1.0, format="%.1f", key=skey) or (5.0 if unit == "m bags" else 10.0)
         n = int(c[3].number_input("Steps each side", min_value=1, max_value=8, value=int(st.session_state.get("sn_n") or 5), step=1, key="sn_n") or 5)
         key = c[4].selectbox("Flex", options, format_func=label, key="sn_origin")
-        year = c[5].selectbox("Crop year", cyears, key="sn_year")
-        compute = c[6].button("Compute", key="sn_compute", type="primary", width="stretch")
+        comm, item = key.split("|")
+        vs_options = [o for o in options if o != key]                 # every other origin or Consumption, to pair against Flex
+        vs_default = f"{comm}|{ORIGINS[comm][0]}" if item == "Consumption" else f"{comm}|Consumption"
+        if vs_default not in vs_options:
+            vs_default = vs_options[0]
+        if st.session_state.get("sn_vs") not in vs_options:
+            st.session_state["sn_vs"] = vs_default
+        y_key = c[5].selectbox("vs", vs_options, format_func=label, key="sn_vs")
+        year = c[6].selectbox("Crop year", cyears, key="sn_year")
+        compute = c[7].button("Compute", key="sn_compute", type="primary", width="stretch")
 
-    sig = (key, year, n, step, unit, scope)
+    sig = (key, y_key, year, n, step, unit, scope)
     if compute:
         prog = st.progress(0.0, text="Running the sensitivity grid...")
-        st.session_state["sn_result"] = {"sig": sig, **_sensitivity_grid(df, meta, years, key, year, n, step, unit, progress=prog)}
+        st.session_state["sn_result"] = {"sig": sig, **_sensitivity_grid(df, meta, years, key, y_key, year, n, step, unit, progress=prog)}
         prog.empty()
 
     result = st.session_state.get("sn_result")
