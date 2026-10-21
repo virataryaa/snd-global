@@ -363,14 +363,14 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     live_meta = {**meta, "opening": {**meta["opening"], **{c[0][8:]: c[3] for c in opens if c[3] is not None}}}
     prod, rest = _split(changes)
     A, C, O, _eff = compute(_apply(inp, rest), *_linked_etg(etg_a, etg_r, prod), years, live_meta)
-    table = full_table(A, C, O, years, edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "All rows"))
+    table = full_table(A, C, O, years, edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "Show all rows"))
     if allc:                                                     # tint every calculated cell the unsaved edits move
         A0, C0, O0, _ = compute(inp, etg_a, etg_r, years, meta)
-        ref = full_table(A0, C0, O0, years, edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "All rows"))
+        ref = full_table(A0, C0, O0, years, edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "Show all rows"))
         table = tableedit.mark_moved(table, ref)
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
     bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")   # one compact row, left-aligned
-    bar.radio("Rows", ["Editable", "All rows"], horizontal=True, key="edit_rows", label_visibility="collapsed")
+    bar.radio("Rows", ["Show only editable", "Show all rows"], horizontal=True, key="edit_rows", label_visibility="collapsed")
     tableedit.editable_table(table, tableedit.css_of(snd.CSS), "br_tbl", epoch, editable, edits)
     st.markdown("<div class='card-desc' style='margin:4px 0 0'>Rule: Arabica consumption + Conillon consumption = Overall consumption. "
                 "Edit Arabica and Overall; Conillon is worked out as Overall minus Arabica.</div>", unsafe_allow_html=True)
