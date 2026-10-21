@@ -568,10 +568,8 @@ def render_edit(df, meta, notes, years, shown, editable):
 def render():
     st.markdown(CSS, unsafe_allow_html=True)
     df, meta, notes, years = load()
-    with (MODE_SLOT or st.sidebar):
-        st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
-        with st.container(key="mode_nav"):
-            mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="snd_mode")
+    with (MODE_SLOT or st.sidebar), st.container(key="mode_nav"):
+        mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="snd_mode", label_visibility="collapsed")
     shown = years
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))

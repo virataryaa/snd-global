@@ -438,11 +438,11 @@ def render(view="Brazil SnD"):
     etg_a, etg_r = etg_brazil(years)
     mode, span = "View", "All"
     if view == "Brazil SnD":
-        with (MODE_SLOT or st.sidebar):
+        with st.sidebar:
             st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
             span = st.radio("Years", ["All", "Last 10"], horizontal=True, key="br_span")
-            with st.container(key="mode_nav"):
-                mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="br_mode")
+        with (MODE_SLOT or st.sidebar), st.container(key="mode_nav"):
+            mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="br_mode", label_visibility="collapsed")
     shown = years if span == "All" else years[-10:]
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))

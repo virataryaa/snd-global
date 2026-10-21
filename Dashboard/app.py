@@ -115,6 +115,8 @@ table.snd td.neg { color: #c94a4a !important; }
 
 /* Mode (View/Edit): orange, like the calendar's Entry tab */
 .st-key-mode_nav div[role="radiogroup"] label:has(input:checked) { background: #d9822b !important; }
+.st-key-mode_nav [data-testid="stRadio"], .st-key-mode_nav [role="radiogroup"] { margin-left: auto; }
+.st-key-mode_nav { display: flex; justify-content: flex-end; }
 /* Analysis page (Global / Brazil Internal): muted red so it reads without a caption */
 .st-key-an_page_nav div[role="radiogroup"] label:has(input:checked) { background: #a0414b !important; }
 
@@ -163,7 +165,6 @@ for _k in KEEP:
 
 with st.sidebar:
     st.markdown("<div class='sb-title'>Coffee SnD</div>", unsafe_allow_html=True)
-    snd.MODE_SLOT = brazil.MODE_SLOT = st.container()       # SnD / Brazil draw their Mode switch here
     st.markdown("<div class='sb-sep'></div><div class='sb-label'>Section</div>", unsafe_allow_html=True)
     section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Sensitivity", "Revisions"],
                        key="section", label_visibility="collapsed")
@@ -173,7 +174,10 @@ def _snd():
     _old = {"Brazil": "Brazil Internal SnD", "Coffee": "Global SnD", "AgriAcies format": "Brazil Internal SnD"}   # old labels
     if st.session_state.get("snd_page") in _old:
         st.session_state["snd_page"] = _old[st.session_state["snd_page"]]
-    page = st.radio("Page", ["Global SnD", "Brazil Internal SnD"], horizontal=True, key="snd_page", label_visibility="collapsed")
+    # one row: page switch on the left, Mode (View / Edit) on the right — SnD / Brazil draw Mode into that slot
+    left, right = st.columns([3, 1], vertical_alignment="center")
+    page = left.radio("Page", ["Global SnD", "Brazil Internal SnD"], horizontal=True, key="snd_page", label_visibility="collapsed")
+    snd.MODE_SLOT = brazil.MODE_SLOT = right.container()
     if page == "Global SnD":
         snd.render()
     else:
