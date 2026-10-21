@@ -179,7 +179,7 @@ def block_html(title, fr, shown, edit=None, hist=None) -> str:
            "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if snd.is_estimate(y) else ''}'>{short(y)}{'*' if snd.is_estimate(y) else ''}</th>"
                                                     for y in shown) + "<th class='y spark-h'>Trend</th></tr>"]
     for label, kind, fmt in LAYOUT[title]:
-        if edit and label not in EDITABLE[title]:              # Edit mode shows only the input rows
+        if edit and not edit.get("all") and label not in EDITABLE[title]:   # "Editable" view: input rows only
             continue
         neg = label == "Stock Change"
         series = EDITABLE[title].get(label) if edit else None
@@ -221,7 +221,7 @@ def block_html(title, fr, shown, edit=None, hist=None) -> str:
 def full_table(A, C, O, shown, edit=None) -> str:
     hist = cell_history()
     gap = f"<tr class='gap'><td colspan='{len(shown) + 2}'></td></tr>"
-    overall = "" if edit else f"{gap}{block_html('Overall Brazil', O, shown, edit, hist)}"     # no inputs in Overall Brazil
+    overall = "" if edit and not edit.get("all") else f"{gap}{block_html('Overall Brazil', O, shown, edit, hist)}"   # no inputs there
     return (f"<div class='snd-wrap'><table class='snd'>{block_html('Arabica', A, shown, edit, hist)}{gap}{block_html('Conillon', C, shown, edit, hist)}"
             f"{overall}</table></div>")
 
@@ -347,8 +347,9 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     live_meta = {**meta, "opening": {**meta["opening"], **{c[0][8:]: c[3] for c in opens if c[3] is not None}}}
     prod, rest = _split(changes)
     A, C, O, _eff = compute(_apply(inp, rest), *_linked_etg(etg_a, etg_r, prod), years, live_meta)
-    table = full_table(A, C, O, years, edit=dict(base=base, changed=set(edits)))
+    table = full_table(A, C, O, years, edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "All rows"))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
+    ctrl.radio("Rows", ["Editable", "All rows"], horizontal=True, key="edit_rows", label_visibility="collapsed")
     tableedit.editable_table(table, tableedit.css_of(snd.CSS), "br_tbl", epoch, editable, edits)
     st.session_state["_br_edits"] = dict(edits)
     if not editable:

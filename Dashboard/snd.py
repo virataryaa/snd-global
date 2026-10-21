@@ -334,7 +334,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
         return f"<tr><th class='y first'></th>{cells}<th class='y spark-h'>Trend</th></tr>"
 
     def tr(label, vals, kind="", fmt=fnum, comm=None, item=None, neg_red=False, editable=True):
-        if edit and not (comm and item and editable):          # Edit mode shows only the input rows
+        if edit and not edit.get("all") and not (comm and item and editable):   # "Editable" view: input rows only
             return ""
         cells = ""
         for y in shown:
@@ -396,7 +396,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
         out.append(tr("S/U", fr.loc["S/U"], "soft", (lambda v: fpct(v, 1 if comm == "Arabica" else 0))))
         if comm == "Robusta":
             out.append(tr("Robusta demand share", glob.loc["Robusta demand share"], "soft", lambda v: fpct(v, 0)))
-    if edit:                                                    # the Global block is all calculated: nothing to edit
+    if edit and not edit.get("all"):                           # the Global block is all calculated: nothing to edit
         return f"<div class='snd-wrap'><table class='snd'>{''.join(out)}</table></div>"
     out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
     out.append(f"<tr class='comm'><th colspan='{ncol}'>Global</th></tr>")
@@ -529,8 +529,9 @@ def render_edit(df, meta, notes, years, shown, editable):
     a, r = block(live, live_meta, "Arabica", years), block(live, live_meta, "Robusta", years)
     glob = global_block(a, r, years)
     table = snd_table(live, meta, notes, years, shown, {"Arabica": a, "Robusta": r}, glob, a.loc["Brazil"] + r.loc["Brazil"],
-                      edit=dict(base=base, changed=set(edits)))
+                      edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "All rows"))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
+    ctrl.radio("Rows", ["Editable", "All rows"], horizontal=True, key="edit_rows", label_visibility="collapsed")
     tableedit.editable_table(table, tableedit.css_of(CSS), "snd_tbl", epoch, editable, edits)
     st.session_state["_snd_edits"] = dict(edits)
     if not editable:
