@@ -98,25 +98,35 @@ def _fmt(v, f):
     return fpct(v, 1) if f == "p1" else fpct(v, 0) if f == "p0" else fnum(v, f)
 
 
-def _head(title, years, sub="Oct–Sep · k tonnes"):
-    ncol = len(years) + 2
+# short row labels for the compact side-by-side tables
+SHORT = {"Total": "Total ×0.99", "Stock proxy": "Stock", "STU": "STU", "Grind %": "Grind %", "IVC/GH share": "IVC+GH / grind",
+         "Main %": "Main / grind", "IVC + GH": "IVC + GH", "IVC + GH +/-": "IVC + GH +/-"}
+
+
+def _head(title, years, sub="Oct–Sep · k tonnes", spark=True):
+    ncol = len(years) + (2 if spark else 1)
     return (f"<tr class='comm'><th colspan='{ncol}'>{title}<span class='crop'>{sub}</span></th></tr>"
             "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if is_est(y) else ''}'>{y[2:]}{'*' if is_est(y) else ''}</th>"
-                                                     for y in years) + "<th class='y spark-h'>Trend</th></tr>")
+                                                     for y in years) + ("<th class='y spark-h'>Trend</th>" if spark else "") + "</tr>")
 
 
-def table_html(title, T, years) -> str:
-    out = [_head(title, years)]
+def table_html(title, T, years, compact=False) -> str:
+    """compact: short labels, no Trend column (for the side-by-side view)."""
+    out = [_head(title, years, spark=not compact)]
     for name, kind, f in LAYOUT:
         if kind == "gap":
-            out.append(f"<tr class='gap'><td colspan='{len(years) + 2}'></td></tr>")
+            out.append(f"<tr class='gap'><td colspan='{len(years) + (1 if compact else 2)}'></td></tr>")
             continue
         vals = T.loc[name]
         cells = "".join(f"<td class='{'fc ' if is_est(y) else ''}{'neg' if kind == 'bal' and pd.notna(vals[y]) and vals[y] < 0 else ''}'>"
                         f"{_fmt(vals[y], f)}</td>" for y in years)
+        label = SHORT.get(name, name) if compact else LABEL[name]
+        if compact:
+            out.append(f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>")
+            continue
         pairs = [(y, vals[y]) for y in years]
         spark = snd.sparkline_balance(pairs, LABEL[name]) if kind == "bal" else snd.sparkline(pairs, LABEL[name], "plain" if f in ("p0", "p1") else "growth")
-        out.append(f"<tr class='{kind}'><td class='lbl'>{LABEL[name]}</td>{cells}<td class='spark-td'>{spark}</td></tr>")
+        out.append(f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}<td class='spark-td'>{spark}</td></tr>")
     return "".join(out)
 
 
@@ -153,15 +163,16 @@ def render():
     left, right = st.columns([3, 1], vertical_alignment="center")
     page = left.radio("Page", ["Cocoa SnD", "IC & GH detail"], horizontal=True, key="co_page", label_visibility="collapsed")
     if page == "Cocoa SnD":
-        with right.container(key="co_basis_nav"):
-            basis = st.radio("Basis", ["Botanical", "Statistical"], horizontal=True, key="co_basis", label_visibility="collapsed")
-        st.markdown(f"<div class='snd-head'><span class='t'>Cocoa SnD · {basis}</span></div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='snd-wrap'><table class='snd'>{table_html(basis, balance(S, years, basis), years)}</table></div>",
-                    unsafe_allow_html=True)
+        # Botanical and Statistical side by side, compact
+        st.markdown("<style>table.snd.cmp td, table.snd.cmp th.y { padding: 3px 6px !important; font-size: 11px !important; }"
+                    "table.snd.cmp td.lbl { white-space: nowrap; } .snd-wrap.cmp { padding: 6px 8px 8px; }</style>"
+                    "<div class='snd-head'><span class='t'>Cocoa SnD</span></div>", unsafe_allow_html=True)
+        for col, basis in zip(st.columns(2, gap="small"), ("Botanical", "Statistical")):
+            col.markdown(f"<div class='snd-wrap cmp'><table class='snd cmp'>{table_html(basis, balance(S, years, basis), years, compact=True)}"
+                         "</table></div>", unsafe_allow_html=True)
         st.markdown("<div class='card-desc' style='margin-top:6px'>Total = sum of origins × 0.99 · SnD = Total − Grind · "
-                    f"Stock typed up to {ANCHOR[2:]}, then previous stock + SnD"
-                    + (" · Statistical crop = Tree + carry-in + smuggling + held" if basis == "Statistical" else "") + ".</div>",
-                    unsafe_allow_html=True)
+                    f"Stock typed up to {ANCHOR[2:]}, then previous stock + SnD · "
+                    "Statistical crop = Tree + carry-in + smuggling + held.</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div class='snd-head'><span class='t'>Ivory Coast & Ghana crop detail</span></div>", unsafe_allow_html=True)
         st.markdown(f"<div class='snd-wrap'><table class='snd'>{detail_html(S, years)}</table></div>", unsafe_allow_html=True)
