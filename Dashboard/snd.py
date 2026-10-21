@@ -383,6 +383,13 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
             out.append(tr(o, fr.loc[o], comm=comm, item=o))
         out.append(tr("Production", fr.loc["Production"], "b"))
         out.append(tr("Consumption", fr.loc["Consumption"], "b", comm=comm, item="Consumption"))
+        if edit:                                                 # the stock roll's starting point, typed like any other input
+            y0 = shown[0]
+            k = f"{comm}|__open__|{y0}"
+            b = edit["base"].get(k)
+            cls = "ed" + (" chg" if k in edit["changed"] else "")
+            out.append(f"<tr><td class='lbl'>First-year end stock</td><td class='{cls}' data-k='{k}' data-base='{b}'>{fnum(b)}</td>"
+                       + "<td></td>" * (len(shown) - 1) + "<td class='spark-td'></td></tr>")
         out.append(tr("Consumption %", fr.loc["Consumption %"], "soft", fpct))
         out.append(tr("Balance", fr.loc["Balance"], "bal", neg_red=True))
         out.append(tr("End season stock", fr.loc["End Season Stock"], ""))
@@ -495,27 +502,6 @@ def charts(a, r, glob, shown):
 
 
 # ── Edit view: the styled table itself, typed over in place ────────────────────────────────────────────────
-def _opening_controls(meta, years, editable):
-    """The first year's end stock (where the stock roll starts), per commodity."""
-    with st.expander("First-year end stock", expanded=False):
-        c = st.columns([1.2, 1.2, 1, 4], vertical_alignment="bottom")
-        old = {k: float(v) for k, v in meta["opening_stock"].items()}
-        new = {k: c[i].number_input(f"{k} {years[0]} (m bags)", min_value=0.0, value=old[k], step=0.1, format="%.1f",
-                                    key=f"os_{k}", disabled=not editable) for i, k in enumerate(["Arabica", "Robusta"])}
-        if c[2].button("Save", disabled=(not editable) or all(abs(new[k] - old[k]) < 1e-9 for k in new), width="stretch", key="os_save"):
-            try:
-                with st.spinner("Saving..."):
-                    def mut(m):
-                        for k, v in new.items():
-                            m["opening_stock"][k] = round(float(v), 4)
-                    _save_meta("opening stock", old, new, mut)
-            except (gh.GitHubError, Exception) as ex:
-                st.error(f"GitHub save failed: {ex}")
-            else:
-                st.session_state["en_flash"] = "Opening stock saved."
-                st.rerun()
-
-
 def _undo():
     st.session_state["snd_epoch"] = st.session_state.get("snd_epoch", 0) + 1
     st.session_state["_snd_edits"] = {}
@@ -534,38 +520,52 @@ def render_edit(df, meta, notes, years, shown, editable):
     if edits is None:                                            # fall back to the copy kept below, so pending edits survive a View / Edit switch
         edits = st.session_state.get("_snd_edits", {})
     base = {f"{c}|{it}|{y}": float(v) for c, it, y, v in zip(df["commodity"], df["item"], df["year"], df["value"])}
+    base.update({f"{c}|__open__|{shown[0]}": float(meta["opening_stock"][c]) for c in ("Arabica", "Robusta")})
     changes = [(k.split("|")[0], k.split("|")[1], k.split("|")[2], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
+    opens = [c for c in changes if c[1] == "__open__"]           # first-year end stock lives in the meta file, not the CSV
+    changes = [c for c in changes if c[1] != "__open__"]
+    live_meta = {**meta, "opening_stock": {**meta["opening_stock"], **{c[0]: c[4] for c in opens if c[4] is not None}}}
     live = _apply_changes(df, changes)
-    a, r = block(live, meta, "Arabica", years), block(live, meta, "Robusta", years)
+    a, r = block(live, live_meta, "Arabica", years), block(live, live_meta, "Robusta", years)
     glob = global_block(a, r, years)
     table = snd_table(live, meta, notes, years, shown, {"Arabica": a, "Robusta": r}, glob, a.loc["Brazil"] + r.loc["Brazil"],
                       edit=dict(base=base, changed=set(edits)))
+    ctrl = st.container()                                        # Save / Undo / Reason sit above the table
     tableedit.editable_table(table, tableedit.css_of(CSS), "snd_tbl", epoch, editable, edits)
     st.session_state["_snd_edits"] = dict(edits)
     if not editable:
-        st.markdown("<div class='card-desc'>Read-only: add github_token in Secrets to edit.</div>", unsafe_allow_html=True)
+        ctrl.markdown("<div class='card-desc'>Read-only: add github_token in Secrets to edit.</div>", unsafe_allow_html=True)
         return
-    bad = any(c[4] is not None and c[4] < 0 for c in changes)
+    n_all = len(changes) + len(opens)
+    bad = any(c[4] is not None and c[4] < 0 for c in changes + opens)
     if bad:
-        st.error("Values cannot be negative.")
-    bc = st.columns([1, 1, 5, 3], vertical_alignment="center")
-    save = bc[0].button("Save", type="primary", disabled=(not changes) or bad, width="stretch", key="snd_save")
-    bc[1].button("Undo", disabled=not changes, width="stretch", key="snd_undo", on_click=_undo)
+        ctrl.error("Values cannot be negative.")
+    bc = ctrl.columns([1, 1, 5, 3], vertical_alignment="center")
+    save = bc[0].button("Save", type="primary", disabled=(not n_all) or bad, width="stretch", key="snd_save")
+    bc[1].button("Undo", disabled=not n_all, width="stretch", key="snd_undo", on_click=_undo)
     reason = bc[2].text_input("Reason", key=f"snd_reason_{epoch}", placeholder="Reason for Change...",
-                              label_visibility="collapsed", max_chars=140, disabled=not changes)
-    if changes:
-        bc[3].markdown(f"<div class='card-desc' style='margin:0'>{len(changes)} unsaved change(s)</div>", unsafe_allow_html=True)
+                              label_visibility="collapsed", max_chars=140, disabled=not n_all)
+    if n_all:
+        bc[3].markdown(f"<div class='card-desc' style='margin:0'>{n_all} unsaved change(s)</div>", unsafe_allow_html=True)
     if save:
         try:
             with st.spinner("Saving..."):
-                _save_inputs(changes, reason)
+                if changes:
+                    _save_inputs(changes, reason)
+                if opens:
+                    old = {k: float(v) for k, v in meta["opening_stock"].items()}
+                    new = {**old, **{c[0]: float(c[4]) for c in opens if c[4] is not None}}
+
+                    def mut(m):
+                        for k, v in new.items():
+                            m["opening_stock"][k] = round(float(v), 4)
+                    _save_meta("opening stock", old, new, mut)
         except (gh.GitHubError, Exception) as ex:
-            st.error(f"GitHub save failed: {ex}")
+            ctrl.error(f"GitHub save failed: {ex}")
         else:
             _undo()
-            st.session_state["en_flash"] = f"Saved {len(changes)} change(s)."
+            st.session_state["en_flash"] = f"Saved {n_all} change(s)."
             st.rerun()
-    _opening_controls(meta, years, True)
 
 
 # ── Page ──────────────────────────────────────────────────────────────────────

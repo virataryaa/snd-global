@@ -209,6 +209,12 @@ def block_html(title, fr, shown, edit=None, hist=None) -> str:
         spark = (snd.sparkline_balance if skind == "bal" else snd.sparkline)
         spark_html = spark([(y, fr.loc[label, y]) for y in shown], label) if skind == "bal" else spark([(y, fr.loc[label, y]) for y in shown], label, skind)
         out.append(f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}<td class='spark-td'>{spark_html}</td></tr>")
+    if edit and title in ("Arabica", "Conillon"):              # the stock roll's starting point, typed like any other input
+        k = f"Opening {title}|{shown[0]}"
+        b = edit["base"].get(k)
+        cls = "ed" + (" chg" if k in edit["changed"] else "")
+        out.append(f"<tr><td class='lbl'>First-year closing stock</td><td class='{cls}' data-k='{k}' data-base='{b}'>{snd.fnum(b)}</td>"
+                   + "<td></td>" * (len(shown) - 1) + "<td class='spark-td'></td></tr>")
     return "".join(out)
 
 
@@ -326,31 +332,6 @@ def _undo():
         pass
 
 
-def _opening_controls(meta, years, editable):
-    """The first year's closing stock of Arabica and Conillon (where the stock roll starts)."""
-    with st.expander("First-year closing stock", expanded=False):
-        c = st.columns([1.2, 1.2, 1, 4], vertical_alignment="bottom")
-        old = dict(meta["opening"])
-        new = {k: c[i].number_input(f"{k} {short(years[0])} (m bags)", min_value=0.0, value=float(old[k]), step=0.1, format="%.1f",
-                                    key=f"br_open_{k}", disabled=not editable) for i, k in enumerate(["Arabica", "Conillon"])}
-        if c[2].button("Save", disabled=(not editable) or all(abs(new[k] - old[k]) < 1e-9 for k in new), width="stretch", key="br_open_save"):
-            try:
-                with st.spinner("Saving..."):
-                    def apply(text):
-                        d = json.loads(text)
-                        d["opening"] = {k: round(float(v), 4) for k, v in new.items()}
-                        return json.dumps(d, indent=2) + "\n", None
-                    text, _ = gh.commit(META_PATH, apply, f"Setting | Brazil opening stocks: {old} -> {new}")
-                    with open(META, "w", encoding="utf-8", newline="") as f:
-                        f.write(text)
-                    load.clear()
-            except (gh.GitHubError, Exception) as ex:
-                st.error(f"GitHub save failed: {ex}")
-            else:
-                st.session_state["en_flash"] = "Opening stocks saved."
-                st.rerun()
-
-
 def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     """Edit mode: the table itself, input cells typed over in place; the calculated rows follow the edits. One Save."""
     import tableedit
@@ -359,36 +340,54 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     if edits is None:
         edits = st.session_state.get("_br_edits", {})
     base = {f"{s}|{y}": float(eff[s][y]) for s in SERIES for y in years if pd.notna(eff[s][y])}
-    changes = [(k.split("|")[0], k.split("|")[1], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
+    base.update({f"Opening {k}|{years[0]}": float(meta["opening"][k]) for k in ("Arabica", "Conillon")})
+    allc = [(k.split("|")[0], k.split("|")[1], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
+    opens = [c for c in allc if c[0].startswith("Opening ")]    # first-year closing stock lives in the meta file
+    changes = [c for c in allc if not c[0].startswith("Opening ")]
+    live_meta = {**meta, "opening": {**meta["opening"], **{c[0][8:]: c[3] for c in opens if c[3] is not None}}}
     prod, rest = _split(changes)
-    A, C, O, _eff = compute(_apply(inp, rest), *_linked_etg(etg_a, etg_r, prod), years, meta)
+    A, C, O, _eff = compute(_apply(inp, rest), *_linked_etg(etg_a, etg_r, prod), years, live_meta)
     table = full_table(A, C, O, years, edit=dict(base=base, changed=set(edits)))
+    ctrl = st.container()                                        # Save / Undo / Reason sit above the table
     tableedit.editable_table(table, tableedit.css_of(snd.CSS), "br_tbl", epoch, editable, edits)
     st.session_state["_br_edits"] = dict(edits)
     if not editable:
-        st.markdown("<div class='card-desc'>Read-only: add github_token in Secrets to edit.</div>", unsafe_allow_html=True)
+        ctrl.markdown("<div class='card-desc'>Read-only: add github_token in Secrets to edit.</div>", unsafe_allow_html=True)
         return
-    bad = any(c[3] is not None and c[3] < 0 for c in changes)
+    n_all = len(allc)
+    bad = any(c[3] is not None and c[3] < 0 for c in allc)
     if bad:
-        st.error("Values cannot be negative.")
-    bc = st.columns([1, 1, 5, 3], vertical_alignment="center")
-    save = bc[0].button("Save", type="primary", disabled=(not changes) or bad, width="stretch", key="br_save")
-    bc[1].button("Undo", disabled=not changes, width="stretch", key="br_undo", on_click=_undo)
+        ctrl.error("Values cannot be negative.")
+    bc = ctrl.columns([1, 1, 5, 3], vertical_alignment="center")
+    save = bc[0].button("Save", type="primary", disabled=(not n_all) or bad, width="stretch", key="br_save")
+    bc[1].button("Undo", disabled=not n_all, width="stretch", key="br_undo", on_click=_undo)
     reason = bc[2].text_input("Reason", key=f"br_reason_{epoch}", placeholder="Reason for Change...",
-                              label_visibility="collapsed", max_chars=140, disabled=not changes)
-    if changes:
-        bc[3].markdown(f"<div class='card-desc' style='margin:0'>{len(changes)} unsaved change(s)</div>", unsafe_allow_html=True)
+                              label_visibility="collapsed", max_chars=140, disabled=not n_all)
+    if n_all:
+        bc[3].markdown(f"<div class='card-desc' style='margin:0'>{n_all} unsaved change(s)</div>", unsafe_allow_html=True)
     if save:
         try:
             with st.spinner("Saving..."):
-                _save_all(changes, reason)
+                if changes:
+                    _save_all(changes, reason)
+                if opens:
+                    old = dict(meta["opening"])
+                    new = {**old, **{c[0][8:]: float(c[3]) for c in opens if c[3] is not None}}
+
+                    def apply(text):
+                        d = json.loads(text)
+                        d["opening"] = {k: round(float(v), 4) for k, v in new.items()}
+                        return json.dumps(d, indent=2) + "\n", None
+                    text, _ = gh.commit(META_PATH, apply, f"Setting | Brazil opening stocks: {old} -> {new}")
+                    with open(META, "w", encoding="utf-8", newline="") as f:
+                        f.write(text)
+                    load.clear()
         except (gh.GitHubError, Exception) as ex:
-            st.error(f"GitHub save failed: {ex}")
+            ctrl.error(f"GitHub save failed: {ex}")
         else:
             _undo()
-            st.session_state["en_flash"] = f"Saved {len(changes)} change(s)."
+            st.session_state["en_flash"] = f"Saved {n_all} change(s)."
             st.rerun()
-    _opening_controls(meta, years, True)
 
 # ── Charts ────────────────────────────────────────────────────────────────────
 def _bars(fig, x, y, name, color, est, **kw):
