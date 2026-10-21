@@ -91,6 +91,7 @@ table.snd th.spark-h { font-size: 9.5px; text-transform: uppercase; letter-spaci
 .spark-wrap:hover .spark-pop { display: block; }
 .snd-bar { background: linear-gradient(90deg, #0a1d4d 0%, #0a2463 100%); color: #ffffff; font-size: 12px; font-weight: 700;
            letter-spacing: .12em; text-transform: uppercase; padding: 7px 14px; border-radius: 8px 8px 0 0; margin-top: 6px; }
+.crop { font-size: 9.5px; font-weight: 500; letter-spacing: .04em; text-transform: none; opacity: .75; margin-left: 10px; }
 .snd-head { display: flex; align-items: baseline; gap: 12px; margin: 2px 0 12px; }
 .snd-head .t { font-size: 20px; font-weight: 700; color: #0a2463; letter-spacing: -.01em; }
 .snd-head .s { font-size: 12px; color: #94a3b8; letter-spacing: .02em; }
@@ -377,7 +378,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
     for comm, fr in comm_frames.items():
         if comm != "Arabica":
             out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
-        out.append(f"<tr class='comm'><th colspan='{ncol}'>{comm}</th></tr>")
+        out.append(f"<tr class='comm'><th colspan='{ncol}'>{comm}<span class='crop'>Jul–Jun</span></th></tr>")
         out.append(head(comm))
         for o in ORIGINS[comm]:
             out.append(tr(o, fr.loc[o], comm=comm, item=o))
@@ -399,7 +400,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
     if edit and not edit.get("all"):                           # the Global block is all calculated: nothing to edit
         return f"<div class='snd-wrap'><table class='snd'>{''.join(out)}</table></div>"
     out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
-    out.append(f"<tr class='comm'><th colspan='{ncol}'>Global</th></tr>")
+    out.append(f"<tr class='comm'><th colspan='{ncol}'>Global<span class='crop'>Jul–Jun</span></th></tr>")
     out.append(head(None))
     shared = set(ORIGINS["Arabica"]) & set(ORIGINS["Robusta"])             # "Brazil", "Others": in both lists, label which is which
     for comm, fr in comm_frames.items():
@@ -583,7 +584,7 @@ def render():
     glob = global_block(a, r, years)
     combo = a.loc["Brazil"] + r.loc["Brazil"]
     head = "<span class='t edit'>Edit Global SnD</span>" if mode == "Edit" else "<span class='t'>Global SnD</span>"
-    st.markdown(f"<div class='snd-head'>{head}<span class='s'>Jul–Jun · m bags · * estimate</span></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='snd-head'>{head}</div>", unsafe_allow_html=True)
     if mode == "Edit":
         render_edit(df, meta, notes, years, shown, gh.enabled())
         return

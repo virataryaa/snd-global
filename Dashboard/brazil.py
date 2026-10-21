@@ -175,7 +175,7 @@ def cell_history():
 
 def block_html(title, fr, shown, edit=None, hist=None) -> str:
     ncol = len(shown) + 2                                     # + the trailing Trend sparkline column
-    out = [f"<tr class='comm'><th colspan='{ncol}'>{title}</th></tr>",
+    out = [f"<tr class='comm'><th colspan='{ncol}'>{title}<span class='crop'>Jul–Jun</span></th></tr>",
            "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if snd.is_estimate(y) else ''}'>{short(y)}{'*' if snd.is_estimate(y) else ''}</th>"
                                                     for y in shown) + "<th class='y spark-h'>Trend</th></tr>"]
     for label, kind, fmt in LAYOUT[title]:
@@ -219,7 +219,10 @@ def block_html(title, fr, shown, edit=None, hist=None) -> str:
 
 
 def full_table(A, C, O, shown, edit=None) -> str:
-    hist = cell_history()
+    hist = dict(cell_history())
+    for (comm, item, y), revs in snd.cell_history().items():      # linked production: its saves live in the Global table
+        if item == "Brazil":
+            hist[("Arabica production" if comm == "Arabica" else "Conillon production", y)] = revs
     gap = f"<tr class='gap'><td colspan='{len(shown) + 2}'></td></tr>"
     overall = "" if edit and not edit.get("all") else f"{gap}{block_html('Overall Brazil', O, shown, edit, hist)}"   # no inputs there
     return (f"<div class='snd-wrap'><table class='snd'>{block_html('Arabica', A, shown, edit, hist)}{gap}{block_html('Conillon', C, shown, edit, hist)}"
@@ -478,7 +481,7 @@ def render(view="Brazil SnD"):
     title = "Brazil Internal SnD" if view == "Brazil SnD" else "AgriAcies format"
     editing = view == "Brazil SnD" and st.session_state.get("br_mode") == "Edit"
     head = f"<span class='t edit'>Edit {title}</span>" if editing else f"<span class='t'>{title}</span>"
-    st.markdown(f"<div class='snd-head'>{head}<span class='s'>Jul–Jun · m bags · * estimate</span></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='snd-head'>{head}</div>", unsafe_allow_html=True)
     if view == "AgriAcies format":
         st.markdown(agri_html(agri), unsafe_allow_html=True)
         return

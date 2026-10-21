@@ -92,7 +92,7 @@ def commit(path: str, change, message: str):
     return new_text, info
 
 
-def history(path: str, n: int = 30) -> list[tuple[str, str]]:
+def history(path: str, n: int = 100) -> list[tuple[str, str]]:
     """[(iso time, full commit message)] newest first. Fetched once, new saves are added by commit()."""
     st_ = _state()
     key = f"history:{path}"
