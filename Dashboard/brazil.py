@@ -138,6 +138,11 @@ LAYOUT = {
 }
 
 
+# ratio rows shown only with the sidebar's "Detailed ratios" switch (stocks and stock/use always stay)
+DETAIL = {"Demand as % of total", "Exports % of Production", "Consumption % of Production", "Exports YoY",
+          "Arabica Consumption %", "Connie Consumption %", "Annual % change consumption"}
+
+
 EDITABLE = {
     "Arabica": {"Production": "Arabica production", "Exports": "Arabica exports", "Consumption": "Arabica consumption"},
     "Conillon": {"Production": "Conillon production", "Green Exports": "Green exports", "Soluble Exports": "Soluble exports",
@@ -182,6 +187,8 @@ def block_html(title, fr, shown, edit=None, hist=None) -> str:
                                                     for y in shown) + "<th class='y spark-h'>Trend</th></tr>"]
     for label, kind, fmt in LAYOUT[title]:
         if edit and not edit.get("all") and label not in EDITABLE[title]:   # "Editable" view: input rows only
+            continue
+        if label in DETAIL and not st.session_state.get("br_detail", False) and label not in EDITABLE[title]:
             continue
         neg = label == "Stock Change"
         series = EDITABLE[title].get(label) if edit else None
@@ -353,6 +360,10 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     prod, rest = _split(changes)
     A, C, O, _eff = compute(_apply(inp, rest), *_linked_etg(etg_a, etg_r, prod), years, live_meta)
     table = full_table(A, C, O, years, edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "All rows"))
+    if allc:                                                     # tint every calculated cell the unsaved edits move
+        A0, C0, O0, _ = compute(inp, etg_a, etg_r, years, meta)
+        ref = full_table(A0, C0, O0, years, edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "All rows"))
+        table = tableedit.mark_moved(table, ref)
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
     ctrl.markdown("<div class='card-desc' style='margin:0 0 4px'>Rule: Arabica consumption + Conillon consumption = Overall consumption. "
                   "Edit Arabica and Overall; Conillon is worked out as Overall minus Arabica.</div>", unsafe_allow_html=True)
@@ -477,6 +488,7 @@ def render(view="Brazil SnD"):
         with st.sidebar:
             st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
             span = st.radio("Years", ["All", "Last 10"], horizontal=True, key="br_span")
+            st.toggle("Detailed ratios", value=False, key="br_detail")
         with (MODE_SLOT or st.sidebar), st.container(key="mode_nav"):
             mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="br_mode", label_visibility="collapsed")
     shown = years if span == "All" else years[-10:]

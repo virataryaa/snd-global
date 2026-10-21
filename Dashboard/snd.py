@@ -66,6 +66,7 @@ table.snd td.ed { cursor: text; }
 table.snd td.ed:hover { box-shadow: inset 0 0 0 1px #9db3e6; background: #f3f6fd; }
 table.snd td.ed:focus { outline: none; box-shadow: inset 0 0 0 2px #0a2463; background: #ffffff; }
 table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
+table.snd td.mv { background: #fff1e6 !important; color: #9a3412 !important; font-weight: 600; }
 table.snd td.rev { position: relative; }
 .rev-dot { display: inline-block; width: 3px; height: 3px; border-radius: 50%; margin-left: 4px; vertical-align: middle; background: #94a3b8; }
 .rev-dot.up { background: #1f9d6f; }
@@ -531,6 +532,12 @@ def render_edit(df, meta, notes, years, shown, editable):
     glob = global_block(a, r, years)
     table = snd_table(live, meta, notes, years, shown, {"Arabica": a, "Robusta": r}, glob, a.loc["Brazil"] + r.loc["Brazil"],
                       edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "All rows"))
+    if changes or opens:                                         # tint every calculated cell the unsaved edits move
+        a0, r0 = block(df, meta, "Arabica", years), block(df, meta, "Robusta", years)
+        ref = snd_table(df, meta, notes, years, shown, {"Arabica": a0, "Robusta": r0}, global_block(a0, r0, years),
+                        a0.loc["Brazil"] + r0.loc["Brazil"],
+                        edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "All rows"))
+        table = tableedit.mark_moved(table, ref)
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
     bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")   # one compact row, left-aligned
     bar.radio("Rows", ["Editable", "All rows"], horizontal=True, key="edit_rows", label_visibility="collapsed")

@@ -29,21 +29,29 @@ window.addEventListener("message", function (ev) {
   var first = state.epoch === null;
   var reset = !first && a.epoch !== state.epoch;
   if (first) { state.epoch = a.epoch; state.edits = Object.assign({}, a.edits || {}); }      // a fresh frame: pick up what the page still holds
-  else if (reset) { state.epoch = a.epoch; state.edits = {}; }
+  else if (reset) { state.epoch = a.epoch; state.edits = {}; state.lastSent = null; }
   draw(a);
   if (reset) send();
 });
 
-var lastHtml = null;
+var lastHtml = null, typingTimer = null, keepCaret = false;
 function draw(a) {
   if (a.html === lastHtml && !!a.editable === state.editable) { return; }       // same table: do not touch the DOM (it would eat clicks)
   lastHtml = a.html; state.editable = !!a.editable;
-  var active = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null;
+  var el = document.activeElement;
+  var active = el && el.dataset ? el.dataset.k : null;
+  var typed = active ? el.textContent : null;                                   // what is being typed right now
   document.getElementById("root").innerHTML = a.html || "";
   if (a.editable) wire();
   if (active) {
     var again = document.querySelector('td.ed[data-k="' + active.replace(/"/g, '\\"') + '"]');
-    if (again) again.focus();
+    if (again) {
+      keepCaret = true;                                                          // mid-typing redraw: keep the text and the caret
+      again.textContent = typed; again.focus();
+      var r = document.createRange(); r.selectNodeContents(again); r.collapse(false);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      keepCaret = false;
+    }
   }
   setHeight();
 }
@@ -56,6 +64,7 @@ function wire() {
     td.spellcheck = false;
     td.dataset.shown = td.textContent;
     td.addEventListener("focus", function () {
+      if (keepCaret) return;
       var r = document.createRange(); r.selectNodeContents(this);
       var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
     });
@@ -63,24 +72,31 @@ function wire() {
       if (e.key === "Enter") { e.preventDefault(); this.blur(); }
       else if (e.key === "Escape") { this.textContent = this.dataset.shown; this.blur(); }
     });
-    td.addEventListener("blur", function () { commit(this); });
+    td.addEventListener("input", function () {                                   // live: recalc ~0.7s after typing stops
+      var self = this; clearTimeout(typingTimer);
+      typingTimer = setTimeout(function () { commit(self, true); }, 700);
+    });
+    td.addEventListener("blur", function () { clearTimeout(typingTimer); commit(this); });
   }
 }
 
-function commit(td) {
+function commit(td, live) {
   var txt = td.textContent.trim().replace(/,/g, "").replace(/%$/, "");
   if (txt === td.dataset.shown.trim().replace(/,/g, "").replace(/%$/, "")) { return; }          // untouched
+  if (live && (txt === "" || txt === "-" || txt.slice(-1) === ".")) { return; }                // half-typed number: wait
   var key = td.dataset.k, pct = td.dataset.pct === "1";
   var val;
   if (txt === "") { val = null; }
   else {
     var n = Number(txt);
-    if (isNaN(n)) { td.textContent = td.dataset.shown; return; }                                  // not a number: put it back
+    if (isNaN(n)) { if (!live) td.textContent = td.dataset.shown; return; }                       // not a number: put it back
     val = pct ? n / 100 : n;
   }
   var base = td.dataset.base === "" ? null : Number(td.dataset.base);
   var same = (val === null && base === null) || (val !== null && base !== null && Math.abs(val - base) < 1e-9);
   if (same) { delete state.edits[key]; } else { state.edits[key] = val; }
+  if (JSON.stringify(state.edits) === state.lastSent) { return; }
+  state.lastSent = JSON.stringify(state.edits);
   send();
 }
 
