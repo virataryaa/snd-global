@@ -4,6 +4,7 @@ st.set_page_config(page_title="Coffee SnD", layout="wide", initial_sidebar_state
 
 import analytics  # noqa: E402  (after set_page_config)
 import brazil  # noqa: E402
+import cocoa  # noqa: E402
 import revisions  # noqa: E402
 import scenario  # noqa: E402
 import snd  # noqa: E402
@@ -180,9 +181,13 @@ for _k in KEEP:
 
 with st.sidebar:
     st.markdown("<div class='sb-title'>Coffee SnD</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sb-sep'></div><div class='sb-label'>Section</div>", unsafe_allow_html=True)
-    section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Sensitivity", "Revisions"],
-                       key="section", label_visibility="collapsed")
+    st.markdown("<div class='sb-label'>Commodity</div>", unsafe_allow_html=True)
+    commodity = st.radio("Commodity", ["Coffee", "Cocoa"], horizontal=True, key="commodity", label_visibility="collapsed")
+    section = "SnD"
+    if commodity == "Coffee":                                    # Analysis / Scenarios / ... are coffee-only for now
+        st.markdown("<div class='sb-sep'></div><div class='sb-label'>Section</div>", unsafe_allow_html=True)
+        section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Sensitivity", "Revisions"],
+                           key="section", label_visibility="collapsed")
 
 
 def _snd():
@@ -200,8 +205,11 @@ def _snd():
 
 
 # only the chosen section runs (its own sidebar controls are added below the section switch)
-{"SnD": _snd, "Analysis": analytics.render, "Scenarios": scenario.page,
- "Sensitivity": scenario.sensitivity_page, "Revisions": revisions.render}[section]()
+if commodity == "Cocoa":
+    cocoa.render()
+else:
+    {"SnD": _snd, "Analysis": analytics.render, "Scenarios": scenario.page,
+     "Sensitivity": scenario.sensitivity_page, "Revisions": revisions.render}[section]()
 
 for _k in KEEP:
     if _k in st.session_state:

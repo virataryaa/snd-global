@@ -1,0 +1,240 @@
+series,year,value
+IC Main Tree,2018/19,1657
+IC Main Tree,2019/20,1572
+IC Main Tree,2020/21,1654
+IC Main Tree,2021/22,1670
+IC Main Tree,2022/23,1665
+IC Main Tree,2023/24,1270
+IC Main Tree,2024/25,1455
+IC Main Tree,2025/26,1580
+IC Main Tree,2026/27,1300
+IC Mid Tree,2018/19,609
+IC Mid Tree,2019/20,602
+IC Mid Tree,2020/21,654
+IC Mid Tree,2021/22,530
+IC Mid Tree,2022/23,594
+IC Mid Tree,2023/24,495
+IC Mid Tree,2024/25,395
+IC Mid Tree,2025/26,510
+IC Mid Tree,2026/27,460
+GH Main Tree,2018/19,687
+GH Main Tree,2019/20,684
+GH Main Tree,2020/21,824
+GH Main Tree,2021/22,560
+GH Main Tree,2022/23,627
+GH Main Tree,2023/24,365
+GH Main Tree,2024/25,535
+GH Main Tree,2025/26,545
+GH Main Tree,2026/27,425
+GH Mid Tree,2018/19,111
+GH Mid Tree,2019/20,87
+GH Mid Tree,2020/21,210
+GH Mid Tree,2021/22,130
+GH Mid Tree,2022/23,130
+GH Mid Tree,2023/24,100
+GH Mid Tree,2024/25,105
+GH Mid Tree,2025/26,130
+GH Mid Tree,2026/27,110
+EC,2018/19,327
+EC,2019/20,335
+EC,2020/21,359
+EC,2021/22,370
+EC,2022/23,450
+EC,2023/24,420
+EC,2024/25,570
+EC,2025/26,575
+EC,2026/27,625
+NIG,2018/19,290
+NIG,2019/20,255
+NIG,2020/21,295
+NIG,2021/22,280
+NIG,2022/23,280
+NIG,2023/24,290
+NIG,2024/25,324
+NIG,2025/26,350
+NIG,2026/27,340
+CAM,2018/19,295
+CAM,2019/20,275
+CAM,2020/21,290
+CAM,2021/22,300
+CAM,2022/23,280
+CAM,2023/24,290
+CAM,2024/25,310
+CAM,2025/26,250
+CAM,2026/27,300
+INDO,2018/19,205
+INDO,2019/20,235
+INDO,2020/21,215
+INDO,2021/22,201
+INDO,2022/23,180
+INDO,2023/24,170
+INDO,2024/25,188
+INDO,2025/26,210
+INDO,2026/27,200
+BRAZ,2018/19,175
+BRAZ,2019/20,201
+BRAZ,2020/21,190
+BRAZ,2021/22,210
+BRAZ,2022/23,215
+BRAZ,2023/24,182
+BRAZ,2024/25,190
+BRAZ,2025/26,216
+BRAZ,2026/27,220
+PERU,2018/19,105
+PERU,2019/20,110
+PERU,2020/21,119
+PERU,2021/22,130
+PERU,2022/23,180
+PERU,2023/24,180
+PERU,2024/25,192
+PERU,2025/26,195
+PERU,2026/27,200
+ROW,2018/19,430
+ROW,2019/20,435
+ROW,2020/21,464
+ROW,2021/22,475
+ROW,2022/23,510
+ROW,2023/24,550
+ROW,2024/25,580
+ROW,2025/26,606
+ROW,2026/27,625
+Grind,2018/19,4800
+Grind,2019/20,4725
+Grind,2020/21,4950
+Grind,2021/22,5071
+Grind,2022/23,5071
+Grind,2023/24,4817
+Grind,2024/25,4673
+Grind,2025/26,4673
+Grind,2026/27,4743
+Stock,2018/19,2060
+Stock,2019/20,2018
+Stock,2020/21,2000
+IC Main Carry-in,2019/20,85
+IC Main Carry-in,2020/21,115
+IC Main Carry-in,2021/22,75
+IC Main Carry-in,2022/23,75
+IC Main Carry-in,2023/24,75
+IC Main Carry-in,2024/25,20
+IC Main Carry-in,2025/26,10
+IC Main Carry-in,2026/27,10
+IC Main Smuggling GH,2019/20,0
+IC Main Smuggling GH,2020/21,0
+IC Main Smuggling GH,2021/22,0
+IC Main Smuggling GH,2022/23,40
+IC Main Smuggling GH,2023/24,0
+IC Main Smuggling GH,2024/25,0
+IC Main Smuggling GH,2025/26,0
+IC Main Smuggling GH,2026/27,-25
+IC Main Smuggling Other,2019/20,-9
+IC Main Smuggling Other,2020/21,-10
+IC Main Smuggling Other,2021/22,-27
+IC Main Smuggling Other,2022/23,-40
+IC Main Smuggling Other,2023/24,-60
+IC Main Smuggling Other,2024/25,-40
+IC Main Smuggling Other,2025/26,0
+IC Main Smuggling Other,2026/27,-60
+IC Main Held,2019/20,0
+IC Main Held,2020/21,-20
+IC Main Held,2021/22,-15
+IC Main Held,2022/23,0
+IC Main Held,2023/24,0
+IC Main Held,2024/25,0
+IC Main Held,2025/26,0
+IC Main Held,2026/27,0
+IC Mid Carry-in,2019/20,0
+IC Mid Carry-in,2020/21,20
+IC Mid Carry-in,2021/22,15
+IC Mid Carry-in,2022/23,0
+IC Mid Carry-in,2023/24,0
+IC Mid Carry-in,2024/25,0
+IC Mid Carry-in,2025/26,0
+IC Mid Carry-in,2026/27,0
+IC Mid Smuggling GH,2019/20,0
+IC Mid Smuggling GH,2020/21,0
+IC Mid Smuggling GH,2021/22,0
+IC Mid Smuggling GH,2022/23,20
+IC Mid Smuggling GH,2023/24,0
+IC Mid Smuggling GH,2024/25,0
+IC Mid Smuggling GH,2025/26,-10
+IC Mid Smuggling GH,2026/27,0
+IC Mid Smuggling Other,2019/20,-9
+IC Mid Smuggling Other,2020/21,-10
+IC Mid Smuggling Other,2021/22,-14
+IC Mid Smuggling Other,2022/23,-20
+IC Mid Smuggling Other,2023/24,-20
+IC Mid Smuggling Other,2024/25,-30
+IC Mid Smuggling Other,2025/26,0
+IC Mid Smuggling Other,2026/27,0
+IC Mid Held,2019/20,-115
+IC Mid Held,2020/21,-75
+IC Mid Held,2021/22,-75
+IC Mid Held,2022/23,-75
+IC Mid Held,2023/24,-20
+IC Mid Held,2024/25,-10
+IC Mid Held,2025/26,-10
+IC Mid Held,2026/27,0
+GH Main Carry-in,2019/20,25
+GH Main Carry-in,2020/21,25
+GH Main Carry-in,2021/22,15
+GH Main Carry-in,2022/23,15
+GH Main Carry-in,2023/24,30
+GH Main Carry-in,2024/25,15
+GH Main Carry-in,2025/26,15
+GH Main Carry-in,2026/27,0
+GH Main Smuggling GH,2019/20,0
+GH Main Smuggling GH,2020/21,0
+GH Main Smuggling GH,2021/22,0
+GH Main Smuggling GH,2022/23,-40
+GH Main Smuggling GH,2023/24,0
+GH Main Smuggling GH,2024/25,0
+GH Main Smuggling GH,2025/26,0
+GH Main Smuggling GH,2026/27,25
+GH Main Smuggling Other,2019/20,0
+GH Main Smuggling Other,2020/21,0
+GH Main Smuggling Other,2021/22,0
+GH Main Smuggling Other,2022/23,-10
+GH Main Smuggling Other,2023/24,-20
+GH Main Smuggling Other,2024/25,-20
+GH Main Smuggling Other,2025/26,-10
+GH Main Smuggling Other,2026/27,0
+GH Main Held,2019/20,0
+GH Main Held,2020/21,0
+GH Main Held,2021/22,0
+GH Main Held,2022/23,-20
+GH Main Held,2023/24,0
+GH Main Held,2024/25,0
+GH Main Held,2025/26,-5
+GH Main Held,2026/27,0
+GH Mid Carry-in,2019/20,0
+GH Mid Carry-in,2020/21,0
+GH Mid Carry-in,2021/22,0
+GH Mid Carry-in,2022/23,20
+GH Mid Carry-in,2023/24,0
+GH Mid Carry-in,2024/25,0
+GH Mid Carry-in,2025/26,5
+GH Mid Carry-in,2026/27,0
+GH Mid Smuggling GH,2019/20,0
+GH Mid Smuggling GH,2020/21,0
+GH Mid Smuggling GH,2021/22,0
+GH Mid Smuggling GH,2022/23,-20
+GH Mid Smuggling GH,2023/24,0
+GH Mid Smuggling GH,2024/25,0
+GH Mid Smuggling GH,2025/26,10
+GH Mid Smuggling GH,2026/27,0
+GH Mid Smuggling Other,2019/20,0
+GH Mid Smuggling Other,2020/21,0
+GH Mid Smuggling Other,2021/22,0
+GH Mid Smuggling Other,2022/23,0
+GH Mid Smuggling Other,2023/24,0
+GH Mid Smuggling Other,2024/25,0
+GH Mid Smuggling Other,2025/26,0
+GH Mid Smuggling Other,2026/27,0
+GH Mid Held,2019/20,-25
+GH Mid Held,2020/21,-15
+GH Mid Held,2021/22,-15
+GH Mid Held,2022/23,-30
+GH Mid Held,2023/24,-15
+GH Mid Held,2024/25,-15
+GH Mid Held,2025/26,0
+GH Mid Held,2026/27,0
