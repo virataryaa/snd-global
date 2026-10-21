@@ -143,6 +143,10 @@ DETAIL = {"Demand as % of total", "Exports % of Production", "Consumption % of P
           "Arabica Consumption %", "Connie Consumption %", "Annual % change consumption"}
 
 
+# calculated rows still shown in Edit mode's "Editable" view, so the effect of a linked edit is visible
+EDIT_ALWAYS = {("Conillon", "Consumption")}   # = Overall - Arabica
+
+
 EDITABLE = {
     "Arabica": {"Production": "Arabica production", "Exports": "Arabica exports", "Consumption": "Arabica consumption"},
     "Conillon": {"Production": "Conillon production", "Green Exports": "Green exports", "Soluble Exports": "Soluble exports",
@@ -186,8 +190,8 @@ def block_html(title, fr, shown, edit=None, hist=None) -> str:
            "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if snd.is_estimate(y) else ''}'>{short(y)}{'*' if snd.is_estimate(y) else ''}</th>"
                                                     for y in shown) + "<th class='y spark-h'>Trend</th></tr>"]
     for label, kind, fmt in LAYOUT[title]:
-        if edit and not edit.get("all") and label not in EDITABLE[title]:   # "Editable" view: input rows only
-            continue
+        if edit and not edit.get("all") and label not in EDITABLE[title] and (title, label) not in EDIT_ALWAYS:
+            continue                                              # "Editable" view: input rows (+ EDIT_ALWAYS) only
         if label in DETAIL and not st.session_state.get("br_detail", False) and label not in EDITABLE[title]:
             continue
         neg = label == "Stock Change"
