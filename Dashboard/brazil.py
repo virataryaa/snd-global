@@ -33,8 +33,8 @@ TZ = "Europe/Amsterdam"
 # ── Data ──────────────────────────────────────────────────────────────────────
 @st.cache_data(ttl=600)
 def load():
-    inp = pd.read_csv(INP)
-    meta = json.loads(META.read_text(encoding="utf-8"))
+    inp = pd.read_csv(io.StringIO(gh.text_of(INP_PATH, INP)))
+    meta = json.loads(gh.text_of(META_PATH, META))
     agri = pd.read_csv(AGRI)
     years = sorted(inp["year"].unique(), key=ystart)
     return inp, meta, agri, years

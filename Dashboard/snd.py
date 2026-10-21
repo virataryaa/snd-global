@@ -150,8 +150,8 @@ def cell_history():
 
 @st.cache_data(ttl=600)
 def load():
-    df = pd.read_csv(CSV)
-    meta = json.loads(META.read_text(encoding="utf-8"))
+    df = pd.read_csv(io.StringIO(gh.text_of(CSV_PATH, CSV)))
+    meta = json.loads(gh.text_of(META_PATH, META))
     years = sorted(df["year"].unique(), key=ystart)
     return df, meta, cell_history(), years
 

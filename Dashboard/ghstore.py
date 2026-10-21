@@ -9,7 +9,7 @@ import requests
 import streamlit as st
 
 REPO = "virataryaa/snd-global"
-BRANCH = "main"
+BRANCH = "data"   # app data lives here: saves on this branch do not redeploy the app (it runs from main)
 
 
 class GitHubError(Exception):
@@ -54,6 +54,22 @@ def _check(r):
                 404: "token cannot see the snd-global repo (or the file) - check the token",
                 409: "file changed meanwhile - press Save again"}.get(r.status_code, "")
         raise GitHubError(f"GitHub {r.status_code}: {msg}. {hint}", r.status_code)
+
+
+def cached_text(path: str):
+    hit = _state().get(path)
+    return hit["text"] if hit else None
+
+
+def text_of(path: str, local) -> str:
+    """Latest text of a data file: from the data branch when a token is set (kept in memory after the first read),
+    else (or if GitHub fails) the local copy."""
+    if enabled():
+        try:
+            return cached_text(path) if cached_text(path) is not None else read(path)[0]
+        except GitHubError:
+            pass
+    return open(local, encoding="utf-8").read()
 
 
 def read(path: str) -> tuple[str, str]:
