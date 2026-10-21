@@ -123,48 +123,98 @@ def _head(title, years, sub="Oct–Sep · k tonnes", spark=True):
                                                      for y in years) + ("<th class='y spark-h'>Trend</th>" if spark else "") + "</tr>")
 
 
+@st.cache_data(ttl=300)
+def cell_history():
+    """{(series, year): [(when, old, new, reason), ...]} newest first, from the save history (same as the coffee pages)."""
+    out = {}
+    if not gh.enabled():
+        return out
+    for ts, msg in gh.history(CSV_PATH):
+        first, _, body = msg.partition("\n")
+        if not first.startswith("Cocoa SnD |"):
+            continue
+        why = _WHY.search(first)
+        why = why.group(1).strip() if why else ""
+        for ln in body.splitlines():
+            m = _LINE.match(ln.strip())
+            if m:
+                s_, y, o, n = m.groups()
+                out.setdefault((s_, y), []).append((ts, _v(o), _v(n), why))
+    return out
+
+
+def _cell(v, y, txt, cls, label, revs):
+    """A table cell; with a revision dot + hover history when that input has been changed."""
+    pop = ""
+    if revs:
+        cls += " rev"
+        lo, ln = revs[0][1], revs[0][2]
+        dc = "up" if pd.notna(lo) and pd.notna(ln) and ln > lo else "down" if pd.notna(lo) and pd.notna(ln) and ln < lo else ""
+        rows = "".join(f"<div class='row'><span class='dt'>{str(ts)[:10]}</span>{fnum(o, 0) or '-'} &rarr; {fnum(n, 0) or '-'}"
+                       + (f"<span class='rs'>{html.escape(r, quote=True)}</span>" if r else "") + "</div>" for ts, o, n, r in revs[:8])
+        pop = f"<span class='rev-dot {dc}'></span><div class='rev-pop'>{snd._rev_chart(revs, label)}{rows}</div>"
+    return f"<td class='{cls.strip()}'>{txt}{pop}</td>"
+
+
+def _series_of(name, basis):
+    """Which saved input a balance-table row shows (for its revision dots)."""
+    if name in ("IC Main", "IC Mid", "GH Main", "GH Mid"):
+        return f"{name} Tree" if basis == "Botanical" else None
+    if name in dict(OTHERS) or name == "Grind":
+        return name
+    return "Stock" if name == "Stock proxy" else None
+
+
+def _spark(name, vals, years, kind, f, label):
+    pairs = [(y, vals[y]) for y in years]
+    return snd.sparkline_balance(pairs, label) if kind == "bal" else snd.sparkline(pairs, label, "plain" if f in ("p0", "p1") else "growth")
+
+
 def table_html(title, T, years, compact=False) -> str:
-    """compact: short labels, no Trend column (for the side-by-side view)."""
-    out = [_head(title, years, spark=not compact)]
+    """compact: short labels (for the side-by-side view). Every row has a Trend sparkline; changed inputs carry a revision dot."""
+    hist = cell_history()
+    out = [_head(title, years)]
     for name, kind, f in LAYOUT:
         if kind == "gap":
-            out.append(f"<tr class='gap'><td colspan='{len(years) + (1 if compact else 2)}'></td></tr>")
+            out.append(f"<tr class='gap'><td colspan='{len(years) + 2}'></td></tr>")
             continue
-        vals = T.loc[name]
-        cells = "".join(f"<td class='{'fc ' if is_est(y) else ''}{'neg' if kind == 'bal' and pd.notna(vals[y]) and vals[y] < 0 else ''}'>"
-                        f"{_fmt(vals[y], f)}</td>" for y in years)
+        vals, series = T.loc[name], _series_of(name, title)
         label = SHORT.get(name, name) if compact else LABEL[name]
-        if compact:
-            out.append(f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>")
-            continue
-        pairs = [(y, vals[y]) for y in years]
-        spark = snd.sparkline_balance(pairs, LABEL[name]) if kind == "bal" else snd.sparkline(pairs, LABEL[name], "plain" if f in ("p0", "p1") else "growth")
-        out.append(f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}<td class='spark-td'>{spark}</td></tr>")
+        cells = "".join(_cell(vals[y], y, _fmt(vals[y], f),
+                              ("fc " if is_est(y) else "") + ("neg" if kind == "bal" and pd.notna(vals[y]) and vals[y] < 0 else ""),
+                              LABEL[name], hist.get((series, y)) if series and (series != "Stock" or ystart(y) <= ystart(ANCHOR)) else None)
+                        for y in years)
+        out.append(f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}<td class='spark-td'>{_spark(name, vals, years, kind, f, LABEL[name])}</td></tr>")
     return "".join(out)
 
 
 def detail_html(S, years) -> str:
-    """Ivory Coast / Ghana: how each tree crop becomes the statistical crop."""
+    """Ivory Coast / Ghana: how each tree crop becomes the statistical crop (Trend + revision dots like the balance)."""
+    hist = cell_history()
     out = []
     for cty, cname in COUNTRY.items():
         out.append(_head(cname, years, "Tree → statistical crop · k tonnes"))
         for part, held in (("Main", "Held to mid"), ("Mid", "Held to main")):
-            rows = [("Tree", _row(S, f"{cty} {part} Tree", years), "b"),
-                    ("Carry-in", _row(S, f"{cty} {part} Carry-in", years), ""),
-                    ("Smuggling GH" if cty == "IC" else "Smuggling IC (= − IC)", adj(S, years, cty, part, "Smuggling GH"), ""),
-                    ("Smuggling other", _row(S, f"{cty} {part} Smuggling Other", years), ""),
-                    (held, _row(S, f"{cty} {part} Held", years), ""),
-                    ("Stat crop", crop(S, years, cty, part, "Statistical"), "bal")]
-            for lab, vals, kind in rows:
+            rows = [("Tree", _row(S, f"{cty} {part} Tree", years), "b", f"{cty} {part} Tree"),
+                    ("Carry-in", _row(S, f"{cty} {part} Carry-in", years), "", f"{cty} {part} Carry-in"),
+                    ("Smuggling GH" if cty == "IC" else "Smuggling IC (= − IC)", adj(S, years, cty, part, "Smuggling GH"), "",
+                     f"{cty} {part} Smuggling GH" if cty == "IC" else None),
+                    ("Smuggling other", _row(S, f"{cty} {part} Smuggling Other", years), "", f"{cty} {part} Smuggling Other"),
+                    (held, _row(S, f"{cty} {part} Held", years), "", f"{cty} {part} Held"),
+                    ("Stat crop", crop(S, years, cty, part, "Statistical"), "bal", None)]
+            for lab, vals, kind, series in rows:
                 label = f"{part} · {lab}" if lab == "Tree" else lab
-                cells = "".join(f"<td class='{'fc ' if is_est(y) else ''}{'neg' if pd.notna(vals[y]) and vals[y] < 0 and kind != 'b' else ''}'>"
-                                f"{fnum(vals[y], 0)}</td>" for y in years)
-                out.append(f"<tr class='{'b' if kind else 'soft'}'><td class='lbl'>{label}</td>{cells}<td class='spark-td'></td></tr>")
+                cells = "".join(_cell(vals[y], y, fnum(vals[y], 0),
+                                      ("fc " if is_est(y) else "") + ("neg" if pd.notna(vals[y]) and vals[y] < 0 and kind != "b" else ""),
+                                      f"{cname} {label}", hist.get((series, y)) if series else None) for y in years)
+                spark = snd.sparkline([(y, vals[y]) for y in years], f"{cname} {label}", "growth") if kind in ("b", "bal") else ""
+                out.append(f"<tr class='{'b' if kind else 'soft'}'><td class='lbl'>{label}</td>{cells}<td class='spark-td'>{spark}</td></tr>")
         tree = crop(S, years, cty, "Main", "Botanical") + crop(S, years, cty, "Mid", "Botanical")
         stat = crop(S, years, cty, "Main", "Statistical") + crop(S, years, cty, "Mid", "Statistical")
         for lab, vals in (("Total tree", tree), ("Total stat", stat)):
             cells = "".join(f"<td class='{'fc' if is_est(y) else ''}'>{fnum(vals[y], 0)}</td>" for y in years)
-            out.append(f"<tr class='bal'><td class='lbl'>{lab}</td>{cells}<td class='spark-td'></td></tr>")
+            out.append(f"<tr class='bal'><td class='lbl'>{lab}</td>{cells}<td class='spark-td'>"
+                       f"{snd.sparkline([(y, vals[y]) for y in years], f'{cname} {lab}', 'growth')}</td></tr>")
         out.append(f"<tr class='gap'><td colspan='{len(years) + 2}'></td></tr>")
     return "".join(out)
 
@@ -303,6 +353,7 @@ def _save(changes, reason=""):
     with open(CSV, "w", encoding="utf-8", newline="") as f:
         f.write(new_text)
     load.clear()
+    cell_history.clear()
 
 
 def _undo():
