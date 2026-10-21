@@ -62,7 +62,7 @@ table.snd tr.soft td { color: #64748b; }
 table.snd tr.soft td.lbl { color: #94a3b8; }
 table.snd tr.sep td { border: 0; height: 6px; padding: 0; }
 table.snd td.neg { color: #c0392b; }
-table.snd td.ed { cursor: text; background: #f6f8fd !important; color: #0a2463 !important; }
+table.snd td.ed { cursor: text; background: #fffaf5 !important; box-shadow: inset 0 0 0 1px rgba(217,130,43,.28); color: #0a2463 !important; }
 table.snd td.ed:hover { box-shadow: inset 0 0 0 1px #9db3e6; background: #f3f6fd; }
 table.snd td.ed:focus { outline: none; box-shadow: inset 0 0 0 2px #0a2463; background: #ffffff; }
 table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
