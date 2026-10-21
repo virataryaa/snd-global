@@ -244,8 +244,6 @@ def render():
         st.markdown("<div class='card-desc' style='margin-top:6px'>Total = sum of origins × 0.99 · SnD = Total − Grind · "
                     f"Stock typed up to {ANCHOR[2:]}, then previous stock + SnD · "
                     "Statistical crop = Tree + carry-in + smuggling + held.</div>", unsafe_allow_html=True)
-        import cocoa_viz
-        cocoa_viz.compare(S, years)
     else:
         st.markdown("<div class='snd-head'><span class='t'>Ivory Coast & Ghana crop detail</span></div>", unsafe_allow_html=True)
         st.markdown(f"<div class='snd-wrap'><table class='snd'>{detail_html(S, years)}</table></div>", unsafe_allow_html=True)

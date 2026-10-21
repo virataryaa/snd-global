@@ -21,36 +21,6 @@ def _est(years):
     return [cocoa.is_est(y) for y in years]
 
 
-# ── Botanical vs Statistical (Cocoa SnD page) ───────────────────────────────────────────────────────────────
-def compare(S, years):
-    B, T = cocoa.balance(S, years, "Botanical"), cocoa.balance(S, years, "Statistical")
-    x, est = _x(years), _est(years)
-    st.markdown("<div class='snd-bar' style='margin-top:10px'>Botanical vs Statistical</div>", unsafe_allow_html=True)
-    c1, c2 = st.columns([1.25, 1], gap="small")
-    with c1, st.container(border=True):
-        card("SnD and stock by basis")
-        fig = go.Figure()
-        snd._bars(fig, x, B.loc["SnD"], "SnD botanical", NAVY, est)
-        snd._bars(fig, x, T.loc["SnD"], "SnD statistical", AMBER, est)
-        snd._line(fig, x, B.loc["Stock proxy"], "Stock botanical", TEAL)
-        snd._line(fig, x, T.loc["Stock proxy"], "Stock statistical", RED, dash="dot")
-        st.plotly_chart(_fig(fig, height=300, fmt=",.0f").update_layout(barmode="group"), width="stretch", key="co_cmp")
-    with c2:
-        rows = [("IC total", "IC Total", 0), ("GH total", "GH Total", 0), ("Total ×0.99", "Total", 0), ("SnD", "SnD", 0),
-                ("Stock", "Stock proxy", 0), ("STU", "STU", "p1")]
-        head = ("<tr class='comm'><th colspan='{n}'>Statistical − Botanical<span class='crop'>k tonnes</span></th></tr>"
-                "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if e else ''}'>{y}</th>" for y, e in zip(x, est)) + "</tr>"
-                ).format(n=len(years) + 1)
-        body = ""
-        for lab, key, f in rows:
-            d = T.loc[key] - B.loc[key]
-            cells = "".join(f"<td class='{'fc ' if e else ''}{'neg' if pd.notna(v) and v < -1e-9 else ''}'>"
-                            f"{(fpct(v, 1) if f == 'p1' else fnum(v, 0)) if pd.notna(v) and abs(v) > 1e-9 else '–'}</td>"
-                            for v, e in zip(d, est))
-            body += f"<tr class='{'bal' if key == 'SnD' else ''}'><td class='lbl'>{lab}</td>{cells}</tr>"
-        st.markdown(f"<div class='snd-wrap cmp'><table class='snd cmp'>{head}{body}</table></div>", unsafe_allow_html=True)
-
-
 # ── Analysis ─────────────────────────────────────────────────────────────────────────────────────────────────
 def analysis_page():
     st.markdown(snd.CSS, unsafe_allow_html=True)
