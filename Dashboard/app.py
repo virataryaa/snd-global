@@ -78,6 +78,7 @@ button[kind="pillsActive"] p, button[kind="segmented_controlActive"] p { color: 
 [data-testid="stSidebar"] [data-baseweb="checkbox"] p { font-size: 12.5px; color: #3a4466; }
 
 /* Page text and cards */
+.snd-head .t.edit { color: #c2410c !important; }
 .page-title, .snd-head .t { color: #0a2463 !important; font-weight: 700; font-size: 1.15rem; margin: 0 0 4px 0; letter-spacing: -.01em; }
 .card-title, .chart-head { color: #0a2463; font-weight: 600; font-size: .9rem; margin-bottom: 4px; letter-spacing: -.005em; }
 .card-desc { color: #5a6688; font-size: .8rem; margin-top: -4px; margin-bottom: 8px; }
