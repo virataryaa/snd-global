@@ -12,6 +12,8 @@ theme.gate("Cocoa SnD")
 with st.sidebar:
     st.markdown("<div class='sb-title'>Cocoa SnD</div><div class='sb-label'>Section</div>", unsafe_allow_html=True)
     section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Revisions"], key="co_section", label_visibility="collapsed")
+    st.markdown("<div class='sb-sep'></div><div class='sb-label'>Crop years</div>", unsafe_allow_html=True)
+    st.radio("Crop years", ["Last 7", "All"], horizontal=True, key="yrs_span", label_visibility="collapsed")
 
 if section == "SnD":
     cocoa.render()

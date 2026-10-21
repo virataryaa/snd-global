@@ -224,6 +224,7 @@ def detail_html(S, years) -> str:
 def render():
     st.markdown(snd.CSS, unsafe_allow_html=True)
     S, years = load()
+    shown = years[-7:] if st.session_state.get("yrs_span", "Last 7") == "Last 7" else years   # stock still rolls over all years
     # one table at a time: page switch on the left, crop basis on the right (SnD page only)
     left, right = st.columns([3, 1], vertical_alignment="center")
     page = left.radio("Page", ["Cocoa SnD", "IC & GH detail"], horizontal=True, key="co_page", label_visibility="collapsed")
@@ -241,14 +242,14 @@ def render():
                     "table.snd.cmp td.lbl { white-space: nowrap; } .snd-wrap.cmp { padding: 6px 8px 8px; }</style>"
                     "<div class='snd-head'><span class='t'>Cocoa SnD</span></div>", unsafe_allow_html=True)
         for col, basis in zip(st.columns(2, gap="small"), ("Botanical", "Statistical")):
-            col.markdown(f"<div class='snd-wrap cmp'><table class='snd cmp'>{table_html(basis, balance(S, years, basis), years, compact=True)}"
+            col.markdown(f"<div class='snd-wrap cmp'><table class='snd cmp'>{table_html(basis, balance(S, years, basis), shown, compact=True)}"
                          "</table></div>", unsafe_allow_html=True)
         st.markdown("<div class='card-desc' style='margin-top:6px'>Total = sum of origins × 0.99 · SnD = Total − Grind · "
                     f"Stock typed up to {ANCHOR[2:]}, then previous stock + SnD · "
                     "Statistical crop = Tree + carry-in + smuggling + held.</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div class='snd-head'><span class='t'>Ivory Coast & Ghana crop detail</span></div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='snd-wrap'><table class='snd'>{detail_html(S, years)}</table></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='snd-wrap'><table class='snd'>{detail_html(S, shown)}</table></div>", unsafe_allow_html=True)
 
 
 # ── Edit mode ─────────────────────────────────────────────────────────────────
