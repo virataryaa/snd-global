@@ -19,7 +19,7 @@ html, body, [class*="css"], [data-testid="stAppViewContainer"], .stMarkdown, but
 [data-testid="stAppViewContainer"], [data-testid="stMain"], .main { background: #fafafa !important; }
 /* Streamlit's top bar overlays the page: keep it short and see-through so content can start just below it */
 [data-testid="stHeader"] { background: transparent !important; height: 2.6rem !important; min-height: 0 !important; }
-[data-testid="stSidebar"] { background: #f0f2f8 !important; border-right: 1px solid #dfe3ee; }
+[data-testid="stSidebar"] { background: #f0f2f8 !important; border-right: 1px solid #dfe3ee; width: 240px !important; min-width: 240px !important; max-width: 240px !important; }
 h1, h2, h3, h4, h5, h6 { color: #0a2463 !important; letter-spacing: -.01em; }
 body, .main { color: #1a1a2e; }
 .block-container { padding-top: 2.9rem; max-width: 1500px; }
@@ -163,6 +163,10 @@ for _k in KEEP:
 
 with st.sidebar:
     st.markdown("<div class='sb-title'>Coffee SnD</div>", unsafe_allow_html=True)
+    snd.MODE_SLOT = brazil.MODE_SLOT = st.container()       # SnD / Brazil draw their Mode switch here
+    st.markdown("<div class='sb-sep'></div><div class='sb-label'>Section</div>", unsafe_allow_html=True)
+    section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Sensitivity", "Revisions"],
+                       key="section", label_visibility="collapsed")
 
 
 def _snd():
@@ -176,13 +180,9 @@ def _snd():
         brazil.render("Brazil SnD")
 
 
-SECTIONS = {"SnD": _snd, "Analysis": analytics.render, "Scenarios": scenario.page,
-            "Sensitivity": scenario.sensitivity_page, "Revisions": revisions.render}
-# lazy tabs: only the open one runs (and only its sidebar controls are drawn)
-for (name, render), tab in zip(SECTIONS.items(), st.tabs(list(SECTIONS), key="section", on_change="rerun")):
-    if tab.open is not False:
-        with tab:
-            render()
+# only the chosen section runs (its own sidebar controls are added below the section switch)
+{"SnD": _snd, "Analysis": analytics.render, "Scenarios": scenario.page,
+ "Sensitivity": scenario.sensitivity_page, "Revisions": revisions.render}[section]()
 
 for _k in KEEP:
     if _k in st.session_state:

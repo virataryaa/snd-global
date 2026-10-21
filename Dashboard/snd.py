@@ -11,6 +11,8 @@ import re
 from datetime import date
 from pathlib import Path
 
+MODE_SLOT = None   # sidebar container app.py reserves for Mode (above the section nav)
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -566,7 +568,7 @@ def render_edit(df, meta, notes, years, shown, editable):
 def render():
     st.markdown(CSS, unsafe_allow_html=True)
     df, meta, notes, years = load()
-    with st.sidebar:
+    with (MODE_SLOT or st.sidebar):
         st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
         with st.container(key="mode_nav"):
             mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="snd_mode")

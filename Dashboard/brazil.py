@@ -11,6 +11,8 @@ import io
 import json
 import re
 
+MODE_SLOT = None   # sidebar container app.py reserves for Mode (above the section nav)
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -436,7 +438,7 @@ def render(view="Brazil SnD"):
     etg_a, etg_r = etg_brazil(years)
     mode, span = "View", "All"
     if view == "Brazil SnD":
-        with st.sidebar:
+        with (MODE_SLOT or st.sidebar):
             st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
             span = st.radio("Years", ["All", "Last 10"], horizontal=True, key="br_span")
             with st.container(key="mode_nav"):
