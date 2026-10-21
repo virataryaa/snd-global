@@ -63,9 +63,11 @@ button[kind="pillsActive"] p, button[kind="segmented_controlActive"] p { color: 
 .stTabs [data-baseweb="tab"] p { font-size: 13px !important; }
 .stTabs [data-baseweb="tab-panel"] { padding-top: 6px !important; }
 /* page-level switches (e.g. Global / Brazil): slimmer track */
-.st-key-snd_page div[role="radiogroup"] { padding: 2px; }
-.st-key-snd_page div[role="radiogroup"] label { padding: 2px 11px !important; }
-.st-key-snd_page div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 11px !important; }
+.st-key-co_basis_nav { display: flex; justify-content: flex-end; }
+.st-key-snd_page div[role="radiogroup"], .st-key-co_page div[role="radiogroup"] { padding: 2px; }
+.st-key-snd_page div[role="radiogroup"] label, .st-key-co_page div[role="radiogroup"] label { padding: 2px 11px !important; }
+.st-key-snd_page div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p,
+.st-key-co_page div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 11px !important; }
 [data-testid="stMain"] [data-testid="stVerticalBlock"] { gap: .55rem; }
 .stTabs [aria-selected="true"] { background: #0a2463 !important; color: #ffffff !important; }
 .stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] { display: none; }

@@ -149,12 +149,19 @@ def detail_html(S, years) -> str:
 def render():
     st.markdown(snd.CSS, unsafe_allow_html=True)
     S, years = load()
-    st.markdown("<div class='snd-head'><span class='t'>Cocoa SnD</span></div>", unsafe_allow_html=True)
-    for basis in ("Botanical", "Statistical"):
-        T = balance(S, years, basis)
-        st.markdown(f"<div class='snd-wrap'><table class='snd'>{table_html(basis, T, years)}</table></div>", unsafe_allow_html=True)
-    st.markdown("<div class='card-desc' style='margin-top:6px'>Total = sum of origins × 0.99 · SnD = Total − Grind · "
-                f"Stock typed up to {ANCHOR[2:]}, then previous stock + SnD · Statistical crop = Tree + carry-in + smuggling + held.</div>",
-                unsafe_allow_html=True)
-    st.markdown(f"<div class='snd-wrap' style='margin-top:10px'><table class='snd'>{detail_html(S, years)}</table></div>",
-                unsafe_allow_html=True)
+    # one table at a time: page switch on the left, crop basis on the right (SnD page only)
+    left, right = st.columns([3, 1], vertical_alignment="center")
+    page = left.radio("Page", ["Cocoa SnD", "IC & GH detail"], horizontal=True, key="co_page", label_visibility="collapsed")
+    if page == "Cocoa SnD":
+        with right.container(key="co_basis_nav"):
+            basis = st.radio("Basis", ["Botanical", "Statistical"], horizontal=True, key="co_basis", label_visibility="collapsed")
+        st.markdown(f"<div class='snd-head'><span class='t'>Cocoa SnD · {basis}</span></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='snd-wrap'><table class='snd'>{table_html(basis, balance(S, years, basis), years)}</table></div>",
+                    unsafe_allow_html=True)
+        st.markdown("<div class='card-desc' style='margin-top:6px'>Total = sum of origins × 0.99 · SnD = Total − Grind · "
+                    f"Stock typed up to {ANCHOR[2:]}, then previous stock + SnD"
+                    + (" · Statistical crop = Tree + carry-in + smuggling + held" if basis == "Statistical" else "") + ".</div>",
+                    unsafe_allow_html=True)
+    else:
+        st.markdown("<div class='snd-head'><span class='t'>Ivory Coast & Ghana crop detail</span></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='snd-wrap'><table class='snd'>{detail_html(S, years)}</table></div>", unsafe_allow_html=True)
