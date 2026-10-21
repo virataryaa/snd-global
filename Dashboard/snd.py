@@ -33,8 +33,8 @@ INK, AXIS, GRID = "#1d1d1f", "#86868b", "rgba(0,0,0,0.05)"
 CSS = """
 <style>
 .snd-wrap { background: #ffffff; border: 1px solid #e6e9f0; border-radius: 12px; padding: 3px 5px 6px; margin-bottom: 12px;
-            box-shadow: 0 1px 2px rgba(15,23,42,.04); overflow-x: auto; width: 100%; box-sizing: border-box; }
-table.snd { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 12px; color: #0f172a;
+            box-shadow: 0 1px 2px rgba(15,23,42,.04); overflow-x: auto; width: fit-content; max-width: 100%; }
+table.snd { border-collapse: separate; border-spacing: 0; width: auto; font-size: 12px; color: #0f172a;
             font-variant-numeric: tabular-nums; letter-spacing: .005em; }
 table.snd td, table.snd th { padding: 2px 9px; text-align: center; white-space: nowrap; line-height: 1.3; }
 table.snd td { min-width: 46px; }
@@ -531,8 +531,8 @@ def render_edit(df, meta, notes, years, shown, editable):
     table = snd_table(live, meta, notes, years, shown, {"Arabica": a, "Robusta": r}, glob, a.loc["Brazil"] + r.loc["Brazil"],
                       edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "All rows"))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
-    bar = ctrl.columns([2.6, 3.4, 0.8, 1.0], vertical_alignment="center")
-    bar[0].radio("Rows", ["Editable", "All rows"], horizontal=True, key="edit_rows", label_visibility="collapsed")
+    bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")   # one compact row, left-aligned
+    bar.radio("Rows", ["Editable", "All rows"], horizontal=True, key="edit_rows", label_visibility="collapsed")
     tableedit.editable_table(table, tableedit.css_of(CSS), "snd_tbl", epoch, editable, edits)
     st.session_state["_snd_edits"] = dict(edits)
     if not editable:
@@ -542,12 +542,13 @@ def render_edit(df, meta, notes, years, shown, editable):
     bad = any(c[4] is not None and c[4] < 0 for c in changes + opens)
     if bad:
         ctrl.error("Values cannot be negative.")
-    bc = bar
-    save = bc[3].button("Save" + (f" · {n_all}" if n_all else ""), type="primary", disabled=(not n_all) or bad,
-                        width="stretch", key="snd_save")
-    bc[2].button("Undo", disabled=not n_all, width="stretch", key="snd_undo", on_click=_undo)
-    reason = bc[1].text_input("Reason", key=f"snd_reason_{epoch}", placeholder="Reason for Change...",
+
+
+    reason = bar.text_input("Reason", key=f"snd_reason_{epoch}", placeholder="Reason for Change...", width=320,
                               label_visibility="collapsed", max_chars=140, disabled=not n_all)
+    bar.button("Undo", disabled=not n_all, width="content", key="snd_undo", on_click=_undo)
+    save = bar.button("Save" + (f" · {n_all}" if n_all else ""), type="primary", disabled=(not n_all) or bad,
+                      width="content", key="snd_save")
     if save:
         try:
             with st.spinner("Saving..."):

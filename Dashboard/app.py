@@ -127,6 +127,7 @@ table.snd td.neg { color: #c94a4a !important; }
     background: #ffffff !important; border: 1px solid #e3e7f0 !important; border-radius: 999px !important; min-height: 34px; }
 [class*="st-key-snd_reason"] input, [class*="st-key-br_reason"] input { background: #ffffff !important; font-size: 12.5px; padding-left: 14px; }
 
+.st-key-snd_save button, .st-key-br_save button, .st-key-snd_undo button, .st-key-br_undo button { padding: 0 20px !important; }
 /* Mode (View/Edit): orange, like the calendar's Entry tab */
 .st-key-mode_nav div[role="radiogroup"] label:has(input:checked) { background: #d9822b !important; }
 .st-key-mode_nav [data-testid="stRadio"], .st-key-mode_nav [role="radiogroup"] { margin-left: auto; }
