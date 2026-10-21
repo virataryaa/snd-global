@@ -4,17 +4,22 @@ Inputs live in Database/cocoa_snd.csv (series, year, value). Ivory Coast (IC) an
   Botanical crop = Tree.  Statistical crop = Tree + Carry-in + Smuggling GH + Smuggling Other + Held (to Mid / to Main).
 Total = sum of origins x 0.99 · SnD = Total - Grind · Stock is typed up to 20/21 and from then on = previous stock + SnD.
 """
+import html
+import io
+import re
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
+import ghstore as gh
 import snd
 from snd import fnum, fpct, ystart
 
 ROOT = Path(__file__).resolve().parent.parent
 CSV = ROOT / "Database" / "cocoa_snd.csv"
+CSV_PATH = "Database/cocoa_snd.csv"                # path in the repo (data branch)
 LOSS = 0.99                          # fixed haircut on the origin sum
 ANCHOR = "2020/21"                   # last typed stock year; later years roll
 ADJ = ["Carry-in", "Smuggling GH", "Smuggling Other", "Held"]
@@ -25,7 +30,7 @@ COUNTRY = {"IC": "Ivory Coast", "GH": "Ghana"}
 
 @st.cache_data(ttl=600)
 def load():
-    df = pd.read_csv(CSV)
+    df = pd.read_csv(io.StringIO(gh.text_of(CSV_PATH, CSV)))
     years = sorted(df["year"].unique(), key=ystart)
     S = df.pivot_table(index="series", columns="year", values="value", aggfunc="sum").reindex(columns=years)
     return S, years
@@ -162,6 +167,12 @@ def render():
     # one table at a time: page switch on the left, crop basis on the right (SnD page only)
     left, right = st.columns([3, 1], vertical_alignment="center")
     page = left.radio("Page", ["Cocoa SnD", "IC & GH detail"], horizontal=True, key="co_page", label_visibility="collapsed")
+    with right.container(key="mode_nav"):
+        mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="co_mode", label_visibility="collapsed")
+    if mode == "Edit":
+        st.markdown("<div class='snd-head'><span class='t edit'>Edit Cocoa SnD</span></div>", unsafe_allow_html=True)
+        edit_view(S, years)
+        return
     if page == "Cocoa SnD":
         # Botanical and Statistical side by side, compact
         st.markdown("<style>table.snd.cmp td, table.snd.cmp th.y { padding: 3px 6px !important; font-size: 11px !important; }"
@@ -176,3 +187,228 @@ def render():
     else:
         st.markdown("<div class='snd-head'><span class='t'>Ivory Coast & Ghana crop detail</span></div>", unsafe_allow_html=True)
         st.markdown(f"<div class='snd-wrap'><table class='snd'>{detail_html(S, years)}</table></div>", unsafe_allow_html=True)
+
+
+# ── Edit mode ─────────────────────────────────────────────────────────────────
+# Every input is one series in cocoa_snd.csv, so the IC & GH detail and the main table share them: the Tree you type
+# here is the IC/GH Main/Mid row of the balance. Saves are GitHub commits on the data branch (one per Save), which is
+# also the revision log.
+INPUTS = ([f"{c} {p} {k}" for c in ("IC", "GH") for p in ("Main", "Mid") for k in ["Tree"] + ADJ]
+          + [c for c, _ in OTHERS] + ["Grind", "Stock"])
+
+
+def _apply(S, changes):
+    S2 = S.copy()
+    for s, y, _o, n in changes:
+        if s not in S2.index:
+            S2.loc[s] = np.nan
+        S2.loc[s, y] = np.nan if n is None else n
+    return S2
+
+
+def _editable(series, y) -> bool:
+    return series != "Stock" or ystart(y) <= ystart(ANCHOR)          # stock is typed only up to the anchor year
+
+
+def edit_html(S, years, edit) -> str:
+    """One table holding every input (editable cells) and the numbers they drive (calculated cells)."""
+    allrows = edit.get("all")
+    ncol = len(years) + 1
+
+    def head(title, sub="Oct–Sep · k tonnes"):
+        return (f"<tr class='comm'><th colspan='{ncol}'>{title}<span class='crop'>{sub}</span></th></tr>"
+                "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if is_est(y) else ''}'>{y[2:]}{'*' if is_est(y) else ''}</th>"
+                                                         for y in years) + "</tr>")
+
+    def row(label, vals, kind="", series=None, f=0, always=False):
+        if not allrows and series is None and not always:
+            return ""
+        cells = ""
+        for y in years:
+            v = vals[y]
+            cls = ("fc " if is_est(y) else "") + ("neg " if kind == "bal" and pd.notna(v) and v < 0 else "")
+            attrs = ""
+            if series and _editable(series, y):
+                k = f"{series}|{y}"
+                b = edit["base"].get(k)
+                cls += "ed" + (" chg" if k in edit["changed"] else "")
+                attrs = f" data-k='{k}' data-base='{'' if b is None or pd.isna(b) else b}'"
+            cells += f"<td class='{cls.strip()}'{attrs}>{_fmt(v, f)}</td>"
+        return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>"
+
+    out = []
+    for cty, cname in COUNTRY.items():
+        out.append(head(cname, "Tree → statistical crop · k tonnes"))
+        for part, held in (("Main", "Held to mid"), ("Mid", "Held to main")):
+            out.append(row(f"{part} · Tree", _row(S, f"{cty} {part} Tree", years), "b", f"{cty} {part} Tree"))
+            for k, lab in (("Carry-in", "Carry-in"), ("Smuggling GH", "Smuggling GH"), ("Smuggling Other", "Smuggling other"), ("Held", held)):
+                out.append(row(lab, _row(S, f"{cty} {part} {k}", years), "", f"{cty} {part} {k}"))
+            out.append(row(f"{part} · Stat crop", crop(S, years, cty, part, "Statistical"), "bal", always=True))
+        out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
+    out.append(head("Other origins, grind & stock"))
+    for code, name in OTHERS:
+        out.append(row(name, _row(S, code, years), "", code))
+    out.append(row("Grind", _row(S, "Grind", years), "b", "Grind"))
+    out.append(row(f"Stock (typed to {ANCHOR[2:]})", _row(S, "Stock", years), "", "Stock"))
+    if allrows:
+        out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
+        out.append(head("Balance"))
+        for basis in ("Botanical", "Statistical"):
+            T = balance(S, years, basis)
+            b = basis[:3] + "."
+            out += [row(f"Total ×0.99 ({b})", T.loc["Total"], "b"), row(f"SnD ({b})", T.loc["SnD"], "bal"),
+                    row(f"Stock ({b})", T.loc["Stock proxy"], ""), row(f"STU ({b})", T.loc["STU"], "soft", f="p1")]
+    return f"<div class='snd-wrap'><table class='snd'>{''.join(out)}</table></div>"
+
+
+def _show(v):
+    return "" if v is None or pd.isna(v) else f"{v:g}"
+
+
+def _save(changes, reason=""):
+    lines = [f"{s} {y}: {_show(o) or '-'} -> {_show(n) or '-'}" for s, y, o, n in changes]
+    reason = snd.clean_reason(reason)
+    msg = f"Cocoa SnD | {len(changes)} change(s)" + (f" | reason: {reason}" if reason else "") + "\n\n" + "\n".join(lines)
+    order = {s: i for i, s in enumerate(INPUTS)}
+
+    def apply(text):
+        d = pd.read_csv(io.StringIO(text))
+        for s, y, _o, n in changes:
+            d = d[~((d["series"] == s) & (d["year"] == y))]
+            if n is not None:
+                d = pd.concat([d, pd.DataFrame([{"series": s, "year": y, "value": n}])], ignore_index=True)
+        d["_o"], d["_y"] = d["series"].map(order).fillna(99), d["year"].map(ystart)
+        d = d.sort_values(["_o", "_y"]).drop(columns=["_o", "_y"])
+        return d.to_csv(index=False, lineterminator="\n"), None
+    new_text, _ = gh.commit(CSV_PATH, apply, msg)
+    with open(CSV, "w", encoding="utf-8", newline="") as f:
+        f.write(new_text)
+    load.clear()
+
+
+def _undo():
+    st.session_state["co_epoch"] = st.session_state.get("co_epoch", 0) + 1
+    st.session_state["_co_edits"] = {}
+    try:
+        st.session_state["co_tbl"] = {}
+    except Exception:
+        pass
+
+
+def edit_view(S, years):
+    import tableedit
+    editable = gh.enabled()
+    epoch = st.session_state.setdefault("co_epoch", 0)
+    edits = st.session_state.get("co_tbl")
+    if edits is None:
+        edits = st.session_state.get("_co_edits", {})
+    base = {f"{s}|{y}": float(S.loc[s, y]) for s in S.index for y in years if pd.notna(S.loc[s, y])}
+    changes = [(k.split("|")[0], k.split("|")[1], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
+    allrows = st.session_state.get("co_rows") != "Show only editable"
+    E = dict(base=base, changed=set(edits), all=allrows)
+    table = edit_html(_apply(S, changes), years, E)
+    if changes:                                                  # tint every calculated cell the unsaved edits move
+        table = tableedit.mark_moved(table, edit_html(S, years, E))
+    ctrl = st.container()
+    bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")
+    bar.radio("Rows", ["Show all rows", "Show only editable"], horizontal=True, key="co_rows", label_visibility="collapsed")
+    tableedit.editable_table(table, tableedit.css_of(snd.CSS), "co_tbl", epoch, editable, edits)
+    st.session_state["_co_edits"] = dict(edits)
+    st.markdown("<div class='card-desc' style='margin:4px 0 0'>Stat crop = Tree + carry-in + smuggling + held · Total = origins × 0.99 · "
+                f"SnD = Total − Grind · Stock typed to {ANCHOR[2:]}, then previous stock + SnD.</div>", unsafe_allow_html=True)
+    if not editable:
+        ctrl.markdown("<div class='card-desc'>Read-only: add github_token in Secrets to edit.</div>", unsafe_allow_html=True)
+        return
+    n = len(changes)
+    bad = any(c[3] is not None and c[3] < 0 and not any(a in c[0] for a in ADJ) for c in changes)   # adjustments may be negative
+    if bad:
+        ctrl.error("Crops, grind and stock cannot be negative.")
+    reason = bar.text_input("Reason", key=f"co_reason_{epoch}", placeholder="Reason for Change...", width=320,
+                            label_visibility="collapsed", max_chars=140, disabled=not n)
+    bar.button("Undo", disabled=not n, width="content", key="co_undo", on_click=_undo)
+    if bar.button("Save" + (f" · {n}" if n else ""), type="primary", disabled=(not n) or bad, width="content", key="co_save"):
+        try:
+            with st.spinner("Saving..."):
+                _save(changes, reason)
+        except Exception as ex:
+            ctrl.error(f"GitHub save failed: {ex}")
+        else:
+            _undo()
+            st.toast(f"Saved {n} change(s).")
+            st.rerun()
+
+
+# ── Revisions ─────────────────────────────────────────────────────────────────
+_LINE = re.compile(r"^(.+) (\d{4}/\d{2}): (.*) -> (.*)$")
+_WHY = re.compile(r"\| reason: (.*)$")
+HIDDEN = ("revert of ", "deleted ")
+
+
+def _v(t):
+    t = t.strip()
+    return np.nan if t in ("", "-") else float(t)
+
+
+def _revision_rows() -> pd.DataFrame:
+    out = []
+    for ts, msg in gh.history(CSV_PATH):
+        first, _, body = msg.partition("\n")
+        if not first.startswith("Cocoa SnD |"):
+            continue
+        why = _WHY.search(first)
+        why = why.group(1).strip() if why else ""
+        for ln in body.splitlines():
+            m = _LINE.match(ln.strip())
+            if m:
+                s, y, o, nv = m.groups()
+                grp = COUNTRY.get(s.split(" ")[0], "Other")
+                out.append((pd.Timestamp(ts), grp, s, y, _v(o), _v(nv), np.nan, why))
+    return pd.DataFrame(out, columns=["when", "group", "item", "year", "old", "new", "effect", "reason"])
+
+
+def revisions_page():
+    import revisions as rvmod
+    st.markdown(snd.CSS + "<style>.rv-row { font-size: 12.5px; color: #1a1a2e; padding-top: 7px; } .rv-row.m { color: #8a94a8; } "
+                ".rv-row.g { color: #0a2463; font-weight: 600; }</style>", unsafe_allow_html=True)
+    st.markdown("<div class='snd-head'><span class='t'>Cocoa revisions</span></div>", unsafe_allow_html=True)
+    if not gh.enabled():
+        st.markdown("<div class='card-desc'>Add github_token in Secrets to see the revision log.</div>", unsafe_allow_html=True)
+        return
+    try:
+        rv = _revision_rows()
+    except Exception as ex:
+        st.markdown(f"<div class='card-desc'>Not available: {ex}</div>", unsafe_allow_html=True)
+        return
+    undo = rv["reason"].str.startswith(HIDDEN, na=False)
+    gone = set(rv.loc[undo, "reason"].str.replace("|".join(HIDDEN), "", regex=True).str.strip())
+    rv = rv[~undo & ~rv["when"].dt.strftime("%d %b %Y %H:%M").isin(gone)]
+    if rv.empty:
+        st.markdown("<div class='card-desc'>No revisions saved yet.</div>", unsafe_allow_html=True)
+        return
+    with st.container(border=True):
+        c1, c2, _ = st.columns([1.2, 2, 5], vertical_alignment="bottom")
+        ys = sorted(rv["year"].unique(), key=ystart)
+        year = c1.selectbox("Crop year", ys, index=len(ys) - 1, key="co_rv_year")
+        mode = c2.radio("Show", ["Change vs first estimate", "Level"], horizontal=True, key="co_rv_mode")
+        st.plotly_chart(rvmod.revision_lines(rv[rv["year"] == year], mode == "Level", False), width="stretch", key="co_rv_lines")
+    real = rv.sort_values("when", ascending=False).head(30)
+    st.markdown("<div class='snd-bar' style='margin-top:14px'>Saved revisions</div>"
+                "<div class='card-desc'>Delete puts that save's numbers back and removes it from the log.</div>", unsafe_allow_html=True)
+    for ts, grp in real.groupby("when", sort=False):
+        why = grp["reason"].iloc[0]
+        c = st.columns([1.3, 4.2, 2.6, 0.8], vertical_alignment="center")
+        c[0].markdown(f"<div class='rv-row'><b>{ts:%a %d %b %Y}</b><br><span style='color:#8a94a8;font-size:11px'>{ts:%H:%M}</span></div>",
+                      unsafe_allow_html=True)
+        items = ", ".join(f"{r.item} {r.year}: {fnum(r.old, 0) or '-'} &rarr; {fnum(r.new, 0) or '-'}" for r in grp.itertuples())
+        c[1].markdown(f"<div class='rv-row g'>{items}</div>", unsafe_allow_html=True)
+        c[2].markdown(f"<div class='rv-row m'>{html.escape(why) if why else 'no reason given'}</div>", unsafe_allow_html=True)
+        if c[3].button("Delete", key=f"co_del_{ts.value}", width="stretch"):
+            try:
+                with st.spinner("Deleting..."):
+                    _save([(r.item, r.year, r.new, None if pd.isna(r.old) else float(r.old)) for r in grp.itertuples()],
+                          f"deleted {ts:%d %b %Y %H:%M}")
+            except Exception as ex:
+                st.error(f"Delete failed: {ex}")
+            else:
+                st.toast("Deleted.")
+                st.rerun()

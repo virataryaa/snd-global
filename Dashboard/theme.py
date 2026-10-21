@@ -137,6 +137,18 @@ table.snd td.neg { color: #c94a4a !important; }
 .st-key-sn_controls [data-baseweb="input"], .st-key-sn_controls [data-baseweb="select"] > div { min-height: 25px !important; font-size: 11.5px !important; }
 .st-key-sn_controls button { padding: 2px 8px !important; min-height: 25px !important; font-size: 11.5px !important; }
 .st-key-sn_controls [data-testid="stVerticalBlock"] { gap: 0.35rem !important; }
+/* Cocoa edit toolbar: same pills as the coffee pages */
+.st-key-co_save button { background: #c2410c !important; border: 0 !important; border-radius: 999px !important; min-height: 34px;
+    box-shadow: 0 2px 6px rgba(194,65,12,.25); padding: 0 20px !important; }
+.st-key-co_save button p { color: #ffffff !important; font-weight: 600; font-size: 12.5px; }
+.st-key-co_save button:disabled { background: #f1d3c2 !important; box-shadow: none; }
+.st-key-co_undo button { background: #ffffff !important; border: 1px solid #e3e7f0 !important; border-radius: 999px !important;
+    min-height: 34px; padding: 0 20px !important; }
+.st-key-co_undo button p { color: #5a6688 !important; font-size: 12.5px; }
+.st-key-co_undo button:hover { border-color: #c2410c !important; }
+[class*="st-key-co_reason"] [data-baseweb="input"] { background: #ffffff !important; border: 1px solid #e3e7f0 !important;
+    border-radius: 999px !important; min-height: 34px; }
+[class*="st-key-co_reason"] input { background: #ffffff !important; font-size: 12.5px; padding-left: 14px; }
 </style>
 """
 
