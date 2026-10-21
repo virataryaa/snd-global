@@ -17,11 +17,12 @@ st.markdown(
 html, body, [class*="css"], [data-testid="stAppViewContainer"], .stMarkdown, button, input, textarea {
     font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif !important; -webkit-font-smoothing: antialiased; }
 [data-testid="stAppViewContainer"], [data-testid="stMain"], .main { background: #fafafa !important; }
-[data-testid="stHeader"] { background: #fafafa !important; }
+/* Streamlit's top bar overlays the page: keep it short and see-through so content can start just below it */
+[data-testid="stHeader"] { background: transparent !important; height: 2.6rem !important; min-height: 0 !important; }
 [data-testid="stSidebar"] { background: #f0f2f8 !important; border-right: 1px solid #dfe3ee; }
 h1, h2, h3, h4, h5, h6 { color: #0a2463 !important; letter-spacing: -.01em; }
 body, .main { color: #1a1a2e; }
-.block-container { padding-top: 1.6rem; max-width: 1500px; }
+.block-container { padding-top: 2.9rem; max-width: 1500px; }
 
 /* Radio as pill / segmented control */
 div[role="radiogroup"] { background: #eef0f6; padding: 4px; border-radius: 999px; gap: 2px; display: inline-flex; flex-wrap: wrap; }
