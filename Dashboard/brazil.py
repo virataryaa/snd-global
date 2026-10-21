@@ -340,6 +340,7 @@ def _save(changes, reason=""):
 
 # ── Page ──────────────────────────────────────────────────────────────────────
 def _undo():
+    st.session_state.pop("br_new_year", None)
     st.session_state["br_epoch"] = st.session_state.get("br_epoch", 0) + 1
     st.session_state["_br_edits"] = {}
     try:
@@ -357,6 +358,11 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
         edits = st.session_state.get("_br_edits", {})
     base = {f"{s}|{y}": float(eff[s][y]) for s in SERIES for y in years if pd.notna(eff[s][y])}
     base.update({f"Opening {k}|{years[0]}": float(meta["opening"][k]) for k in ("Arabica", "Conillon")})
+    nxt = snd.next_year(years[-1])
+    extra = st.session_state.get("br_new_year")                # "+ Crop year": a blank column to the right, saved once filled
+    if extra:
+        years = years + [extra]
+        etg_a, etg_r = etg_a.reindex(years), etg_r.reindex(years)
     allc = [(k.split("|")[0], k.split("|")[1], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
     opens = [c for c in allc if c[0].startswith("Opening ")]    # first-year closing stock lives in the meta file
     changes = [c for c in allc if not c[0].startswith("Opening ")]
@@ -389,6 +395,8 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     bar.button("Undo", disabled=not n_all, width="content", key="br_undo", on_click=_undo)
     save = bar.button("Save" + (f" · {n_all}" if n_all else ""), type="primary", disabled=(not n_all) or bad,
                       width="content", key="br_save")
+    bar.button("+ Crop year", key="br_addyr", disabled=bool(extra), width="content",
+               on_click=lambda: st.session_state.__setitem__("br_new_year", nxt))
     if save:
         try:
             with st.spinner("Saving..."):

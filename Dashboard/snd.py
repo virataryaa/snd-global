@@ -105,6 +105,12 @@ def ystart(label: str) -> int:
     return int(label[:4])
 
 
+def next_year(label: str) -> str:
+    """'2027/28' -> '2028/29'"""
+    s = ystart(label) + 1
+    return f"{s}/{str(s + 1)[-2:]}"
+
+
 def current_crop_year(today=None) -> str:
     """The Jul-Jun crop year today falls in: Oct 2026 -> '2026/27', Mar 2027 -> '2026/27'."""
     t = today or date.today()
@@ -505,6 +511,7 @@ def charts(a, r, glob, shown):
 
 # ── Edit view: the styled table itself, typed over in place ────────────────────────────────────────────────
 def _undo():
+    st.session_state.pop("snd_new_year", None)
     st.session_state["snd_epoch"] = st.session_state.get("snd_epoch", 0) + 1
     st.session_state["_snd_edits"] = {}
     try:
@@ -522,6 +529,10 @@ def render_edit(df, meta, notes, years, shown, editable):
     if edits is None:                                            # fall back to the copy kept below, so pending edits survive a View / Edit switch
         edits = st.session_state.get("_snd_edits", {})
     base = {f"{c}|{it}|{y}": float(v) for c, it, y, v in zip(df["commodity"], df["item"], df["year"], df["value"])}
+    nxt = next_year(years[-1])
+    extra = st.session_state.get("snd_new_year")               # "+ Crop year": a blank column to the right, saved once filled
+    if extra:
+        years, shown = years + [extra], shown + [extra]
     base.update({f"{c}|__open__|{shown[0]}": float(meta["opening_stock"][c]) for c in ("Arabica", "Robusta")})
     changes = [(k.split("|")[0], k.split("|")[1], k.split("|")[2], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
     opens = [c for c in changes if c[1] == "__open__"]           # first-year end stock lives in the meta file, not the CSV
@@ -557,6 +568,8 @@ def render_edit(df, meta, notes, years, shown, editable):
     bar.button("Undo", disabled=not n_all, width="content", key="snd_undo", on_click=_undo)
     save = bar.button("Save" + (f" · {n_all}" if n_all else ""), type="primary", disabled=(not n_all) or bad,
                       width="content", key="snd_save")
+    bar.button("+ Crop year", key="snd_addyr", disabled=bool(extra), width="content",
+               on_click=lambda: st.session_state.__setitem__("snd_new_year", nxt))
     if save:
         try:
             with st.spinner("Saving..."):

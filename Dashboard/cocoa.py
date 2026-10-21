@@ -287,6 +287,7 @@ def _save(changes, reason=""):
 
 
 def _undo():
+    st.session_state.pop("co_new_year", None)
     st.session_state["co_epoch"] = st.session_state.get("co_epoch", 0) + 1
     st.session_state["_co_edits"] = {}
     try:
@@ -303,6 +304,11 @@ def edit_view(S, years):
     if edits is None:
         edits = st.session_state.get("_co_edits", {})
     base = {f"{s}|{y}": float(S.loc[s, y]) for s in S.index for y in years if pd.notna(S.loc[s, y])}
+    nxt = snd.next_year(years[-1])
+    extra = st.session_state.get("co_new_year")                # "+ Crop year": a blank column to the right, saved once filled
+    if extra:
+        years = years + [extra]
+        S = S.reindex(columns=years)
     changes = [(k.split("|")[0], k.split("|")[1], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
     allrows = st.session_state.get("co_rows") != "Show only editable"
     E = dict(base=base, changed=set(edits), all=allrows)
@@ -326,7 +332,10 @@ def edit_view(S, years):
     reason = bar.text_input("Reason", key=f"co_reason_{epoch}", placeholder="Reason for Change...", width=320,
                             label_visibility="collapsed", max_chars=140, disabled=not n)
     bar.button("Undo", disabled=not n, width="content", key="co_undo", on_click=_undo)
-    if bar.button("Save" + (f" · {n}" if n else ""), type="primary", disabled=(not n) or bad, width="content", key="co_save"):
+    save = bar.button("Save" + (f" · {n}" if n else ""), type="primary", disabled=(not n) or bad, width="content", key="co_save")
+    bar.button("+ Crop year", key="co_addyr", disabled=bool(extra), width="content",
+               on_click=lambda: st.session_state.__setitem__("co_new_year", nxt))
+    if save:
         try:
             with st.spinner("Saving..."):
                 _save(changes, reason)
@@ -379,9 +388,7 @@ def revisions_page():
     except Exception as ex:
         st.markdown(f"<div class='card-desc'>Not available: {ex}</div>", unsafe_allow_html=True)
         return
-    undo = rv["reason"].str.startswith(HIDDEN, na=False)
-    gone = set(rv.loc[undo, "reason"].str.replace("|".join(HIDDEN), "", regex=True).str.strip())
-    rv = rv[~undo & ~rv["when"].dt.strftime("%d %b %Y %H:%M").isin(gone)]
+    rv = rvmod.visible(rv)
     if rv.empty:
         st.markdown("<div class='card-desc'>No revisions saved yet.</div>", unsafe_allow_html=True)
         return
@@ -406,7 +413,7 @@ def revisions_page():
             try:
                 with st.spinner("Deleting..."):
                     _save([(r.item, r.year, r.new, None if pd.isna(r.old) else float(r.old)) for r in grp.itertuples()],
-                          f"deleted {ts:%d %b %Y %H:%M}")
+                          f"deleted {ts:%d %b %Y %H:%M:%S}")
             except Exception as ex:
                 st.error(f"Delete failed: {ex}")
             else:

@@ -66,11 +66,20 @@ PALETTE = ["#0a2463", "#3e5fa8", "#1f8a9c", "#b7791f", "#1f9d6f", "#c0392b", "#8
 HIDDEN = ("revert of ", "deleted ")    # reasons of saves that undo another save (old "revert of" + new "deleted")
 
 
+def visible(rv: pd.DataFrame) -> pd.DataFrame:
+    """Drop deleted saves and the saves that deleted them. New deletes name the save to the second, older ones
+    ("revert of ...") to the minute."""
+    undo = rv["reason"].str.startswith(HIDDEN, na=False)
+    gone = set(rv.loc[undo, "reason"].str.replace("|".join(HIDDEN), "", regex=True).str.strip())
+    gone_rows = rv["when"].dt.strftime("%d %b %Y %H:%M:%S").isin(gone) | rv["when"].dt.strftime("%d %b %Y %H:%M").isin(gone)
+    return rv[~undo & ~gone_rows]
+
+
 def _delete(dataset, grp: pd.DataFrame):
     """Delete one save: its cells go back to what they were before it. Git history can't be rewritten, so this is a new
     save whose reason names the deleted one; the views hide both."""
     when = grp["when"].iloc[0]
-    reason = f"deleted {when:%d %b %Y %H:%M}"
+    reason = f"deleted {when:%d %b %Y %H:%M:%S}"
     if dataset == "Coffee SnD":
         changes = [(r.group, r.item, r.year, r.new, None if pd.isna(r.old) else float(r.old)) for r in grp.itertuples()]
         snd._save_inputs(changes, reason)
@@ -117,9 +126,7 @@ def render():
     except Exception as ex:
         st.markdown(f"<div class='an-note'>Not available: {ex}</div>", unsafe_allow_html=True)
         return
-    undo = rv["reason"].str.startswith(HIDDEN, na=False)
-    gone = set(rv.loc[undo, "reason"].str.replace("|".join(HIDDEN), "", regex=True).str.strip())
-    rv = rv[~undo & ~rv["when"].dt.strftime("%d %b %Y %H:%M").isin(gone)]
+    rv = visible(rv)
     if rv.empty:
         st.markdown("<div class='an-note'>No revisions saved yet.</div>", unsafe_allow_html=True)
         return
