@@ -531,7 +531,8 @@ def render_edit(df, meta, notes, years, shown, editable):
     table = snd_table(live, meta, notes, years, shown, {"Arabica": a, "Robusta": r}, glob, a.loc["Brazil"] + r.loc["Brazil"],
                       edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "All rows"))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
-    ctrl.radio("Rows", ["Editable", "All rows"], horizontal=True, key="edit_rows", label_visibility="collapsed")
+    bar = ctrl.columns([2.6, 3.4, 0.8, 1.0], vertical_alignment="center")
+    bar[0].radio("Rows", ["Editable", "All rows"], horizontal=True, key="edit_rows", label_visibility="collapsed")
     tableedit.editable_table(table, tableedit.css_of(CSS), "snd_tbl", epoch, editable, edits)
     st.session_state["_snd_edits"] = dict(edits)
     if not editable:
@@ -541,13 +542,12 @@ def render_edit(df, meta, notes, years, shown, editable):
     bad = any(c[4] is not None and c[4] < 0 for c in changes + opens)
     if bad:
         ctrl.error("Values cannot be negative.")
-    bc = ctrl.columns([1, 1, 5, 3], vertical_alignment="center")
-    save = bc[0].button("Save", type="primary", disabled=(not n_all) or bad, width="stretch", key="snd_save")
-    bc[1].button("Undo", disabled=not n_all, width="stretch", key="snd_undo", on_click=_undo)
-    reason = bc[2].text_input("Reason", key=f"snd_reason_{epoch}", placeholder="Reason for Change...",
+    bc = bar
+    save = bc[3].button("Save" + (f" · {n_all}" if n_all else ""), type="primary", disabled=(not n_all) or bad,
+                        width="stretch", key="snd_save")
+    bc[2].button("Undo", disabled=not n_all, width="stretch", key="snd_undo", on_click=_undo)
+    reason = bc[1].text_input("Reason", key=f"snd_reason_{epoch}", placeholder="Reason for Change...",
                               label_visibility="collapsed", max_chars=140, disabled=not n_all)
-    if n_all:
-        bc[3].markdown(f"<div class='card-desc' style='margin:0'>{n_all} unsaved change(s)</div>", unsafe_allow_html=True)
     if save:
         try:
             with st.spinner("Saving..."):

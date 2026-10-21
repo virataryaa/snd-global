@@ -114,6 +114,19 @@ table.snd tr.soft td, table.snd tr.soft td.lbl, table.snd tr.meta td, table.snd 
 table.snd td.neg { color: #c94a4a !important; }
 .snd-bar { background: none !important; color: #0a2463 !important; letter-spacing: .08em !important; font-size: 11px !important; padding: 10px 0 4px !important; }
 
+/* Edit toolbar: orange Save pill (with pending count), quiet Undo, rounded reason box */
+.st-key-snd_save button, .st-key-br_save button { background: #c2410c !important; border: 0 !important; border-radius: 999px !important;
+    min-height: 34px; box-shadow: 0 2px 6px rgba(194,65,12,.25); }
+.st-key-snd_save button p, .st-key-br_save button p { color: #ffffff !important; font-weight: 600; font-size: 12.5px; }
+.st-key-snd_save button:disabled, .st-key-br_save button:disabled { background: #f1d3c2 !important; box-shadow: none; }
+.st-key-snd_undo button, .st-key-br_undo button { background: #ffffff !important; border: 1px solid #e3e7f0 !important;
+    border-radius: 999px !important; min-height: 34px; }
+.st-key-snd_undo button p, .st-key-br_undo button p { color: #5a6688 !important; font-size: 12.5px; }
+.st-key-snd_undo button:hover, .st-key-br_undo button:hover { border-color: #c2410c !important; }
+[class*="st-key-snd_reason"] [data-baseweb="input"], [class*="st-key-br_reason"] [data-baseweb="input"] {
+    background: #ffffff !important; border: 1px solid #e3e7f0 !important; border-radius: 999px !important; min-height: 34px; }
+[class*="st-key-snd_reason"] input, [class*="st-key-br_reason"] input { background: #ffffff !important; font-size: 12.5px; padding-left: 14px; }
+
 /* Mode (View/Edit): orange, like the calendar's Entry tab */
 .st-key-mode_nav div[role="radiogroup"] label:has(input:checked) { background: #d9822b !important; }
 .st-key-mode_nav [data-testid="stRadio"], .st-key-mode_nav [role="radiogroup"] { margin-left: auto; }
