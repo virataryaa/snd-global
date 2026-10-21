@@ -59,6 +59,8 @@ table.snd tr.bal td { background: #e8eefb; font-weight: 700; border-bottom: 1px 
 table.snd tr.bal td.fc { background: #dfe8f9; }
 table.snd tr.bal td.lbl { color: #0a2463; }
 table.snd tr.soft td { color: #64748b; }
+table.snd tr.hl td { background: #fff8ee !important; color: #8a4a12 !important; font-weight: 600; }
+table.snd tr.hl td.lbl { color: #8a4a12 !important; }
 table.snd tr.soft td.lbl { color: #94a3b8; }
 table.snd tr.sep td { border: 0; height: 6px; padding: 0; }
 table.snd td.neg { color: #c0392b; }

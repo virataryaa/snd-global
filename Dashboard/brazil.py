@@ -123,12 +123,12 @@ def p1(v):
 
 
 LAYOUT = {
-    "Arabica": [("Production", "b", fnum), ("Exports", "", fnum), ("Consumption", "", fnum), ("Demand as % of total", "soft", p0),
+    "Arabica": [("Production", "b", fnum), ("Exports", "", fnum), ("Consumption", "", fnum), ("Demand as % of total", "hl", p0),
                 ("Stock Change", "bal", fnum), ("Closing Stock", "b", fnum), ("Exports % of Production", "soft", p0),
                 ("Consumption % of Production", "soft", p0), ("Stock/Use Arabica", "soft", p0), ("All Coffee Stocks Brazil", "", fnum),
                 ("Exports YoY", "soft", p0), ("Arabica Consumption %", "soft", p1)],
     "Conillon": [("Production", "b", fnum), ("Green Exports", "", fnum), ("Soluble Exports", "", fnum), ("Consumption", "", fnum),
-                 ("Demand as % of total", "soft", p0), ("Stock Change", "bal", fnum), ("Closing Stock", "b", fnum),
+                 ("Demand as % of total", "hl", p0), ("Stock Change", "bal", fnum), ("Closing Stock", "b", fnum),
                  ("Exports % of Production", "soft", p0), ("Consumption % of Production", "soft", p0), ("Stock/Use Conillon", "soft", p0),
                  ("Connie Consumption %", "soft", p1), ("All Coffee Production", "", fnum), ("Overall Consumption Brazil", "b", fnum),
                  ("Annual % change consumption", "soft", p1)],
@@ -139,11 +139,14 @@ LAYOUT = {
 
 
 # ratio rows shown only with the sidebar's "Detailed ratios" switch (stocks and stock/use always stay)
-DETAIL = {"Demand as % of total", "Exports % of Production", "Consumption % of Production", "Exports YoY",
+DETAIL = {"Exports % of Production", "Consumption % of Production", "Exports YoY",
           "Arabica Consumption %", "Connie Consumption %", "Annual % change consumption"}
 
 
 # calculated rows still shown in Edit mode's "Editable" view, so the effect of a linked edit is visible
+DISPLAY = {"Demand as % of total": "Share of domestic consumption"}   # row labels shown in the table
+
+
 EDIT_ALWAYS = {("Conillon", "Consumption")}   # = Overall - Arabica
 
 
@@ -221,7 +224,7 @@ def block_html(title, fr, shown, edit=None, hist=None) -> str:
         skind = "bal" if kind == "bal" else ("plain" if fmt in (p0, p1) else "growth")
         spark = (snd.sparkline_balance if skind == "bal" else snd.sparkline)
         spark_html = spark([(y, fr.loc[label, y]) for y in shown], label) if skind == "bal" else spark([(y, fr.loc[label, y]) for y in shown], label, skind)
-        out.append(f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}<td class='spark-td'>{spark_html}</td></tr>")
+        out.append(f"<tr class='{kind}'><td class='lbl'>{DISPLAY.get(label, label)}</td>{cells}<td class='spark-td'>{spark_html}</td></tr>")
     if edit and title in ("Arabica", "Conillon"):              # the stock roll's starting point, typed like any other input
         k = f"Opening {title}|{shown[0]}"
         b = edit["base"].get(k)
@@ -436,6 +439,24 @@ def _y2(fig, suffix="%"):
     return fig.update_layout(yaxis2=dict(overlaying="y", side="right", showgrid=False, color=snd.AXIS, ticksuffix=suffix, tickfont=dict(size=10)))
 
 
+def consumption_share(A, C, shown):
+    """Arabica vs Conillon share of Brazil's domestic consumption (stacked to 100%), volumes on hover."""
+    import plotly.graph_objects as go
+    from analytics import _fig, card
+    x = [short(y) for y in shown]
+    with st.container(border=True):
+        card("Domestic consumption: Arabica vs Conillon share")
+        fig = go.Figure()
+        for fr, name, col in ((A, "Arabica", snd.NAVY), (C, "Conillon", snd.AMBER)):
+            fig.add_trace(go.Bar(x=x, y=[fr.loc["Demand as % of total", y] * 100 for y in shown], name=name,
+                                 customdata=[fr.loc["Consumption", y] for y in shown],
+                                 marker=dict(color=col, line_width=0, opacity=[0.55 if snd.is_estimate(y) else 1 for y in shown]),
+                                 text=[f"{fr.loc['Demand as % of total', y]:.0%}" for y in shown], textposition="inside",
+                                 hovertemplate=name + ": %{y:.0f}% · %{customdata:.1f}m bags<extra></extra>"))
+        st.plotly_chart(_fig(fig, height=280, fmt=",.0f").update_layout(barmode="stack", yaxis=dict(range=[0, 100], ticksuffix="%")),
+                        width="stretch", key="br_cons_share")
+
+
 def charts(A, C, O, shown):
     """Brazil internal SnD visuals: supply mix, stocks, exports, home demand, stock build/draw and stocks to use. Estimates are faded."""
     x = [y[2:] for y in shown]
@@ -517,4 +538,5 @@ def render(view="Brazil SnD"):
         edit_view(inp, meta, etg_a, etg_r, years, eff, gh.enabled())
         return
     st.markdown(full_table(A, C, O, shown), unsafe_allow_html=True)
+    consumption_share(A, C, shown)
     charts(A, C, O, shown)
