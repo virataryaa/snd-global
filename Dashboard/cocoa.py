@@ -170,8 +170,10 @@ def render():
     with right.container(key="mode_nav"):
         mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="co_mode", label_visibility="collapsed")
     if mode == "Edit":
-        st.markdown("<div class='snd-head'><span class='t edit'>Edit Cocoa SnD</span></div>", unsafe_allow_html=True)
-        edit_view(S, years)
+        part = "snd" if page == "Cocoa SnD" else "detail"
+        title = "Edit Cocoa SnD" if part == "snd" else "Edit IC & GH detail"
+        st.markdown(f"<div class='snd-head'><span class='t edit'>{title}</span></div>", unsafe_allow_html=True)
+        edit_view(S, years, part)
         return
     if page == "Cocoa SnD":
         # Botanical and Statistical side by side, compact
@@ -210,7 +212,8 @@ def _editable(series, y) -> bool:
     return series != "Stock" or ystart(y) <= ystart(ANCHOR)          # stock is typed only up to the anchor year
 
 
-def edit_html(S, years, edit) -> str:
+def edit_html(S, years, edit, part="snd") -> str:
+    """part: "snd" = tree crops, other origins, grind, stock; "detail" = IC / GH tree, adjustments and stat crop."""
     """One table holding every input (editable cells) and the numbers they drive (calculated cells)."""
     allrows = edit.get("all")
     ncol = len(years) + 1
@@ -237,19 +240,24 @@ def edit_html(S, years, edit) -> str:
         return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>"
 
     out = []
-    for cty, cname in COUNTRY.items():
-        out.append(head(cname, "Tree → statistical crop · k tonnes"))
-        for part, held in (("Main", "Held to mid"), ("Mid", "Held to main")):
-            out.append(row(f"{part} · Tree", _row(S, f"{cty} {part} Tree", years), "b", f"{cty} {part} Tree"))
-            for k, lab in (("Carry-in", "Carry-in"), ("Smuggling GH", "Smuggling GH"), ("Smuggling Other", "Smuggling other"), ("Held", held)):
-                out.append(row(lab, _row(S, f"{cty} {part} {k}", years), "", f"{cty} {part} {k}"))
-            out.append(row(f"{part} · Stat crop", crop(S, years, cty, part, "Statistical"), "bal", always=True))
-        out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
-    out.append(head("Other origins, grind & stock"))
-    for code, name in OTHERS:
-        out.append(row(name, _row(S, code, years), "", code))
-    out.append(row("Grind", _row(S, "Grind", years), "b", "Grind"))
-    out.append(row(f"Stock (typed to {ANCHOR[2:]})", _row(S, "Stock", years), "", "Stock"))
+    if part == "detail":
+        for cty, cname in COUNTRY.items():
+            out.append(head(cname, "Tree → statistical crop · k tonnes"))
+            for crp, held in (("Main", "Held to mid"), ("Mid", "Held to main")):
+                out.append(row(f"{crp} · Tree", _row(S, f"{cty} {crp} Tree", years), "b", f"{cty} {crp} Tree"))
+                for k, lab in (("Carry-in", "Carry-in"), ("Smuggling GH", "Smuggling GH"), ("Smuggling Other", "Smuggling other"), ("Held", held)):
+                    out.append(row(lab, _row(S, f"{cty} {crp} {k}", years), "", f"{cty} {crp} {k}"))
+                out.append(row(f"{crp} · Stat crop", crop(S, years, cty, crp, "Statistical"), "bal", always=True))
+            out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
+    else:
+        out.append(head("Origins, grind & stock"))
+        for cty, cname in COUNTRY.items():
+            for crp in ("Main", "Mid"):
+                out.append(row(f"{cname} {crp.lower()} (tree)", _row(S, f"{cty} {crp} Tree", years), "", f"{cty} {crp} Tree"))
+        for code, name in OTHERS:
+            out.append(row(name, _row(S, code, years), "", code))
+        out.append(row("Grind", _row(S, "Grind", years), "b", "Grind"))
+        out.append(row(f"Stock (typed to {ANCHOR[2:]})", _row(S, "Stock", years), "", "Stock"))
     if allrows:
         out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
         out.append(head("Balance"))
@@ -296,7 +304,7 @@ def _undo():
         pass
 
 
-def edit_view(S, years):
+def edit_view(S, years, part="snd"):
     import tableedit
     editable = gh.enabled()
     epoch = st.session_state.setdefault("co_epoch", 0)
@@ -312,9 +320,9 @@ def edit_view(S, years):
     changes = [(k.split("|")[0], k.split("|")[1], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
     allrows = st.session_state.get("co_rows") != "Show only editable"
     E = dict(base=base, changed=set(edits), all=allrows)
-    table = edit_html(_apply(S, changes), years, E)
+    table = edit_html(_apply(S, changes), years, E, part)
     if changes:                                                  # tint every calculated cell the unsaved edits move
-        table = tableedit.mark_moved(table, edit_html(S, years, E))
+        table = tableedit.mark_moved(table, edit_html(S, years, E, part))
     ctrl = st.container()
     bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")
     bar.radio("Rows", ["Show all rows", "Show only editable"], horizontal=True, key="co_rows", label_visibility="collapsed")

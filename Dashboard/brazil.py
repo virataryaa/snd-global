@@ -502,12 +502,12 @@ def render(view="Brazil SnD"):
             span = st.radio("Years", ["All", "Last 10"], horizontal=True, key="br_span")
             st.toggle("Detailed ratios", value=False, key="br_detail")
         with (MODE_SLOT or st.sidebar), st.container(key="mode_nav"):
-            mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="br_mode", label_visibility="collapsed")
+            mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="snd_mode", label_visibility="collapsed")   # shared with Global
     shown = years if span == "All" else years[-10:]
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))
     title = "Brazil Internal SnD" if view == "Brazil SnD" else "AgriAcies format"
-    editing = view == "Brazil SnD" and st.session_state.get("br_mode") == "Edit"
+    editing = view == "Brazil SnD" and st.session_state.get("snd_mode") == "Edit"
     head = f"<span class='t edit'>Edit {title}</span>" if editing else f"<span class='t'>{title}</span>"
     st.markdown(f"<div class='snd-head'>{head}</div>", unsafe_allow_html=True)
     if view == "AgriAcies format":
