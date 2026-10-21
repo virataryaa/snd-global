@@ -188,11 +188,13 @@ def table_html(title, T, years, compact=False) -> str:
     return "".join(out)
 
 
-def detail_html(S, years) -> str:
+def detail_html(S, years, ctys=("IC", "GH")) -> str:
     """Ivory Coast / Ghana: how each tree crop becomes the statistical crop (Trend + revision dots like the balance)."""
     hist = cell_history()
     out = []
     for cty, cname in COUNTRY.items():
+        if cty not in ctys:
+            continue
         out.append(_head(cname, years, "Tree → statistical crop · k tonnes"))
         for part, held in (("Main", "Held to mid"), ("Mid", "Held to main")):
             rows = [("Tree", _row(S, f"{cty} {part} Tree", years), "b", f"{cty} {part} Tree"),
@@ -249,7 +251,9 @@ def render():
                     "Statistical crop = Tree + carry-in + smuggling + held.</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div class='snd-head'><span class='t'>Ivory Coast & Ghana crop detail</span></div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='snd-wrap'><table class='snd'>{detail_html(S, shown)}</table></div>", unsafe_allow_html=True)
+        for col, cty in zip(st.columns(2, gap="small"), ("IC", "GH")):        # Ivory Coast | Ghana, compact
+            col.markdown(f"<div class='snd-wrap cmp'><table class='snd cmp'>{detail_html(S, shown, (cty,))}</table></div>",
+                         unsafe_allow_html=True)
 
 
 # ── Edit mode ─────────────────────────────────────────────────────────────────
@@ -277,14 +281,14 @@ def edit_html(S, years, edit, part="snd") -> str:
     """part: "snd" = tree crops, other origins, grind, stock; "detail" = IC / GH tree, adjustments and stat crop."""
     """One table holding every input (editable cells) and the numbers they drive (calculated cells)."""
     allrows = edit.get("all")
-    ncol = len(years) + 1
+    ncol = len(years) + 2                                         # + Trend
 
     def head(title, sub="Oct–Sep · k tonnes"):
         return (f"<tr class='comm'><th colspan='{ncol}'>{title}<span class='crop'>{sub}</span></th></tr>"
                 "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if is_est(y) else ''}'>{y[2:]}{'*' if is_est(y) else ''}</th>"
-                                                         for y in years) + "</tr>")
+                                                         for y in years) + "<th class='y spark-h'>Trend</th></tr>")
 
-    def row(label, vals, kind="", series=None, f=0, always=False):
+    def row(label, vals, kind="", series=None, f=0, always=False, bars=False):
         if not allrows and series is None and not always:
             return ""
         cells = ""
@@ -298,21 +302,25 @@ def edit_html(S, years, edit, part="snd") -> str:
                 cls += "ed" + (" chg" if k in edit["changed"] else "")
                 attrs = f" data-k='{k}' data-base='{'' if b is None or pd.isna(b) else b}'"
             cells += f"<td class='{cls.strip()}'{attrs}>{_fmt(v, f)}</td>"
-        return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}</tr>"
+        pairs = [(y, vals[y]) for y in years]
+        spark = (snd.sparkline_balance(pairs, label) if bars or kind == "bal"           # adjustments / balances: red-green bars
+                 else snd.sparkline(pairs, label, "plain" if f in ("p0", "p1") else "growth"))
+        return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}<td class='spark-td'>{spark}</td></tr>"
 
-    out = []
+    out, pair = [], ""
     if part == "detail":
         for cty, cname in COUNTRY.items():
-            out.append(head(cname, "Tree → statistical crop · k tonnes"))
+            out = [head(cname, "Tree → statistical crop · k tonnes")]
             for crp, held in (("Main", "Held to mid"), ("Mid", "Held to main")):
                 out.append(row(f"{crp} · Tree", _row(S, f"{cty} {crp} Tree", years), "b", f"{cty} {crp} Tree"))
                 for k, lab in (("Carry-in", "Carry-in"), ("Smuggling GH", "Smuggling GH"), ("Smuggling Other", "Smuggling other"), ("Held", held)):
                     if cty == "GH" and k == "Smuggling GH":           # mirror of Ivory Coast: shown, not typed
-                        out.append(row("Smuggling IC (= − IC)", adj(S, years, cty, crp, k), "soft", always=True))
+                        out.append(row("Smuggling IC (= − IC)", adj(S, years, cty, crp, k), "soft", always=True, bars=True))
                     else:
-                        out.append(row(lab, _row(S, f"{cty} {crp} {k}", years), "", f"{cty} {crp} {k}"))
+                        out.append(row(lab, _row(S, f"{cty} {crp} {k}", years), "", f"{cty} {crp} {k}", bars=True))
                 out.append(row(f"{crp} · Stat crop", crop(S, years, cty, crp, "Statistical"), "bal", always=True))
-            out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
+            pair += f"<div class='snd-wrap cmp'><table class='snd cmp'>{''.join(out)}</table></div>"
+        out = []                                                  # the Balance (all rows) goes full width below the pair
     else:
         out.append(head("Origins, grind & stock"))
         for cty, cname in COUNTRY.items():
@@ -323,14 +331,16 @@ def edit_html(S, years, edit, part="snd") -> str:
         out.append(row("Grind", _row(S, "Grind", years), "b", "Grind"))
         out.append(row(f"Stock (typed to {ANCHOR[2:]})", _row(S, "Stock", years), "", "Stock"))
     if allrows:
-        out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
+        if out:
+            out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
         out.append(head("Balance"))
         for basis in ("Botanical", "Statistical"):
             T = balance(S, years, basis)
             b = basis[:3] + "."
             out += [row(f"Total ×0.99 ({b})", T.loc["Total"], "b"), row(f"SnD ({b})", T.loc["SnD"], "bal"),
                     row(f"Stock ({b})", T.loc["Stock proxy"], ""), row(f"STU ({b})", T.loc["STU"], "soft", f="p1")]
-    return f"<div class='snd-wrap'><table class='snd'>{''.join(out)}</table></div>"
+    full = f"<div class='snd-wrap'><table class='snd'>{''.join(out)}</table></div>" if out else ""
+    return (f"<div class='co-pair'>{pair}</div>" if pair else "") + full
 
 
 def _show(v):

@@ -59,6 +59,11 @@ table.snd tr.bal td { background: #e8eefb; font-weight: 700; border-bottom: 1px 
 table.snd tr.bal td.fc { background: #dfe8f9; }
 table.snd tr.bal td.lbl { color: #0a2463; }
 table.snd tr.soft td { color: #64748b; }
+table.snd.cmp td, table.snd.cmp th.y { padding: 3px 6px !important; font-size: 11px !important; }
+table.snd.cmp td.lbl { white-space: nowrap; }
+.snd-wrap.cmp { padding: 6px 8px 8px; }
+.co-pair { display: flex; gap: 10px; align-items: flex-start; }
+.co-pair > .snd-wrap { flex: 1 1 0; min-width: 0; }
 table.snd tr.hl td { background: #fff8ee !important; color: #8a4a12 !important; font-weight: 600; }
 table.snd tr.hl td.lbl { color: #8a4a12 !important; }
 table.snd tr.soft td.lbl { color: #94a3b8; }
