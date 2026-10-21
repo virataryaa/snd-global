@@ -54,7 +54,7 @@ def _row(S, name, years):
 def adj(S, years, cty, part, k):
     """One statistical adjustment. Rule: Ghana's IC<->GH smuggling is the mirror of Ivory Coast's (typed on the IC side only)."""
     if cty == "GH" and k == "Smuggling GH":
-        return -_row(S, f"IC {part} Smuggling GH", years)
+        return 0.0 - _row(S, f"IC {part} Smuggling GH", years)     # 0.0 - x, not -x: keeps zeros as 0 (not "-0")
     return _row(S, f"{cty} {part} {k}", years)
 
 
@@ -207,7 +207,9 @@ def detail_html(S, years) -> str:
                 cells = "".join(_cell(vals[y], y, fnum(vals[y], 0),
                                       ("fc " if is_est(y) else "") + ("neg" if pd.notna(vals[y]) and vals[y] < 0 and kind != "b" else ""),
                                       f"{cname} {label}", hist.get((series, y)) if series else None) for y in years)
-                spark = snd.sparkline([(y, vals[y]) for y in years], f"{cname} {label}", "growth") if kind in ("b", "bal") else ""
+                pairs = [(y, vals[y]) for y in years]
+                spark = (snd.sparkline(pairs, f"{cname} {label}", "growth") if kind in ("b", "bal")
+                         else snd.sparkline_balance(pairs, f"{cname} {label}"))         # adjustments: red / green bars
                 out.append(f"<tr class='{'b' if kind else 'soft'}'><td class='lbl'>{label}</td>{cells}<td class='spark-td'>{spark}</td></tr>")
         tree = crop(S, years, cty, "Main", "Botanical") + crop(S, years, cty, "Mid", "Botanical")
         stat = crop(S, years, cty, "Main", "Statistical") + crop(S, years, cty, "Mid", "Statistical")
