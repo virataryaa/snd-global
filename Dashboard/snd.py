@@ -581,7 +581,8 @@ def render():
     a, r = block(df, meta, "Arabica", years), block(df, meta, "Robusta", years)
     glob = global_block(a, r, years)
     combo = a.loc["Brazil"] + r.loc["Brazil"]
-    st.markdown("<div class='snd-head'><span class='t'>Global SnD</span><span class='s'>Jul–Jun · m bags · * estimate</span></div>", unsafe_allow_html=True)
+    head = "<span class='t' style='color:#c2410c'>Edit Global SnD</span>" if mode == "Edit" else "<span class='t'>Global SnD</span>"
+    st.markdown(f"<div class='snd-head'>{head}<span class='s'>Jul–Jun · m bags · * estimate</span></div>", unsafe_allow_html=True)
     if mode == "Edit":
         render_edit(df, meta, notes, years, shown, gh.enabled())
         return
