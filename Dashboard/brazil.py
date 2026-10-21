@@ -374,7 +374,7 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     bc = st.columns([1, 1, 5, 3], vertical_alignment="center")
     save = bc[0].button("Save", type="primary", disabled=(not changes) or bad, width="stretch", key="br_save")
     bc[1].button("Undo", disabled=not changes, width="stretch", key="br_undo", on_click=_undo)
-    reason = bc[2].text_input("Reason", key=f"br_reason_{epoch}", placeholder="Reason for the change, shown in Revisions (e.g. CCS adjustment, weather shock)",
+    reason = bc[2].text_input("Reason", key=f"br_reason_{epoch}", placeholder="Reason for Change...",
                               label_visibility="collapsed", max_chars=140, disabled=not changes)
     if changes:
         bc[3].markdown(f"<div class='card-desc' style='margin:0'>{len(changes)} unsaved change(s)</div>", unsafe_allow_html=True)
