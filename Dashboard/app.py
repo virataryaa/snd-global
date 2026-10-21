@@ -21,7 +21,7 @@ html, body, [class*="css"], [data-testid="stAppViewContainer"], .stMarkdown, but
 [data-testid="stSidebar"] { background: #f0f2f8 !important; border-right: 1px solid #dfe3ee; }
 h1, h2, h3, h4, h5, h6 { color: #0a2463 !important; letter-spacing: -.01em; }
 body, .main { color: #1a1a2e; }
-.block-container { padding-top: 3rem; max-width: 1500px; }
+.block-container { padding-top: 1.6rem; max-width: 1500px; }
 
 /* Radio as pill / segmented control */
 div[role="radiogroup"] { background: #eef0f6; padding: 4px; border-radius: 999px; gap: 2px; display: inline-flex; flex-wrap: wrap; }
@@ -56,8 +56,15 @@ button[kind="pillsActive"] p, button[kind="segmented_controlActive"] p { color: 
 /* Pill tabs (Streamlit's tab strip clips overflow, which crops the track) */
 .stTabs, .stTabs > div, .stTabs [data-baseweb="tab-list"] { overflow: visible !important; }
 .stTabs [data-baseweb="tab-list"] { background: #eef0f6; padding: 4px; border-radius: 999px; gap: 2px; width: fit-content;
-                                    max-width: 100%; flex-wrap: wrap; margin: 8px 0 14px; }
-.stTabs [data-baseweb="tab"] { border-radius: 999px; padding: 6px 18px; height: auto; min-height: 0; background: transparent; }
+                                    max-width: 100%; flex-wrap: wrap; margin: 0 0 2px; }
+.stTabs [data-baseweb="tab"] { border-radius: 999px; padding: 3px 14px; height: auto; min-height: 0; background: transparent; }
+.stTabs [data-baseweb="tab"] p { font-size: 13px !important; }
+.stTabs [data-baseweb="tab-panel"] { padding-top: 6px !important; }
+/* page-level switches (e.g. Global / Brazil): slimmer track */
+.st-key-snd_page div[role="radiogroup"] { padding: 2px; }
+.st-key-snd_page div[role="radiogroup"] label { padding: 2px 11px !important; }
+.st-key-snd_page div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 11px !important; }
+[data-testid="stMain"] [data-testid="stVerticalBlock"] { gap: .55rem; }
 .stTabs [aria-selected="true"] { background: #0a2463 !important; color: #ffffff !important; }
 .stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] { display: none; }
 
@@ -70,7 +77,7 @@ button[kind="pillsActive"] p, button[kind="segmented_controlActive"] p { color: 
 [data-testid="stSidebar"] [data-baseweb="checkbox"] p { font-size: 12.5px; color: #3a4466; }
 
 /* Page text and cards */
-.page-title, .snd-head .t { color: #0a2463 !important; font-weight: 700; font-size: 1.25rem; margin: 0 0 8px 0; letter-spacing: -.01em; }
+.page-title, .snd-head .t { color: #0a2463 !important; font-weight: 700; font-size: 1.15rem; margin: 0 0 4px 0; letter-spacing: -.01em; }
 .card-title, .chart-head { color: #0a2463; font-weight: 600; font-size: .9rem; margin-bottom: 4px; letter-spacing: -.005em; }
 .card-desc { color: #5a6688; font-size: .8rem; margin-top: -4px; margin-bottom: 8px; }
 .pill { display: inline-block; background: #eef0f6; color: #5a6688; font-size: 10.5px; font-weight: 600;
