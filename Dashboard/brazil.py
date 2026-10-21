@@ -365,11 +365,11 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
         ref = full_table(A0, C0, O0, years, edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "All rows"))
         table = tableedit.mark_moved(table, ref)
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
-    ctrl.markdown("<div class='card-desc' style='margin:0 0 4px'>Rule: Arabica consumption + Conillon consumption = Overall consumption. "
-                  "Edit Arabica and Overall; Conillon is worked out as Overall minus Arabica.</div>", unsafe_allow_html=True)
     bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")   # one compact row, left-aligned
     bar.radio("Rows", ["Editable", "All rows"], horizontal=True, key="edit_rows", label_visibility="collapsed")
     tableedit.editable_table(table, tableedit.css_of(snd.CSS), "br_tbl", epoch, editable, edits)
+    st.markdown("<div class='card-desc' style='margin:4px 0 0'>Rule: Arabica consumption + Conillon consumption = Overall consumption. "
+                "Edit Arabica and Overall; Conillon is worked out as Overall minus Arabica.</div>", unsafe_allow_html=True)
     st.session_state["_br_edits"] = dict(edits)
     if not editable:
         ctrl.markdown("<div class='card-desc'>Read-only: add github_token in Secrets to edit.</div>", unsafe_allow_html=True)
