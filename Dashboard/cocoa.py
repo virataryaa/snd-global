@@ -2,6 +2,7 @@
 
 Inputs live in Database/cocoa_snd.csv (series, year, value). Ivory Coast (IC) and Ghana (GH) each have a Main and a Mid crop:
   Botanical crop = Tree.  Statistical crop = Tree + Carry-in + Smuggling GH + Smuggling Other + Held (to Mid / to Main).
+  Rule: Ghana's IC<->GH smuggling = minus Ivory Coast's (typed on the IC side only).
 Total = sum of origins x 0.99 · SnD = Total - Grind · Stock is typed up to 20/21 and from then on = previous stock + SnD.
 """
 import html
@@ -50,11 +51,18 @@ def _row(S, name, years):
     return S.loc[name].reindex(years).astype(float) if name in S.index else pd.Series(np.nan, index=years)
 
 
+def adj(S, years, cty, part, k):
+    """One statistical adjustment. Rule: Ghana's IC<->GH smuggling is the mirror of Ivory Coast's (typed on the IC side only)."""
+    if cty == "GH" and k == "Smuggling GH":
+        return -_row(S, f"IC {part} Smuggling GH", years)
+    return _row(S, f"{cty} {part} {k}", years)
+
+
 def crop(S, years, cty, part, basis):
     tree = _row(S, f"{cty} {part} Tree", years)
     if basis == "Botanical":
         return tree
-    return tree + sum(_row(S, f"{cty} {part} {k}", years).fillna(0) for k in ADJ)
+    return tree + sum(adj(S, years, cty, part, k).fillna(0) for k in ADJ)
 
 
 def balance(S, years, basis) -> pd.DataFrame:
@@ -143,7 +151,7 @@ def detail_html(S, years) -> str:
         for part, held in (("Main", "Held to mid"), ("Mid", "Held to main")):
             rows = [("Tree", _row(S, f"{cty} {part} Tree", years), "b"),
                     ("Carry-in", _row(S, f"{cty} {part} Carry-in", years), ""),
-                    ("Smuggling GH", _row(S, f"{cty} {part} Smuggling GH", years), ""),
+                    ("Smuggling GH" if cty == "IC" else "Smuggling IC (= − IC)", adj(S, years, cty, part, "Smuggling GH"), ""),
                     ("Smuggling other", _row(S, f"{cty} {part} Smuggling Other", years), ""),
                     (held, _row(S, f"{cty} {part} Held", years), ""),
                     ("Stat crop", crop(S, years, cty, part, "Statistical"), "bal")]
@@ -246,7 +254,10 @@ def edit_html(S, years, edit, part="snd") -> str:
             for crp, held in (("Main", "Held to mid"), ("Mid", "Held to main")):
                 out.append(row(f"{crp} · Tree", _row(S, f"{cty} {crp} Tree", years), "b", f"{cty} {crp} Tree"))
                 for k, lab in (("Carry-in", "Carry-in"), ("Smuggling GH", "Smuggling GH"), ("Smuggling Other", "Smuggling other"), ("Held", held)):
-                    out.append(row(lab, _row(S, f"{cty} {crp} {k}", years), "", f"{cty} {crp} {k}"))
+                    if cty == "GH" and k == "Smuggling GH":           # mirror of Ivory Coast: shown, not typed
+                        out.append(row("Smuggling IC (= − IC)", adj(S, years, cty, crp, k), "soft", always=True))
+                    else:
+                        out.append(row(lab, _row(S, f"{cty} {crp} {k}", years), "", f"{cty} {crp} {k}"))
                 out.append(row(f"{crp} · Stat crop", crop(S, years, cty, crp, "Statistical"), "bal", always=True))
             out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
     else:
