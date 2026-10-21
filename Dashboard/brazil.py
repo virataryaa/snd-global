@@ -52,10 +52,13 @@ def compute(inp, etg_a, etg_r, years, meta):
     S = {s: inp[inp["series"] == s].set_index("year")["value"].reindex(years).astype(float) for s in SERIES}
     # Brazil production is linked to the Global SnD table's Brazil rows (one source; Brazil-page edits save there)
     pa, pc = etg_a.reindex(years).astype(float), etg_r.reindex(years).astype(float)
-    ea, gx, sx, share = S["Arabica exports"], S["Green exports"], S["Soluble exports"], S["Conillon demand %"]
+    ea, gx, sx = S["Arabica exports"], S["Green exports"], S["Soluble exports"]
+    # rule: Arabica consumption + Conillon consumption = Overall consumption. Arabica and Overall are the inputs;
+    # Conillon is what's left, and its demand share follows (older years without an Arabica input use the stored share)
     overall = S["Overall consumption"].fillna(S["Arabica consumption"] + S["Conillon consumption"])
-    ca = S["Arabica consumption"].fillna((1 - share) * overall)
-    cc = S["Conillon consumption"].fillna(share * overall)
+    ca = S["Arabica consumption"].fillna((1 - S["Conillon demand %"]) * overall)
+    cc = overall - ca
+    share = cc / overall
     eff = {"Arabica production": pa, "Arabica exports": ea, "Arabica consumption": ca, "Conillon production": pc, "Green exports": gx,
            "Soluble exports": sx, "Conillon consumption": cc, "Conillon demand %": share, "Overall consumption": overall}
 
@@ -138,8 +141,7 @@ LAYOUT = {
 EDITABLE = {
     "Arabica": {"Production": "Arabica production", "Exports": "Arabica exports", "Consumption": "Arabica consumption"},
     "Conillon": {"Production": "Conillon production", "Green Exports": "Green exports", "Soluble Exports": "Soluble exports",
-                 "Consumption": "Conillon consumption", "Demand as % of total": "Conillon demand %",
-                 "Overall Consumption Brazil": "Overall consumption"},
+                 "Overall Consumption Brazil": "Overall consumption"},   # Conillon consumption = Overall - Arabica (calculated)
     "Overall Brazil": {},
 }
 
@@ -352,6 +354,8 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     A, C, O, _eff = compute(_apply(inp, rest), *_linked_etg(etg_a, etg_r, prod), years, live_meta)
     table = full_table(A, C, O, years, edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") == "All rows"))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
+    ctrl.markdown("<div class='card-desc' style='margin:0 0 4px'>Rule: Arabica consumption + Conillon consumption = Overall consumption. "
+                  "Edit Arabica and Overall; Conillon is worked out as Overall minus Arabica.</div>", unsafe_allow_html=True)
     bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")   # one compact row, left-aligned
     bar.radio("Rows", ["Editable", "All rows"], horizontal=True, key="edit_rows", label_visibility="collapsed")
     tableedit.editable_table(table, tableedit.css_of(snd.CSS), "br_tbl", epoch, editable, edits)
