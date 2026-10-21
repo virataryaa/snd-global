@@ -523,7 +523,7 @@ def render(view="Brazil SnD"):
             st.toggle("Detailed ratios", value=False, key="br_detail")
         with (MODE_SLOT or st.sidebar), st.container(key="mode_nav"):
             mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="snd_mode", label_visibility="collapsed")   # shared with Global
-    shown = years[-7:] if st.session_state.get("yrs_span", "Last 7") == "Last 7" else years
+    shown = years[-7:] if st.session_state.get("yrs_span", "All") == "Last 7" else years
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))
     title = "Brazil Internal SnD" if view == "Brazil SnD" else "AgriAcies format"

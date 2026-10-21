@@ -30,7 +30,7 @@ with st.sidebar:
     section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Sensitivity", "Revisions"],
                        key="section", label_visibility="collapsed")
     st.markdown("<div class='sb-sep'></div><div class='sb-label'>Crop years</div>", unsafe_allow_html=True)
-    st.radio("Crop years", ["Last 7", "All"], horizontal=True, key="yrs_span", label_visibility="collapsed")
+    st.radio("Crop years", ["Last 7", "All"], index=1, horizontal=True, key="yrs_span", label_visibility="collapsed")   # coffee: all by default
 
 
 def _snd():
