@@ -63,10 +63,14 @@ def _rows(dataset):
 PALETTE = ["#0a2463", "#3e5fa8", "#1f8a9c", "#b7791f", "#1f9d6f", "#c0392b", "#8a5fb0", "#7f9bd1", "#e2b768", "#94a3b8", "#0f172a", "#8fc7d0", "#c9a227", "#d9534f"]
 
 
-def _revert(dataset, grp: pd.DataFrame):
-    """Set every cell in one saved commit back to what it was before that save — as a new save, so the log keeps the full history."""
+HIDDEN = ("revert of ", "deleted ")    # reasons of saves that undo another save (old "revert of" + new "deleted")
+
+
+def _delete(dataset, grp: pd.DataFrame):
+    """Delete one save: its cells go back to what they were before it. Git history can't be rewritten, so this is a new
+    save whose reason names the deleted one; the views hide both."""
     when = grp["when"].iloc[0]
-    reason = f"revert of {when:%d %b %Y %H:%M}"               # never embed the old reason: reverting a revert would chain forever
+    reason = f"deleted {when:%d %b %Y %H:%M}"
     if dataset == "Coffee SnD":
         changes = [(r.group, r.item, r.year, r.new, None if pd.isna(r.old) else float(r.old)) for r in grp.itertuples()]
         snd._save_inputs(changes, reason)
@@ -100,9 +104,8 @@ def revision_lines(sub: pd.DataFrame, level: bool, with_commodity: bool):
 
 def render():
     st.markdown(snd.CSS + analytics.CSS + "<style>"
-                ".undo-row { display: flex; align-items: center; gap: 10px; padding: 7px 2px; border-bottom: 1px solid rgba(0,0,0,.06); "
-                "font-size: 12px; } .undo-dt { color: #94a3b8; font-size: 10.5px; white-space: nowrap; min-width: 110px; } "
-                ".undo-items { color: #1d1d1f; } .undo-why { color: #94a3b8; font-style: italic; }</style>", unsafe_allow_html=True)
+                ".rv-row { font-size: 12.5px; color: #1a1a2e; padding-top: 7px; } .rv-row.m { color: #8a94a8; } "
+                ".rv-row.g { color: #0a2463; font-weight: 600; }</style>", unsafe_allow_html=True)
     st.markdown("<div class='snd-head'><span class='t'>Revisions</span><span class='s'></span></div>",
                 unsafe_allow_html=True)
     dataset = st.radio("Dataset", ["Coffee SnD", "Brazil SnD"], horizontal=True, key="rv_set", label_visibility="collapsed")
@@ -114,6 +117,9 @@ def render():
     except Exception as ex:
         st.markdown(f"<div class='an-note'>Not available: {ex}</div>", unsafe_allow_html=True)
         return
+    undo = rv["reason"].str.startswith(HIDDEN, na=False)
+    gone = set(rv.loc[undo, "reason"].str.replace("|".join(HIDDEN), "", regex=True).str.strip())
+    rv = rv[~undo & ~rv["when"].dt.strftime("%d %b %Y %H:%M").isin(gone)]
     if rv.empty:
         st.markdown("<div class='an-note'>No revisions saved yet.</div>", unsafe_allow_html=True)
         return
@@ -129,9 +135,7 @@ def render():
             sub = sub[sub["group"] == group]
         card(f"How every estimate for {year} was revised", "each line is one origin or item · each point is a saved revision")
         st.plotly_chart(revision_lines(sub, mode == "Level", dataset == "Coffee SnD" and group == "All"), width="stretch", key="rv_lines")
-    last = rv.sort_values("when", ascending=False).head(30)
-    is_revert = last["reason"].str.startswith("revert of", na=False)
-    real = last[~is_revert]                                    # the top table: actual edits only, no "revert of revert of ..." noise
+    real = rv.sort_values("when", ascending=False).head(30)
     body = "".join(f"<tr><td class='lbl'>{r.when:%d %b %Y %H:%M}</td><td class='lbl'>{r.group} {r.item}</td><td>{r.year}</td>"
                    f"<td>{fnum(r.old)}</td><td>{fnum(r.new)}</td>"
                    f"<td class='{'neg' if pd.notna(r.effect) and r.effect < 0 else ''}'>{'' if pd.isna(r.effect) else format(r.effect, '+.1f')}</td>"
@@ -146,31 +150,22 @@ def render():
         return ", ".join(f"{r.group + ' ' if r.group != 'Brazil' else ''}{r.item} {r.year}: {fnum(r.old)} &rarr; {fnum(r.new)}"
                          for r in grp.itertuples())
 
-    groups = list(real.groupby("when", sort=False))              # actionable: undo one of the real edits above
-    revert_groups = list(last[is_revert].groupby("when", sort=False))
-    if groups and gh.enabled():
-        with st.expander(f"Undo a save ({len(groups)})", expanded=False):
-            st.markdown("<div class='card-desc'>Sets that save's cells back to what they were before it — recorded as a new revision, "
-                        "nothing above is erased.</div>", unsafe_allow_html=True)
-            for ts, grp in groups:
-                why = grp["reason"].iloc[0]
-                c1, c2 = st.columns([7, 1], vertical_alignment="center")
-                c1.markdown(f"<div class='undo-row'><span class='undo-dt'>{ts:%d %b %Y, %H:%M}</span>"
-                            f"<span class='undo-items'>{_items(grp)}</span>"
-                            + (f"<span class='undo-why'>{html.escape(why)}</span>" if why else "") + "</div>", unsafe_allow_html=True)
-                if c2.button("Revert", key=f"rv_undo_{dataset}_{ts.value}", width="stretch"):
-                    try:
-                        with st.spinner("Reverting..."):
-                            _revert(dataset, grp)
-                    except Exception as ex:
-                        st.error(f"Revert failed: {ex}")
-                    else:
-                        st.toast("Reverted.")
-                        st.rerun()
-    if revert_groups and gh.enabled():
-        with st.expander(f"Revert log ({len(revert_groups)})", expanded=False):
-            st.markdown("<div class='card-desc'>Every revert that's been saved, on its own, separate from the real edits above.</div>",
-                        unsafe_allow_html=True)
-            for ts, grp in revert_groups:
-                st.markdown(f"<div class='undo-row'><span class='undo-dt'>{ts:%d %b %Y, %H:%M}</span>"
-                           f"<span class='undo-items'>{_items(grp)}</span></div>", unsafe_allow_html=True)
+    st.markdown("<div class='snd-bar' style='margin-top:14px'>Saved revisions</div>"
+                "<div class='card-desc'>Delete puts that save's numbers back and removes it from the log.</div>",
+                unsafe_allow_html=True)
+    for ts, grp in real.groupby("when", sort=False):
+        why = grp["reason"].iloc[0]
+        c = st.columns([1.3, 4.2, 2.6, 0.8], vertical_alignment="center")
+        c[0].markdown(f"<div class='rv-row'><b>{ts:%a %d %b %Y}</b><br><span style='color:#8a94a8;font-size:11px'>{ts:%H:%M}</span></div>",
+                      unsafe_allow_html=True)
+        c[1].markdown(f"<div class='rv-row g'>{_items(grp)}</div>", unsafe_allow_html=True)
+        c[2].markdown(f"<div class='rv-row m'>{html.escape(why) if why else 'no reason given'}</div>", unsafe_allow_html=True)
+        if c[3].button("Delete", key=f"rv_del_{dataset}_{ts.value}", width="stretch"):
+            try:
+                with st.spinner("Deleting..."):
+                    _delete(dataset, grp)
+            except Exception as ex:
+                st.error(f"Delete failed: {ex}")
+            else:
+                st.toast("Deleted.")
+                st.rerun()
