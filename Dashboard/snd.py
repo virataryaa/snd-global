@@ -334,6 +334,8 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
         return f"<tr><th class='y first'></th>{cells}<th class='y spark-h'>Trend</th></tr>"
 
     def tr(label, vals, kind="", fmt=fnum, comm=None, item=None, neg_red=False, editable=True):
+        if edit and not (comm and item and editable):          # Edit mode shows only the input rows
+            return ""
         cells = ""
         for y in shown:
             v = vals[y]
@@ -387,6 +389,8 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
         out.append(tr("S/U", fr.loc["S/U"], "soft", (lambda v: fpct(v, 1 if comm == "Arabica" else 0))))
         if comm == "Robusta":
             out.append(tr("Robusta demand share", glob.loc["Robusta demand share"], "soft", lambda v: fpct(v, 0)))
+    if edit:                                                    # the Global block is all calculated: nothing to edit
+        return f"<div class='snd-wrap'><table class='snd'>{''.join(out)}</table></div>"
     out.append(f"<tr class='gap'><td colspan='{ncol}'></td></tr>")
     out.append(f"<tr class='comm'><th colspan='{ncol}'>Global</th></tr>")
     out.append(head(None))

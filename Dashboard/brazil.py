@@ -179,6 +179,8 @@ def block_html(title, fr, shown, edit=None, hist=None) -> str:
            "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if snd.is_estimate(y) else ''}'>{short(y)}{'*' if snd.is_estimate(y) else ''}</th>"
                                                     for y in shown) + "<th class='y spark-h'>Trend</th></tr>"]
     for label, kind, fmt in LAYOUT[title]:
+        if edit and label not in EDITABLE[title]:              # Edit mode shows only the input rows
+            continue
         neg = label == "Stock Change"
         series = EDITABLE[title].get(label) if edit else None
         hseries = EDITABLE[title].get(label)                  # revision history is keyed the same way, independent of edit mode
@@ -213,8 +215,9 @@ def block_html(title, fr, shown, edit=None, hist=None) -> str:
 def full_table(A, C, O, shown, edit=None) -> str:
     hist = cell_history()
     gap = f"<tr class='gap'><td colspan='{len(shown) + 2}'></td></tr>"
-    return (f"<div class='snd-wrap'><table class='snd'>{block_html('Arabica', A, shown, edit, hist)}{gap}{block_html('Conillon', C, shown, edit, hist)}{gap}"
-            f"{block_html('Overall Brazil', O, shown, edit, hist)}</table></div>")
+    overall = "" if edit else f"{gap}{block_html('Overall Brazil', O, shown, edit, hist)}"     # no inputs in Overall Brazil
+    return (f"<div class='snd-wrap'><table class='snd'>{block_html('Arabica', A, shown, edit, hist)}{gap}{block_html('Conillon', C, shown, edit, hist)}"
+            f"{overall}</table></div>")
 
 
 # ── AgriAcies format ──────────────────────────────────────────────────────────
