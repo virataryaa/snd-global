@@ -157,8 +157,7 @@ def whatif(df, meta, years):
     st.session_state.setdefault("sc_scope", "Combined")
 
     with st.sidebar:
-        st.markdown("<div class='sb-label'>Change in</div>", unsafe_allow_html=True)
-        unit = st.radio("Change in", UNITS, horizontal=True, key="sc_unit", label_visibility="collapsed")
+        unit = "m bags"                                   # changes are typed in million bags
         st.markdown("<div class='sb-label'>Apply to crop years</div>", unsafe_allow_html=True)
         sel = st.multiselect("Apply to crop years", opts, key="sc_years", label_visibility="collapsed")
         st.button("Reset", key="sc_reset", on_click=_reset, width="stretch")
@@ -318,7 +317,8 @@ def sensitivity(df, meta, years):
     with st.container(border=True, key="sn_controls"):
         st.radio("Commodity", SENS_SCOPES, horizontal=True, key="sc_scope", label_visibility="collapsed")
         c = st.columns([0.8, 0.8, 0.85, 1.0, 1.0, 0.75, 0.75], gap="small", vertical_alignment="bottom")
-        unit = c[0].radio("Step in", ["%", "m bags"], horizontal=True, key="sn_unit")
+        unit = "m bags"                                       # steps are in million bags
+        c[0].markdown("<div class='card-desc' style='margin:0 0 8px'>Step in m bags</div>", unsafe_allow_html=True)
         skey = f"sn_step_{unit}"
         step = c[1].number_input("Step (Mn)" if unit == "m bags" else "Step (%)", min_value=0.1,
                                  value=float(st.session_state.get(skey) or (5.0 if unit == "m bags" else 1.0)),

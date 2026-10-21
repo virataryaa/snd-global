@@ -94,17 +94,20 @@ def scenario_page():
         default = [y for y in years if cocoa.is_est(y)] or years[-1:]
         apply_to = st.multiselect("Apply to crop years", years, default=default, format_func=lambda y: y[2:], key="co_sc_years")
         cols = st.columns(len(LEVERS))
-        pct = {k: cols[i].number_input(f"{k} (%)", min_value=-50.0, max_value=50.0, value=0.0, step=1.0, key=f"co_sc_{i}")
-               for i, k in enumerate(LEVERS)}
+        chg = {k: cols[i].number_input(f"{k} (k t)", min_value=-3000.0, max_value=3000.0, value=0.0, step=10.0, format="%.0f",
+                                       key=f"co_sc_{i}") for i, k in enumerate(LEVERS)}
         if st.button("Reset", key="co_sc_reset"):
             for i in range(len(LEVERS)):
                 st.session_state[f"co_sc_{i}"] = 0.0
             st.rerun()
     S2 = S.copy()
-    for lever, series in LEVERS.items():
-        for s in series:
-            if s in S2.index:
-                S2.loc[s, apply_to] = S2.loc[s, apply_to] * (1 + pct[lever] / 100)
+    for lever, series in LEVERS.items():                       # a k-tonne change, spread over the lever's parts by their size
+        series = [s for s in series if s in S2.index]
+        for y in apply_to:
+            parts = S2.loc[series, y].fillna(0)
+            tot = parts.sum()
+            share = parts / tot if tot else pd.Series(1 / len(series), index=series)
+            S2.loc[series, y] = parts + chg[lever] * share
     B0, B1 = cocoa.balance(S, years, basis), cocoa.balance(S2, years, basis)
     x, est = _x(years), _est(years)
 
@@ -136,5 +139,5 @@ def scenario_page():
             f"<td class='{'fc ' if e else ''}{'neg' if pd.notna(v) and v < -1e-9 else ''}'>"
             f"{(fpct(v, 1) if f == 'p1' else fnum(v, 0)) if pd.notna(v) and abs(v) > 1e-9 else '–'}</td>" for v, e in zip(d, est)) + "</tr>"
     st.markdown(f"<div class='snd-wrap'><table class='snd'>{head}{body}</table></div>", unsafe_allow_html=True)
-    st.markdown("<div class='card-desc' style='margin-top:6px'>Percent changes scale the tree crops (main and mid), the other origins "
-                "and grind in the chosen years; stock then rolls forward from there.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='card-desc' style='margin-top:6px'>Changes are in k tonnes for each chosen year: a crop change is spread over "
+                "main and mid (and other origins over their countries) by size; stock then rolls forward from there.</div>", unsafe_allow_html=True)
