@@ -69,7 +69,10 @@ HIDDEN = ("revert of ", "deleted ")    # reasons of saves that undo another save
 def visible(rv: pd.DataFrame) -> pd.DataFrame:
     """Drop deleted saves and the saves that deleted them. New deletes name the save to the second, older ones
     ("revert of ...") to the minute."""
-    undo = rv["reason"].str.startswith(HIDDEN, na=False)
+    if rv.empty:                                               # no saves yet: nothing to filter (and no dates to format)
+        return rv
+    rv = rv.assign(when=pd.to_datetime(rv["when"]))
+    undo = rv["reason"].astype(str).str.startswith(HIDDEN, na=False)
     gone = set(rv.loc[undo, "reason"].str.replace("|".join(HIDDEN), "", regex=True).str.strip())
     gone_rows = rv["when"].dt.strftime("%d %b %Y %H:%M:%S").isin(gone) | rv["when"].dt.strftime("%d %b %Y %H:%M").isin(gone)
     return rv[~undo & ~gone_rows]
