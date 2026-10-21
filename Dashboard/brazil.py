@@ -50,8 +50,8 @@ def etg_brazil(years):
 def compute(inp, etg_a, etg_r, years, meta):
     """The three blocks as DataFrames (rows x crop years) plus the effective value of every input series."""
     S = {s: inp[inp["series"] == s].set_index("year")["value"].reindex(years).astype(float) for s in SERIES}
-    pa = S["Arabica production"].fillna(etg_a.reindex(years))
-    pc = S["Conillon production"].fillna(etg_r.reindex(years))
+    # Brazil production is linked to the Global SnD table's Brazil rows (one source; Brazil-page edits save there)
+    pa, pc = etg_a.reindex(years).astype(float), etg_r.reindex(years).astype(float)
     ea, gx, sx, share = S["Arabica exports"], S["Green exports"], S["Soluble exports"], S["Conillon demand %"]
     overall = S["Overall consumption"].fillna(S["Arabica consumption"] + S["Conillon consumption"])
     ca = S["Arabica consumption"].fillna((1 - share) * overall)
@@ -274,6 +274,30 @@ def _apply(inp, changes):
     return d
 
 
+# production series are stored in the Global SnD table (coffee_snd.csv, item "Brazil"), not in brazil_snd.csv
+LINKED = {"Arabica production": "Arabica", "Conillon production": "Robusta"}
+
+
+def _split(changes):
+    return [c for c in changes if c[0] in LINKED], [c for c in changes if c[0] not in LINKED]
+
+
+def _linked_etg(etg_a, etg_r, prod_changes):
+    """Preview: the Global Brazil rows with this page's unsaved production edits applied."""
+    a, r = etg_a.copy(), etg_r.copy()
+    for s, y, _o, n in prod_changes:
+        (a if LINKED[s] == "Arabica" else r)[y] = float("nan") if n is None else n
+    return a, r
+
+
+def _save_all(changes, reason=""):
+    prod, rest = _split(changes)
+    if prod:
+        snd._save_inputs([(LINKED[s], "Brazil", y, o, n) for s, y, o, n in prod], reason)
+    if rest:
+        _save(rest, reason)
+
+
 def _save(changes, reason=""):
     lines = [f"{s} {y}: {_show(s, o) or '-'} -> {_show(s, n) or '-'}" for s, y, o, n in changes]
     reason = snd.clean_reason(reason)
@@ -336,7 +360,8 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
         edits = st.session_state.get("_br_edits", {})
     base = {f"{s}|{y}": float(eff[s][y]) for s in SERIES for y in years if pd.notna(eff[s][y])}
     changes = [(k.split("|")[0], k.split("|")[1], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
-    A, C, O, _eff = compute(_apply(inp, changes), etg_a, etg_r, years, meta)
+    prod, rest = _split(changes)
+    A, C, O, _eff = compute(_apply(inp, rest), *_linked_etg(etg_a, etg_r, prod), years, meta)
     table = full_table(A, C, O, years, edit=dict(base=base, changed=set(edits)))
     tableedit.editable_table(table, tableedit.css_of(snd.CSS), "br_tbl", epoch, editable, edits)
     st.session_state["_br_edits"] = dict(edits)
@@ -356,7 +381,7 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     if save:
         try:
             with st.spinner("Saving..."):
-                _save(changes, reason)
+                _save_all(changes, reason)
         except (gh.GitHubError, Exception) as ex:
             st.error(f"GitHub save failed: {ex}")
         else:

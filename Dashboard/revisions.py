@@ -76,7 +76,7 @@ def _delete(dataset, grp: pd.DataFrame):
         snd._save_inputs(changes, reason)
     else:
         changes = [(r.item, r.year, r.new, None if pd.isna(r.old) else float(r.old)) for r in grp.itertuples()]
-        brazil._save(changes, reason)
+        brazil._save_all(changes, reason)
 
 
 def revision_lines(sub: pd.DataFrame, level: bool, with_commodity: bool):
