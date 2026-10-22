@@ -94,9 +94,9 @@ def mark_limits(live: str, n: int = 10, edge: float = 0.05) -> str:
             elif v < lo:
                 add, k = "lim lo", "lo"
             elif v >= hi - edge * rng:
-                add, k = "edge", "nh"
+                add, k = "edge nh", "nh"
             elif v <= lo + edge * rng:
-                add, k = "edge", "nl"
+                add, k = "edge nl", "nl"
             else:
                 continue
             tip = json.dumps(dict(k=k, v=v, lo=lo, hi=hi, ylo=ylo, yhi=yhi, pct="%" in m.group(3)))

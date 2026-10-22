@@ -84,11 +84,9 @@ table.snd td.mv { color: #5b21b6 !important; font-weight: 700; cursor: help; }
 table.snd td.mv::before { content: ""; position: absolute; inset: 2px 3px; border-radius: 7px;
   z-index: -1; pointer-events: none; background-size: 200% 200%; }
 table.snd td.mv::before { background-image: linear-gradient(135deg, #ede9fe, #f5f3ff 55%, #ede9fe); border: 1.5px solid #a78bfa; animation: mvshine 2.4s ease-in-out infinite; }
-table.snd td.lim::after, table.snd td.edge::after { content: "!"; position: absolute; top: 2px; right: 4px; width: 11px; height: 11px;
-  border-radius: 50%; font-size: 8.5px; font-weight: 800; line-height: 11px; text-align: center; color: #fff; z-index: 3; }
-table.snd td.lim.hi::after { background: #16a34a; box-shadow: 0 0 6px rgba(22,163,74,.55); }
-table.snd td.lim.lo::after { background: #dc2626; box-shadow: 0 0 6px rgba(220,38,38,.55); }
-table.snd td.edge::after { background: #94a3b8; opacity: .8; }
+table.snd td.lim::after, table.snd td.edge::after { content: "!"; position: absolute; top: 1px; right: 5px; font-size: 11px; font-weight: 800; line-height: 1; z-index: 3; }
+table.snd td.lim.hi::after { color: #166534; } table.snd td.lim.lo::after { color: #991b1b; }
+table.snd td.edge.nh::after { color: #4ade80; } table.snd td.edge.nl::after { color: #f87171; }
 @keyframes mvshine { 0%, 100% { background-position: 0% 50%; box-shadow: 0 0 5px rgba(139,92,246,.3); } 50% { background-position: 100% 50%; box-shadow: 0 0 13px rgba(139,92,246,.65); } }
 @keyframes limshine { 0%, 100% { background-position: 0% 50%; box-shadow: 0 0 5px rgba(239,68,68,.3); } 50% { background-position: 100% 50%; box-shadow: 0 0 13px rgba(239,68,68,.6); } }
 .xtip { display: none; position: fixed; z-index: 99999; width: 250px; background: #ffffff; border-radius: 14px; padding: 13px 15px 12px;
