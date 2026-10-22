@@ -246,29 +246,24 @@ function revView(rev, wide) {
     return { dt: dt.trim(), o: num((m[0] || "").trim()), n: num((m[1] || "").trim()), ot: (m[0] || "").trim(), nt: (m[1] || "").trim(), why: why.trim() };
   });
   if (!rs.length) return "";
-  var pts = rs.slice().reverse();                               // oldest -> newest
-  var vals = [pts[0].o].concat(pts.map(function (r) { return r.n; })).filter(function (x) { return !isNaN(x); });
-  var W = wide ? 300 : 230, H = 64, P = 8;
-  var hi = Math.max.apply(null, vals), lo = Math.min.apply(null, vals), sp = (hi - lo) || 1;
-  var X = function (i) { return P + i * (W - 2 * P) / Math.max(1, vals.length - 1); }, Y = function (v) { return 8 + (hi - v) / sp * (H - 22); };
-  var path = vals.map(function (v, i) { return (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1); }).join(" ");
-  var last = vals.length - 1;
-  var svg = "<svg width='" + W + "' height='" + H + "' viewBox='0 0 " + W + " " + H + "' style='display:block;overflow:visible'>" +
-    "<path d='" + path + "' fill='none' stroke='#5b74a8' stroke-width='1.8' stroke-linejoin='round'/>" +
-    vals.map(function (v, i) { return "<circle cx='" + X(i).toFixed(1) + "' cy='" + Y(v).toFixed(1) + "' r='" + (i === last ? 3.6 : 2) + "' fill='" + (i === last ? "#0a2463" : "#94a3b8") + "'/>"; }).join("") +
-    "<text x='" + X(0) + "' y='" + (H - 2) + "' font-size='9' fill='#94a3b8' font-family='Inter, system-ui, sans-serif'>first " + f1(vals[0], false) + "</text>" +
-    "<text x='" + X(last) + "' y='" + (H - 2) + "' font-size='9' font-weight='700' text-anchor='end' fill='#0a2463' font-family='Inter, system-ui, sans-serif'>now " + f1(vals[last], false) + "</text></svg>";
-  var day = function (d) {                                     // 22 Oct 14:05 (your local time) so same-day saves stay in order
-    var t = new Date(d); if (isNaN(t)) return d;
-    return t.getDate() + " " + MON[t.getMonth()] + (/T/.test(d) ? " <i>" + ("0" + t.getHours()).slice(-2) + ":" + ("0" + t.getMinutes()).slice(-2) + "</i>" : "");
-  };
-  var list = rs.slice(0, 3).map(function (r, i) {
-    var d = r.n - r.o, cls = isNaN(d) ? "" : d >= 0 ? "up" : "dn";
-    return "<div class='xr'><span class='xr-d'>" + day(r.dt) + (i === 0 ? " <em>latest</em>" : "") + "</span><span class='xr-v'>" + (r.ot || "&ndash;") + " &rarr; <b>" + (r.nt || "&ndash;") + "</b></span>" +
-           (isNaN(d) ? "" : "<span class='xr-c " + cls + "'>" + (d >= 0 ? "+" : "&minus;") + f1(Math.abs(d), false) + "</span>") +
-           (r.why ? "<div class='xr-w'>" + r.why + "</div>" : "") + "</div>";
-  }).join("");
-  return "<div class='xi-r'><div class='xi-n'>Saved revisions &middot; " + rs.length + "</div>" + svg + "<div class='xr-list'>" + list + "</div></div>";
+  var pts = rs.slice().reverse();                               // oldest -> newest: each save is a point (value above, date below)
+  var vals = pts.map(function (r) { return r.n; }), when = pts.map(function (r) { return r.dt; });
+  var W = 300, H = 92, P = 18;
+  var ok = vals.filter(function (x) { return !isNaN(x); }); if (!ok.length) return "";
+  var hi = Math.max.apply(null, ok), lo = Math.min.apply(null, ok), sp = (hi - lo) || 1, n = vals.length, last = n - 1;
+  var X = function (i) { return n === 1 ? W / 2 : P + i * (W - 2 * P) / last; }, Y = function (v) { return 20 + (hi - v) / sp * (H - 46); };
+  var day = function (d) { var t = new Date(d); return isNaN(t) ? d : t.getDate() + " " + MON[t.getMonth()]; };
+  var step = n > 6 ? 2 : 1, F = " font-family='Inter, system-ui, sans-serif' text-anchor='middle'";
+  var g = "<path d='" + vals.map(function (v, i) { return (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1); }).join(" ") +
+          "' fill='none' stroke='#5b74a8' stroke-width='1.8' stroke-linejoin='round'/>";
+  vals.forEach(function (v, i) {
+    var L = i === last, show = L || (last - i) % step === 0;
+    g += "<circle cx='" + X(i).toFixed(1) + "' cy='" + Y(v).toFixed(1) + "' r='" + (L ? 3.8 : 2.4) + "' fill='" + (L ? "#0a2463" : "#94a3b8") + "'/>";
+    if (show) g += "<text x='" + X(i).toFixed(1) + "' y='" + (Y(v) - 7).toFixed(1) + "' font-size='9.5'" + F + " fill='" + (L ? "#0a2463' font-weight='700" : "#64748b") + "'>" + f1(v, false) + "</text>" +
+                   "<text x='" + X(i).toFixed(1) + "' y='" + (H - 2) + "' font-size='9'" + F + " fill='" + (L ? "#0a2463' font-weight='600" : "#94a3b8") + "'>" + day(when[i]) + "</text>";
+  });
+  return "<div class='xi-r'><div class='xi-n'>Saved revisions &middot; " + rs.length + "</div><svg width='" + W + "' height='" + H + "' viewBox='0 0 " + W + " " + H +
+         "' style='display:block;overflow:visible;margin-top:4px'>" + g + "</svg></div>";
 }
 function panelHtml(t) {
   var sp = t.closest(".spark-wrap");
