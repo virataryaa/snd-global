@@ -69,11 +69,13 @@ table.snd tr.hl td.lbl { color: #14532d !important; }
 table.snd tr.soft td.lbl { color: #94a3b8; }
 table.snd tr.sep td { border: 0; height: 6px; padding: 0; }
 table.snd td.neg { color: #c0392b; }
-table.snd td.ed { cursor: text; background: #fffcf8 !important; position: relative; }
-table.snd td.ed::before { content: ""; position: absolute; inset: 2px 3px; border: 1px solid rgba(217,130,43,.38); border-radius: 6px; pointer-events: none; }
-table.snd td.ed {  color: #0a2463 !important; }
-table.snd td.ed:hover { box-shadow: inset 0 0 0 1px #9db3e6; background: #f3f6fd; }
-table.snd td.ed:focus { outline: none; box-shadow: inset 0 0 0 2px #0a2463; background: #ffffff; }
+table.snd td.ed { cursor: text; position: relative; color: #0a2463 !important; }
+table.snd td.ed::before { content: ""; position: absolute; inset: 2px 3px; border: 1px solid transparent; border-radius: 6px; pointer-events: none; transition: border-color .12s, background .12s; }
+table.snd td.ed:hover::before { border-color: rgba(217,130,43,.55); background: rgba(255,237,213,.35); }
+table.snd td.ed:focus { outline: none; background: #ffffff !important; }
+table.snd td.ed:focus::before { border: 1.5px solid #d9822b; box-shadow: 0 0 0 3px rgba(217,130,43,.15); }
+table.snd tr:has(td.ed) td.lbl { box-shadow: inset 2.5px 0 0 #e9a868; }
+table.snd tr:has(td.ed) td.lbl::after { content: "¸E"; margin-left: 5px; font-size: 10px; color: #d9822b; opacity: .75; }
 table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
 table.snd td.mv { background: linear-gradient(135deg, #ede9fe, #f5f3ff 55%, #ede9fe) !important; background-size: 200% 200% !important; color: #5b21b6 !important; font-weight: 700; box-shadow: inset 0 0 0 1.5px #a78bfa, 0 0 10px rgba(139,92,246,.55); position: relative; z-index: 1; animation: mvshine 2.4s ease-in-out infinite; }
 table.snd td.lim { background: linear-gradient(135deg, #fee2e2, #fff5f5 55%, #fee2e2) !important; background-size: 200% 200% !important;

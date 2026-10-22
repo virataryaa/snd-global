@@ -69,7 +69,13 @@ function wire() {
       var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
     });
     td.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { e.preventDefault(); this.blur(); }
+      if (e.key === "Enter") {               // Enter: next editable cell down (Shift: up), like a spreadsheet; Tab moves right
+        e.preventDefault();
+        var all = Array.prototype.slice.call(document.querySelectorAll("td.ed")), col = this.cellIndex, i = all.indexOf(this);
+        var step = e.shiftKey ? -1 : 1, next = null;
+        for (var j = i + step; j >= 0 && j < all.length; j += step) { if (all[j].cellIndex === col) { next = all[j]; break; } }
+        if (next) { next.focus(); } else { this.blur(); }
+      }
       else if (e.key === "Escape") { this.textContent = this.dataset.shown; this.blur(); }
     });
     td.addEventListener("input", function () {                                   // live: recalc ~0.7s after typing stops
