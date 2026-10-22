@@ -1,5 +1,6 @@
 """The editable SnD table: a small Streamlit component (Dashboard/snd_table_component) that shows the styled HTML table and lets the
 input cells be typed over in place. Edits come back as {key: number|None}; the page recalculates and sends the table again."""
+import json
 import re
 from pathlib import Path
 
@@ -34,7 +35,7 @@ def mark_moved(live: str, ref: str) -> str:
         if "spark-td" in cls.split() or "ed" in cls.split() or _text(m.group(3)) == _text(n.group(3)):
             continue
         out.append(live[pos:m.start()])
-        out.append(f"<td class='{(cls + ' mv').strip()}'{m.group(2)}>{m.group(3)}</td>")
+        out.append(f"<td class='{(cls + ' mv').strip()}'{m.group(2)} data-was='{_text(n.group(3))}'>{m.group(3)}</td>")
         pos = m.end()
     out.append(live[pos:])
     return "".join(out)
@@ -89,19 +90,20 @@ def mark_limits(live: str, n: int = 10, edge: float = 0.05) -> str:
             (ylo, lo), (yhi, hi) = min(hist, key=lambda p: p[1]), max(hist, key=lambda p: p[1])
             rng = hi - lo or abs(hi) or 1
             if v > hi:
-                add, tip = "lim hi", f"Above 10y high {hi:,.1f} ({yhi}) by {v - hi:,.1f}"
+                add, k = "lim hi", "hi"
             elif v < lo:
-                add, tip = "lim lo", f"Below 10y low {lo:,.1f} ({ylo}) by {lo - v:,.1f}"
+                add, k = "lim lo", "lo"
             elif v >= hi - edge * rng:
-                add, tip = "edge", f"Near 10y high {hi:,.1f} ({yhi})"
+                add, k = "edge", "nh"
             elif v <= lo + edge * rng:
-                add, tip = "edge", f"Near 10y low {lo:,.1f} ({ylo})"
+                add, k = "edge", "nl"
             else:
                 continue
+            tip = json.dumps(dict(k=k, v=v, lo=lo, hi=hi, ylo=ylo, yhi=yhi, pct="%" in m.group(3)))
             if not show:                                          # flags off: hover text only
                 add = ""
             out.append(live[pos:base + m.start()])
-            out.append(f"<td class='{(cls + ' ' + add).strip()}'{m.group(2)} title='{tip} · range {lo:,.1f}–{hi:,.1f}'>{m.group(3)}</td>")
+            out.append(f"<td class='{(cls + ' ' + add).strip()}'{m.group(2)} data-lim='{tip}'>{m.group(3)}</td>")
             pos = base + m.end()
     out.append(live[pos:])
     return "".join(out)

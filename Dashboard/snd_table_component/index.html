@@ -106,6 +106,40 @@ function commit(td, live) {
   send();
 }
 
+// ── hover card for moved / record cells ──
+var tip = document.createElement("div"); tip.className = "xtip"; document.body.appendChild(tip);
+function f1(x, pct) { return pct ? x.toFixed(0) + "%" : x.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+function card(td) {
+  var h = "", now = td.textContent.trim();
+  if (td.dataset.was !== undefined) {
+    var a = Number(td.dataset.was.replace(/[,%()]/g, "")) * (/^\(/.test(td.dataset.was) ? -1 : 1);
+    var b = Number(now.replace(/[,%()]/g, "")) * (/^\(/.test(now) ? -1 : 1), d = b - a;
+    h += "<div class='xt-h v'>Moved with your edit</div><div class='xt-big'>" + (td.dataset.was || "–") + "<span class='ar'>&rarr;</span>" + now +
+         (isNaN(d) ? "" : "<span class='g " + (d >= 0 ? "up" : "dn") + "'>" + (d >= 0 ? "+" : "") + d.toFixed(1) + "</span>") + "</div>";
+  }
+  if (td.dataset.lim) {
+    var L = JSON.parse(td.dataset.lim), p = L.pct, s = 1;   // values are already as shown (% rows in %)
+    var lab = { hi: "&#9650; Above 10-year high", lo: "&#9660; Below 10-year low", nh: "Near 10-year high", nl: "Near 10-year low" }[L.k];
+    var gap = L.k === "hi" ? L.v - L.hi : L.k === "lo" ? L.v - L.lo : null;
+    var pos = Math.max(-8, Math.min(108, (L.v - L.lo) / ((L.hi - L.lo) || 1) * 100));
+    if (h) h += "<div class='xt-sep'></div>";
+    h += "<div class='xt-h r'>" + lab + "</div><div class='xt-big'>" + now +
+         (gap === null ? "" : "<span class='g dn'>" + (gap >= 0 ? "+" : "") + f1(gap * s, p) + " vs record</span>") + "</div>" +
+         "<div class='xt-bar'><b style='left:" + pos + "%'></b></div>" +
+         "<div class='xt-ends'><span>" + f1(L.lo * s, p) + " &middot; " + L.ylo + "</span><span>" + f1(L.hi * s, p) + " &middot; " + L.yhi + "</span></div>";
+  }
+  return h;
+}
+document.addEventListener("mouseover", function (e) {
+  var td = e.target.closest ? e.target.closest("td[data-lim], td[data-was]") : null;
+  if (!td) { tip.style.display = "none"; return; }
+  tip.innerHTML = card(td); tip.style.display = "block";
+  var r = td.getBoundingClientRect(), w = tip.offsetWidth, hh = tip.offsetHeight;
+  tip.style.left = Math.max(4, Math.min(window.innerWidth - w - 4, r.left + r.width / 2 - w / 2)) + "px";
+  tip.style.top = (r.top - hh - 8 >= 4 ? r.top - hh - 8 : r.bottom + 8) + "px";
+});
+document.documentElement.addEventListener("mouseleave", function () { tip.style.display = "none"; });
+
 post({ type: "streamlit:componentReady", apiVersion: 1 });
 setHeight();
 </script>
