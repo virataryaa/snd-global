@@ -69,7 +69,9 @@ table.snd tr.hl td.lbl { color: #14532d !important; }
 table.snd tr.soft td.lbl { color: #94a3b8; }
 table.snd tr.sep td { border: 0; height: 6px; padding: 0; }
 table.snd td.neg { color: #c0392b; }
-table.snd td.ed { cursor: text; background: #fffcf8 !important; box-shadow: inset 0 -1.5px 0 rgba(217,130,43,.5); color: #0a2463 !important; }
+table.snd td.ed { cursor: text; background: #fffcf8 !important; position: relative; }
+table.snd td.ed::before { content: ""; position: absolute; inset: 2px 3px; border: 1px solid rgba(217,130,43,.38); border-radius: 6px; pointer-events: none; }
+table.snd td.ed {  color: #0a2463 !important; }
 table.snd td.ed:hover { box-shadow: inset 0 0 0 1px #9db3e6; background: #f3f6fd; }
 table.snd td.ed:focus { outline: none; box-shadow: inset 0 0 0 2px #0a2463; background: #ffffff; }
 table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
