@@ -549,6 +549,6 @@ def render(view="Brazil SnD"):
         edit_view(inp, meta, etg_a, etg_r, years, eff, gh.enabled())
         return
     import tableedit
-    tableedit.editable_table(full_table(A, C, O, shown), tableedit.css_of(snd.CSS), "br_tbl", st.session_state.get("br_epoch", 0), editable=False,
+    tableedit.editable_table(full_table(A, C, O, shown), tableedit.css_of(snd.CSS), "br_tbl", st.session_state.get("br_epoch", 0), editable=False, red=False,
                              edits=st.session_state.get("br_tbl"))   # same frame as Edit: no reload on switch   # same frame as Edit
     charts(A, C, O, shown)

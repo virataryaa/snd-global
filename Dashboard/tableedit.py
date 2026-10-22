@@ -109,5 +109,12 @@ def mark_limits(live: str, n: int = 10, edge: float = 0.05) -> str:
     return "".join(out)
 
 
-def editable_table(html: str, css: str, key: str, epoch: int, editable: bool = True, edits=None):
+EDIT_CSS = """
+table.snd tr.comm th { background: linear-gradient(90deg, #4a0710 0%, #7a0f1f 100%) !important; }
+table.snd th.y { background: #fbf0f1 !important; color: #7a0f1f !important; border-bottom-color: #f2d6da !important; }
+"""   # Edit mode: table bars turn deep royal red
+
+
+def editable_table(html: str, css: str, key: str, epoch: int, editable: bool = True, edits=None, red: bool = True):
+    css = css + (EDIT_CSS if red else "")
     return _COMP(html=html, css=css, editable=editable, epoch=epoch, edits=edits or {}, key=key, default={})
