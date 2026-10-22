@@ -120,6 +120,8 @@ button[kind="pillsActive"] p, button[kind="segmented_controlActive"] p { color: 
 [class*="_addyr"] button p { font-size: 12.5px !important; font-weight: 600 !important; }
 [class*="_addyr"] button:hover { border-color: #d9822b !important; color: #c2410c !important; box-shadow: 0 0 0 3px rgba(217,130,43,.12), 0 3px 10px rgba(217,130,43,.2); }
 [class*="_addyr"] button:hover p { color: #c2410c !important; }
+[class*="_draft"] button { background: rgba(15,118,110,.08) !important; border: 1px solid rgba(15,118,110,.35) !important; }
+[class*="_draft"] button p { color: #0f766e !important; font-weight: 600 !important; }
 .st-key-edit_bar_idle { display: none !important; }
 .st-key-edit_bar button p { font-size: 12.5px !important; }
 .st-key-edit_bar [data-baseweb="input"], .st-key-edit_bar [data-baseweb="base-input"] { min-height: 38px !important; height: 38px !important; }

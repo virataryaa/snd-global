@@ -4,6 +4,7 @@ Used by the Entry page. Needs `github_token` in Streamlit Secrets (Contents: rea
 One keep-alive session, the last sha of every file is remembered, so a save is a single PUT (re-read once on a conflict).
 """
 import base64
+import re
 
 import requests
 import streamlit as st
@@ -81,12 +82,20 @@ def read(path: str) -> tuple[str, str]:
     return text, j["sha"]
 
 
+def tag(message: str) -> str:
+    """During a draft save (see drafts.py) 'Coffee SnD | ...' becomes 'Coffee SnD draft | ...'."""
+    if st.session_state.get("_gh_draft"):
+        message = re.sub(r"^(\w[\w ]*? SnD) \|", r"\1 draft |", message, count=1)
+    return message
+
+
 def commit(path: str, change, message: str):
     """change(text) -> (new_text, info). One PUT using the remembered sha; re-read once if the file moved on.
     Returns (new_text, info). Also puts the commit at the top of the remembered history."""
     st_ = _state()
     text, sha = (st_[path]["text"], st_[path]["sha"]) if path in st_ else read(path)
     new_text, info = change(text)
+    message = tag(message)
     for attempt in (0, 1):
         body = {"message": message, "branch": BRANCH, "sha": sha,
                 "content": base64.b64encode(new_text.encode("utf-8")).decode()}

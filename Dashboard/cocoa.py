@@ -413,24 +413,36 @@ def edit_view(S, years, part="snd", title="Edit Cocoa SnD"):
     bad = any(c[3] is not None and c[3] < 0 and not any(a in c[0] for a in ADJ) for c in changes)   # adjustments may be negative
     if bad:
         ctrl.error("Crops, grind and stock cannot be negative.")
-    # pending edits -> a slim bar floats at the bottom of the screen; nothing pending -> it is hidden
-    bar = st.container(horizontal=True, vertical_alignment="center", gap="small", key="edit_bar" if n else "edit_bar_idle")
-    bar.markdown(f"<span class='eb-n'>{n} unsaved change{'s' if n != 1 else ''}</span>", unsafe_allow_html=True)
+    # unsaved edits or unpublished drafts -> a slim bar floats at the bottom; nothing pending -> hidden
+    import drafts
+    paths = [(CSV_PATH, "Cocoa SnD")]
+    pend = drafts.count(paths)
+    bar = st.container(horizontal=True, vertical_alignment="center", gap="small", key="edit_bar" if n or pend else "edit_bar_idle")
+    bar.markdown(f"<span class='eb-n'>{drafts.label(n, pend)}</span>", unsafe_allow_html=True)
     reason = bar.text_input("Reason", key=f"co_reason_{epoch}", placeholder="Reason for Change...", width=320,
-                            label_visibility="collapsed", max_chars=140, disabled=not n)
+                            label_visibility="collapsed", max_chars=140, disabled=not (n or pend))
     bar.button("Undo", disabled=not n, width="content", key="co_undo", on_click=_undo)
-    save = bar.button("Save" + (f" · {n}" if n else ""), type="primary", disabled=(not n) or bad, width="content", key="co_save")
+    draft = bar.button("Save draft", disabled=(not n) or bad, width="content", key="co_draft",
+                       help="Saved for everyone, but kept out of the change log until you publish")
+    save = bar.button("Publish" + (f" · {n + pend}" if n or pend else ""), type="primary", disabled=(not (n or pend)) or bad,
+                      width="content", key="co_save", help="Log every draft and unsaved edit as one revision")
     st.sidebar.button("Add a Crop Year", key="co_addyr", disabled=bool(extra), width="content",
                on_click=lambda: st.session_state.__setitem__("co_new_year", nxt))
-    if save:
+    if save or draft:
+        st.session_state["_gh_draft"] = True                  # saves go in as drafts first
         try:
             with st.spinner("Saving..."):
-                _save(changes, reason)
+                if changes:
+                    _save(changes, reason)
+            st.session_state['_gh_draft'] = False
+            if save:
+                drafts.publish(paths, reason)
         except Exception as ex:
+            st.session_state['_gh_draft'] = False
             ctrl.error(f"GitHub save failed: {ex}")
         else:
             _undo()
-            st.toast(f"Saved {n} change(s).")
+            st.toast(("Published." if save else f"Saved {n} change(s) as draft."))
             st.rerun()
 
 

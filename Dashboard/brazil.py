@@ -393,17 +393,23 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
         ctrl.error("Values cannot be negative.")
 
 
-    # pending edits -> a slim bar floats at the bottom of the screen; nothing pending -> it is hidden
-    bar = st.container(horizontal=True, vertical_alignment="center", gap="small", key="edit_bar" if n_all else "edit_bar_idle")
-    bar.markdown(f"<span class='eb-n'>{n_all} unsaved change{'s' if n_all != 1 else ''}</span>", unsafe_allow_html=True)
+    # unsaved edits or unpublished drafts -> a slim bar floats at the bottom; nothing pending -> hidden
+    import drafts
+    paths = [(INP_PATH, "Brazil SnD"), (snd.CSV_PATH, "Coffee SnD")]
+    pend = drafts.count(paths)
+    bar = st.container(horizontal=True, vertical_alignment="center", gap="small", key="edit_bar" if n_all or pend else "edit_bar_idle")
+    bar.markdown(f"<span class='eb-n'>{drafts.label(n_all, pend)}</span>", unsafe_allow_html=True)
     reason = bar.text_input("Reason", key=f"br_reason_{epoch}", placeholder="Reason for Change...", width=320,
-                              label_visibility="collapsed", max_chars=140, disabled=not n_all)
+                            label_visibility="collapsed", max_chars=140, disabled=not (n_all or pend))
     bar.button("Undo", disabled=not n_all, width="content", key="br_undo", on_click=_undo)
-    save = bar.button("Save" + (f" · {n_all}" if n_all else ""), type="primary", disabled=(not n_all) or bad,
-                      width="content", key="br_save")
+    draft = bar.button("Save draft", disabled=(not n_all) or bad, width="content", key="br_draft",
+                       help="Saved for everyone, but kept out of the change log until you publish")
+    save = bar.button("Publish" + (f" · {n_all + pend}" if n_all or pend else ""), type="primary", disabled=(not (n_all or pend)) or bad,
+                      width="content", key="br_save", help="Log every draft and unsaved edit as one revision")
     st.sidebar.button("Add a Crop Year", key="br_addyr", disabled=bool(extra), width="content",
                on_click=lambda: st.session_state.__setitem__("br_new_year", nxt))
-    if save:
+    if save or draft:
+        st.session_state["_gh_draft"] = True                  # saves go in as drafts first
         try:
             with st.spinner("Saving..."):
                 if changes:
@@ -420,11 +426,15 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
                     with open(META, "w", encoding="utf-8", newline="") as f:
                         f.write(text)
                     load.clear()
+            st.session_state['_gh_draft'] = False
+            if save:
+                drafts.publish(paths, reason)
         except (gh.GitHubError, Exception) as ex:
+            st.session_state['_gh_draft'] = False
             ctrl.error(f"GitHub save failed: {ex}")
         else:
             _undo()
-            st.session_state["en_flash"] = f"Saved {n_all} change(s)."
+            st.session_state["en_flash"] = ("Published." if save else f"Saved {n_all} change(s) as draft.")
             st.rerun()
 
 # ── Charts ────────────────────────────────────────────────────────────────────
