@@ -27,7 +27,7 @@ ORIGINS = {
     "Robusta": ["Vietnam", "Brazil", "Indonesia", "India", "Uganda", "Cote d'Ivoire", "Others"],
 }
 TZ = "Europe/Amsterdam"
-NAVY, TEAL, GREEN, RED, AMBER, GREY = "#0a2463", "#1f8a9c", "#1f9d6f", "#c0392b", "#b7791f", "#94a3b8"
+NAVY, TEAL, GREEN, RED, AMBER, GREY = "#4f6694", "#8fb8b4", "#7fb595", "#cf8a85", "#d6b77f", "#c3c9d4"
 INK, AXIS, GRID = "#1d1d1f", "#86868b", "rgba(0,0,0,0.05)"
 
 CSS = """
@@ -64,8 +64,8 @@ table.snd.cmp td.lbl { white-space: nowrap; }
 .snd-wrap.cmp { padding: 6px 8px 8px; }
 .co-pair { display: flex; gap: 10px; align-items: flex-start; }
 .co-pair > .snd-wrap { flex: 1 1 0; min-width: 0; }
-table.snd tr.hl td { background: #fff8ee !important; color: #8a4a12 !important; font-weight: 600; }
-table.snd tr.hl td.lbl { color: #8a4a12 !important; }
+table.snd tr.hl td { background: #ecf7ef !important; color: #14532d !important; font-weight: 600; }
+table.snd tr.hl td.lbl { color: #14532d !important; }
 table.snd tr.soft td.lbl { color: #94a3b8; }
 table.snd tr.sep td { border: 0; height: 6px; padding: 0; }
 table.snd td.neg { color: #c0392b; }
@@ -73,7 +73,8 @@ table.snd td.ed { cursor: text; background: #fffaf5 !important; box-shadow: inse
 table.snd td.ed:hover { box-shadow: inset 0 0 0 1px #9db3e6; background: #f3f6fd; }
 table.snd td.ed:focus { outline: none; box-shadow: inset 0 0 0 2px #0a2463; background: #ffffff; }
 table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
-table.snd td.mv { background: transparent !important; color: #2563eb !important; font-weight: 600; }
+table.snd td.mv { background: linear-gradient(135deg, #dbeafe, #f0f7ff 55%, #dbeafe) !important; background-size: 200% 200% !important; color: #1d4ed8 !important; font-weight: 700; box-shadow: inset 0 0 0 1.5px #60a5fa, 0 0 10px rgba(59,130,246,.55); position: relative; z-index: 1; animation: mvshine 2.4s ease-in-out infinite; }
+@keyframes mvshine { 0%, 100% { background-position: 0% 50%; box-shadow: inset 0 0 0 1.5px #60a5fa, 0 0 6px rgba(59,130,246,.35); } 50% { background-position: 100% 50%; box-shadow: inset 0 0 0 1.5px #3b82f6, 0 0 14px rgba(59,130,246,.7); } }
 table.snd td.rev { position: relative; }
 .rev-dot { display: inline-block; width: 3px; height: 3px; border-radius: 50%; margin-left: 4px; vertical-align: middle; background: #94a3b8; }
 .rev-dot.up { background: #1f9d6f; }
@@ -468,61 +469,59 @@ def _grid(groups):
 
 
 def charts(a, r, glob, shown):
-    """Global SnD visuals: supply mix, stocks, balance, demand, origins and stocks to use. Estimates are faded."""
+    """Global SnD visuals: an Arabica row, a Robusta row, then the overall picture."""
     x = [y[2:] for y in shown]                                        # 2024/25 -> 24/25 on the axes
     est = [is_estimate(y) for y in shown]
-    cells = _grid([("Supply &amp; demand", "production, origins, consumption", 3), ("Balance &amp; stocks", "surplus/deficit, stocks, stocks to use", 3)])
+    cells = _grid([("Arabica", "", 3), ("Robusta", "", 3), ("Overall", "", 3)])
+    pal = [NAVY, AMBER, TEAL, "#8a9cc4", "#e6cf9f", "#b9d5d2", "#a9b4d1", "#d9c7a8", "#c6cddb", "#dde2ec", "#ebeef4"]
 
-    with cells[0], st.container(border=True):
-        st.markdown("<div class='chart-head'>Production: Arabica and Robusta</div>", unsafe_allow_html=True)
+    def head(t):
+        st.markdown(f"<div class='chart-head'>{t}</div>", unsafe_allow_html=True)
+
+    for i, (comm, fr, col) in enumerate((("Arabica", a, NAVY), ("Robusta", r, AMBER))):
+        k = comm[0].lower()
+        with cells[3 * i], st.container(border=True):
+            head(f"{comm} production by origin")
+            fig = go.Figure()
+            orig = [o for o in ORIGINS[comm] if o != "Others"]
+            orig = sorted(orig, key=lambda o: -float(fr.loc[o, shown].fillna(0).sum())) + (["Others"] if "Others" in ORIGINS[comm] else [])
+            for o, c in zip(orig, pal + [GREY] * len(orig)):
+                _bars(fig, x, fr.loc[o, shown].fillna(0), o, c, est)
+            st.plotly_chart(_style(fig, 260).update_layout(barmode="stack", legend=dict(font=dict(size=9.5))), width="stretch", key=f"c_{k}_orig")
+        with cells[3 * i + 1], st.container(border=True):
+            head(f"{comm} consumption")
+            fig = go.Figure()
+            _bars(fig, x, fr.loc["Consumption", shown], "Consumption", col, est)
+            _line(fig, x, fr.loc["Consumption", shown].pct_change() * 100, "Growth (right)", RED, right=True, pct=True)
+            st.plotly_chart(_y2(_style(fig, 260)), width="stretch", key=f"c_{k}_cons")
+        with cells[3 * i + 2], st.container(border=True):
+            head(f"{comm} stocks and stocks to use")
+            fig = go.Figure()
+            _bars(fig, x, fr.loc["End Season Stock", shown], "End stock", col, est)
+            _line(fig, x, fr.loc["S/U", shown] * 100, "S/U (right)", RED, right=True, pct=True)
+            st.plotly_chart(_y2(_style(fig, 260)), width="stretch", key=f"c_{k}_stock")
+
+    with cells[6], st.container(border=True):
+        head("Production: Arabica and Robusta")
         fig = go.Figure()
         _bars(fig, x, a.loc["Production", shown], "Arabica", NAVY, est)
         _bars(fig, x, r.loc["Production", shown], "Robusta", AMBER, est)
         _line(fig, x, r.loc["Production", shown] / glob.loc["Production Global", shown] * 100, "Robusta share (right)", RED, right=True, pct=True)
-        st.plotly_chart(_y2(_style(fig, 230).update_layout(barmode="stack")), width="stretch", key="c_prod")
-    with cells[4], st.container(border=True):
-        st.markdown("<div class='chart-head'>End season stocks</div>", unsafe_allow_html=True)
-        fig = go.Figure()
-        _bars(fig, x, a.loc["End Season Stock", shown], "Arabica", NAVY, est)
-        _bars(fig, x, r.loc["End Season Stock", shown], "Robusta", AMBER, est)
-        _line(fig, x, glob.loc["Combined S/U", shown] * 100, "Global S/U (right)", RED, right=True, pct=True)
-        st.plotly_chart(_y2(_style(fig, 230).update_layout(barmode="stack")), width="stretch", key="c_stock")
-
-    with cells[3], st.container(border=True):
-        st.markdown("<div class='chart-head'>Balance</div>", unsafe_allow_html=True)
+        st.plotly_chart(_y2(_style(fig, 260).update_layout(barmode="stack")), width="stretch", key="c_prod")
+    with cells[7], st.container(border=True):
+        head("Balance")
         fig = go.Figure()
         _bars(fig, x, a.loc["Balance", shown], "Arabica", NAVY, est)
         _bars(fig, x, r.loc["Balance", shown], "Robusta", AMBER, est)
         _line(fig, x, glob.loc["Global Balance", shown], "Global", RED)
-        st.plotly_chart(_style(fig, 230).update_layout(barmode="group"), width="stretch", key="c_bal")
-    with cells[2], st.container(border=True):
-        st.markdown("<div class='chart-head'>Consumption</div>", unsafe_allow_html=True)
-        fig = go.Figure()
-        _bars(fig, x, a.loc["Consumption", shown], "Arabica", NAVY, est)
-        _bars(fig, x, r.loc["Consumption", shown], "Robusta", AMBER, est)
-        _line(fig, x, glob.loc["Global demand chg", shown] * 100, "Growth (right)", RED, right=True, pct=True)
-        st.plotly_chart(_y2(_style(fig, 230).update_layout(barmode="stack")), width="stretch", key="c_cons")
-
-    with cells[1], st.container(border=True):
-        st.markdown("<div class='chart-head'>Production by origin</div>", unsafe_allow_html=True)
-        orig = {}
-        for comm, fr in (("Arabica", a), ("Robusta", r)):
-            for o in ORIGINS[comm]:
-                nm = o if o != "Others" else "Others"
-                orig[nm] = orig.get(nm, 0) + fr.loc[o, shown].fillna(0)
-        order = sorted([o for o in orig if o != "Others"], key=lambda o: -float(orig[o].sum())) + ["Others"]
-        pal = [NAVY, AMBER, TEAL, "#3e5c9a", "#d9a441", "#6fb7c4", "#8796c2", "#c9b38a", "#a8b3c7", "#cfd6e4", "#e3e7ef"]
-        fig = go.Figure()
-        for o, col in zip(order, pal + [GREY] * len(order)):
-            _bars(fig, x, orig[o], o, col, est)
-        st.plotly_chart(_style(fig, 300).update_layout(barmode="stack", legend=dict(font=dict(size=9.5))), width="stretch", key="c_orig")
-    with cells[5], st.container(border=True):
-        st.markdown("<div class='chart-head'>Stocks to use</div>", unsafe_allow_html=True)
+        st.plotly_chart(_style(fig, 260).update_layout(barmode="group"), width="stretch", key="c_bal")
+    with cells[8], st.container(border=True):
+        head("Stocks to use")
         fig = go.Figure()
         _line(fig, x, a.loc["S/U", shown] * 100, "Arabica", NAVY, pct=True)
         _line(fig, x, r.loc["S/U", shown] * 100, "Robusta", AMBER, pct=True)
         _line(fig, x, glob.loc["Combined S/U", shown] * 100, "Global", RED, pct=True)
-        st.plotly_chart(_style(fig, 300).update_layout(yaxis_ticksuffix="%"), width="stretch", key="c_su")
+        st.plotly_chart(_style(fig, 260).update_layout(yaxis_ticksuffix="%"), width="stretch", key="c_su")
 
 
 # ── Edit view: the styled table itself, typed over in place ────────────────────────────────────────────────

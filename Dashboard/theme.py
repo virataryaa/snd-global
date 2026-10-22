@@ -75,7 +75,7 @@ button[kind="pillsActive"] p, button[kind="segmented_controlActive"] p { color: 
 .page-title, .snd-head .t { color: #0a2463 !important; font-weight: 700; font-size: 1.15rem; margin: 0 0 4px 0; letter-spacing: -.01em; }
 .card-title, .chart-head { color: #0a2463; font-weight: 600; font-size: .9rem; margin-bottom: 4px; letter-spacing: -.005em; }
 .grp-hero { text-align: center; color: #0a2463; font-size: .8rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin: 18px 0 6px; }
-.grp-hero span { display: block; color: #64748b; font-size: .72rem; font-weight: 400; letter-spacing: .02em; text-transform: none; font-style: italic; margin-top: 1px; }
+.grp-hero span { display: none; color: #64748b; font-size: .72rem; font-weight: 400; letter-spacing: .02em; text-transform: none; font-style: italic; margin-top: 1px; }
 .card-desc { color: #5a6688; font-size: .8rem; margin-top: -4px; margin-bottom: 8px; }
 .pill { display: inline-block; background: #eef0f6; color: #5a6688; font-size: 10.5px; font-weight: 600;
         padding: 1px 8px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
