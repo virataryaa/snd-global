@@ -252,7 +252,8 @@ def render():
         st.markdown("<div class='snd-head'><span class='t'>Ivory Coast & Ghana crop detail</span></div>", unsafe_allow_html=True)
         pair = "".join(f"<div class='snd-wrap cmp'><table class='snd cmp'>{detail_html(S, shown, (c,))}</table></div>" for c in ("IC", "GH"))
         import tableedit
-        tableedit.editable_table(f"<div class='co-pair'>{pair}</div>", tableedit.css_of(snd.CSS), "co_view", 0, editable=False)   # same frame as Edit
+        tableedit.editable_table(f"<div class='co-pair'>{pair}</div>", tableedit.css_of(snd.CSS), "co_tbl", st.session_state.get("co_epoch", 0), editable=False,
+                                 edits=st.session_state.get("co_tbl"))   # same frame as Edit (detail page)   # same frame as Edit
 
 
 # ── Edit mode ─────────────────────────────────────────────────────────────────

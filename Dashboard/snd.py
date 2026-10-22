@@ -636,7 +636,8 @@ def render():
         return
     import tableedit
     tableedit.editable_table(snd_table(df, meta, notes, years, shown, {"Arabica": a, "Robusta": r}, glob, combo),   # same frame as Edit
-                             tableedit.css_of(CSS), "snd_view", 0, editable=False)
+                             tableedit.css_of(CSS), "snd_tbl", st.session_state.get("snd_epoch", 0), editable=False,   # same frame as Edit: no reload on switch
+                             edits=st.session_state.get("snd_tbl"))
     charts(a, r, glob, shown)
 
 
