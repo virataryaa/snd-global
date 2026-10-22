@@ -458,11 +458,20 @@ def _y2(fig, suffix="%"):
     return fig.update_layout(yaxis2=dict(overlaying="y", side="right", showgrid=False, color=AXIS, ticksuffix=suffix, tickfont=dict(size=10)))
 
 
+def _grid(groups):
+    """Chart slots, row by row, each row under a centred group title: [(title, sub, n_charts), ...] -> flat list of columns."""
+    cells = []
+    for title, sub, n in groups:
+        st.markdown(f"<div class='grp-hero'>{title}<span>{sub}</span></div>", unsafe_allow_html=True)
+        cells += st.columns(n, gap="small")
+    return cells
+
+
 def charts(a, r, glob, shown):
     """Global SnD visuals: supply mix, stocks, balance, demand, origins and stocks to use. Estimates are faded."""
     x = [y[2:] for y in shown]                                        # 2024/25 -> 24/25 on the axes
     est = [is_estimate(y) for y in shown]
-    cells = [c for _ in range(2) for c in st.columns(3, gap="small")]   # 3 charts a row
+    cells = _grid([("Supply &amp; demand", "production, origins, consumption", 3), ("Balance &amp; stocks", "surplus/deficit, stocks, stocks to use", 3)])
 
     with cells[0], st.container(border=True):
         st.markdown("<div class='chart-head'>Production: Arabica and Robusta</div>", unsafe_allow_html=True)
@@ -471,7 +480,7 @@ def charts(a, r, glob, shown):
         _bars(fig, x, r.loc["Production", shown], "Robusta", AMBER, est)
         _line(fig, x, r.loc["Production", shown] / glob.loc["Production Global", shown] * 100, "Robusta share (right)", RED, right=True, pct=True)
         st.plotly_chart(_y2(_style(fig, 230).update_layout(barmode="stack")), width="stretch", key="c_prod")
-    with cells[1], st.container(border=True):
+    with cells[4], st.container(border=True):
         st.markdown("<div class='chart-head'>End season stocks</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, a.loc["End Season Stock", shown], "Arabica", NAVY, est)
@@ -479,14 +488,14 @@ def charts(a, r, glob, shown):
         _line(fig, x, glob.loc["Combined S/U", shown] * 100, "Global S/U (right)", RED, right=True, pct=True)
         st.plotly_chart(_y2(_style(fig, 230).update_layout(barmode="stack")), width="stretch", key="c_stock")
 
-    with cells[2], st.container(border=True):
+    with cells[3], st.container(border=True):
         st.markdown("<div class='chart-head'>Balance</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, a.loc["Balance", shown], "Arabica", NAVY, est)
         _bars(fig, x, r.loc["Balance", shown], "Robusta", AMBER, est)
         _line(fig, x, glob.loc["Global Balance", shown], "Global", RED)
         st.plotly_chart(_style(fig, 230).update_layout(barmode="group"), width="stretch", key="c_bal")
-    with cells[3], st.container(border=True):
+    with cells[2], st.container(border=True):
         st.markdown("<div class='chart-head'>Consumption</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, a.loc["Consumption", shown], "Arabica", NAVY, est)
@@ -494,7 +503,7 @@ def charts(a, r, glob, shown):
         _line(fig, x, glob.loc["Global demand chg", shown] * 100, "Growth (right)", RED, right=True, pct=True)
         st.plotly_chart(_y2(_style(fig, 230).update_layout(barmode="stack")), width="stretch", key="c_cons")
 
-    with cells[4], st.container(border=True):
+    with cells[1], st.container(border=True):
         st.markdown("<div class='chart-head'>Production by origin</div>", unsafe_allow_html=True)
         orig = {}
         for comm, fr in (("Arabica", a), ("Robusta", r)):

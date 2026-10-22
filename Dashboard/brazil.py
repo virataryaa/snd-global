@@ -464,18 +464,18 @@ def charts(A, C, O, shown):
     est = [snd.is_estimate(y) for y in shown]
     NAVY, TEAL, AMBER, GREEN, RED, GREY = snd.NAVY, snd.TEAL, snd.AMBER, snd.GREEN, snd.RED, snd.GREY
     total = A.loc["Production", shown] + C.loc["Production", shown]
-    cells = [c for _ in range(3) for c in st.columns(3, gap="small")]   # 3 charts a row
+    cells = snd._grid([("Demand &amp; exports", "home consumption mix, volumes, exports", 3), ("Supply &amp; stocks", "crop, stock change, stocks, stocks to use", 4)])
 
     with cells[0]:
         consumption_share(A, C, shown)
-    with cells[1], st.container(border=True):
+    with cells[3], st.container(border=True):
         st.markdown("<div class='chart-head'>Production: Arabica and Conillon</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, A.loc["Production", shown], "Arabica", NAVY, est)
         _bars(fig, x, C.loc["Production", shown], "Conillon", AMBER, est)
         _line(fig, x, (C.loc["Production", shown] / total * 100), "Conillon share (right)", RED, right=True, pct=True)
         st.plotly_chart(_y2(snd._style(fig, 230).update_layout(barmode="stack")), width="stretch", key="br_c_prod")
-    with cells[2], st.container(border=True):
+    with cells[5], st.container(border=True):
         st.markdown("<div class='chart-head'>Closing stocks</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, A.loc["Closing Stock", shown], "Arabica", NAVY, est)
@@ -483,7 +483,7 @@ def charts(A, C, O, shown):
         _line(fig, x, O.loc["Stock/Use", shown] * 100, "Brazil S/U (right)", RED, right=True, pct=True)
         st.plotly_chart(_y2(snd._style(fig, 230).update_layout(barmode="stack")), width="stretch", key="br_c_stock")
 
-    with cells[3], st.container(border=True):
+    with cells[2], st.container(border=True):
         st.markdown("<div class='chart-head'>Exports</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, A.loc["Exports", shown], "Arabica", NAVY, est)
@@ -491,7 +491,7 @@ def charts(A, C, O, shown):
         _bars(fig, x, C.loc["Soluble Exports", shown], "Soluble", TEAL, est)
         _line(fig, x, O.loc["Exports % of Production", shown] * 100, "% of crop (right)", RED, right=True, pct=True)
         st.plotly_chart(_y2(snd._style(fig, 230).update_layout(barmode="stack")), width="stretch", key="br_c_exp")
-    with cells[4], st.container(border=True):
+    with cells[1], st.container(border=True):
         st.markdown("<div class='chart-head'>Domestic consumption</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, A.loc["Consumption", shown], "Arabica", NAVY, est)
@@ -499,7 +499,7 @@ def charts(A, C, O, shown):
         _line(fig, x, C.loc["Consumption", shown] / O.loc["Consumption", shown] * 100, "Conillon share (right)", RED, right=True, pct=True)
         st.plotly_chart(_y2(snd._style(fig, 230).update_layout(barmode="stack")), width="stretch", key="br_c_cons")
 
-    with cells[5], st.container(border=True):
+    with cells[4], st.container(border=True):
         st.markdown("<div class='chart-head'>Stock build / draw</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, A.loc["Stock Change", shown], "Arabica", NAVY, est)
