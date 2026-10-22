@@ -90,7 +90,8 @@ button[kind="pillsActive"] p, button[kind="segmented_controlActive"] p { color: 
 .st-key-edit_bar button { height: 38px !important; min-height: 38px !important; padding: 0 20px !important; border-radius: 999px !important; }
 .st-key-edit_bar button[kind="secondary"] { background: rgba(255,255,255,.5) !important; border: 1px solid rgba(10,36,99,.15) !important; }
 .st-key-edit_bar button[kind="secondary"] p { color: #0a2463 !important; }
-.st-key-edit_bar button[kind="primary"] { background: #d9822b !important; border: none !important; box-shadow: 0 2px 10px rgba(217,130,43,.35); }
+.st-key-edit_bar button[kind="primary"] { background: linear-gradient(180deg, #14857c, #0f766e) !important; border: none !important; box-shadow: 0 2px 10px rgba(15,118,110,.35); }
+.st-key-edit_bar button[kind="primary"]:hover { background: #115e59 !important; }
 .st-key-edit_bar button[kind="primary"] p { color: #ffffff !important; font-weight: 700 !important; }
 [class*="_addyr"] button { border-radius: 999px !important; min-height: 32px !important; height: 32px; padding: 0 18px !important;
   background: linear-gradient(180deg, #ffffff, #f4f6fb) !important; border: 1px dashed rgba(10,36,99,.35) !important; color: #0a2463 !important;

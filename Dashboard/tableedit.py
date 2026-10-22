@@ -115,6 +115,6 @@ table.snd th.y { background: #fbf0f1 !important; color: #7a0f1f !important; bord
 """   # Edit mode: table bars turn deep royal red
 
 
-def editable_table(html: str, css: str, key: str, epoch: int, editable: bool = True, edits=None, red: bool = True):
+def editable_table(html: str, css: str, key: str, epoch: int, editable: bool = True, edits=None, red: bool = False):
     css = css + (EDIT_CSS if red else "")
     return _COMP(html=html, css=css, editable=editable, epoch=epoch, edits=edits or {}, key=key, default={})
