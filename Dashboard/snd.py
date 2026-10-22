@@ -27,7 +27,7 @@ ORIGINS = {
     "Robusta": ["Vietnam", "Brazil", "Indonesia", "India", "Uganda", "Cote d'Ivoire", "Others"],
 }
 TZ = "Europe/Amsterdam"
-NAVY, TEAL, GREEN, RED, AMBER, GREY = "#4f6694", "#8fb8b4", "#7fb595", "#cf8a85", "#d6b77f", "#c3c9d4"
+NAVY, TEAL, GREEN, RED, AMBER, GREY = "#1f3b73", "#2a8c8c", "#2e8b57", "#b0413e", "#c9973f", "#8a94a6"
 INK, AXIS, GRID = "#1d1d1f", "#86868b", "rgba(0,0,0,0.05)"
 
 CSS = """
@@ -69,7 +69,7 @@ table.snd tr.hl td.lbl { color: #14532d !important; }
 table.snd tr.soft td.lbl { color: #94a3b8; }
 table.snd tr.sep td { border: 0; height: 6px; padding: 0; }
 table.snd td.neg { color: #c0392b; }
-table.snd td.ed { cursor: text; background: #fffaf5 !important; box-shadow: inset 0 0 0 1px rgba(217,130,43,.28); color: #0a2463 !important; }
+table.snd td.ed { cursor: text; background: #fffcf8 !important; box-shadow: inset 0 -1.5px 0 rgba(217,130,43,.5); color: #0a2463 !important; }
 table.snd td.ed:hover { box-shadow: inset 0 0 0 1px #9db3e6; background: #f3f6fd; }
 table.snd td.ed:focus { outline: none; box-shadow: inset 0 0 0 2px #0a2463; background: #ffffff; }
 table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
@@ -481,7 +481,7 @@ def charts(a, r, glob, shown):
     x = [y[2:] for y in shown]                                        # 2024/25 -> 24/25 on the axes
     est = [is_estimate(y) for y in shown]
     cells = _grid([("Arabica", "", 3), ("Robusta", "", 3), ("Overall", "", 3)])
-    pal = [NAVY, AMBER, TEAL, "#8a9cc4", "#e6cf9f", "#b9d5d2", "#a9b4d1", "#d9c7a8", "#c6cddb", "#dde2ec", "#ebeef4"]
+    pal = [NAVY, AMBER, TEAL, "#5b74a8", "#ddb86a", "#6bb3b0", "#7b5ea7", "#a58a5c", "#9aa6bd", "#c3cad8", "#dde2ec"]
 
     def head(t):
         st.markdown(f"<div class='chart-head'>{t}</div>", unsafe_allow_html=True)

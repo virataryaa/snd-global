@@ -10,7 +10,7 @@ import snd
 from analytics import _fig, card
 from snd import AMBER, GREEN, GREY, NAVY, RED, TEAL, fnum, fpct
 
-ORIGIN_COLORS = ["#4f6694", "#8a9cc4", "#8fb8b4", "#d6b77f", "#7fb595", "#b39cc9", "#b6c3e0", "#e8d4ab", "#c3c9d4"]
+ORIGIN_COLORS = ["#1f3b73", "#5b74a8", "#2a8c8c", "#c9973f", "#2e8b57", "#7b5ea7", "#8fa3cf", "#ddb86a", "#8a94a6"]
 
 
 def _x(years):
@@ -66,7 +66,7 @@ def analysis_page():
     with r3[0], st.container(border=True):
         card("Ivory Coast and Ghana: main vs mid crop")
         fig = go.Figure()
-        for key, name, col in (("IC Main", "IC main", NAVY), ("IC Mid", "IC mid", "#a9b8dc"), ("GH Main", "GH main", AMBER), ("GH Mid", "GH mid", "#ead6ad")):
+        for key, name, col in (("IC Main", "IC main", NAVY), ("IC Mid", "IC mid", "#6f86bd"), ("GH Main", "GH main", AMBER), ("GH Mid", "GH mid", "#e0bd75")):
             fig.add_trace(go.Bar(x=x, y=T.loc[key], name=name, marker=dict(color=col, line_width=0),
                                  offsetgroup="IC" if key.startswith("IC") else "GH", hovertemplate=name + ": %{y:,.0f}<extra></extra>"))
         st.plotly_chart(_fig(fig, height=300, fmt=",.0f").update_layout(barmode="stack"), width="stretch", key="co_an_mainmid")
