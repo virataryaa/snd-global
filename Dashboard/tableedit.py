@@ -59,7 +59,7 @@ def _num(t):
 
 
 def mark_limits(live: str, n: int = 10, edge: float = 0.05) -> str:
-    show = st.session_state.get("lim_flags", False)       # sidebar toggle
+    show = st.session_state.get("lim_flags", True)       # sidebar toggle
     """Edit mode: forecast years and changed cells in level rows (consumption, S/U, production, stocks, grind) are checked against the
     previous n actual years of the same row. Past the 10y high/low -> 'lim hi|lo' (red shine); within 5% of the range from an
     end -> 'edge'. A hover title gives the record, the year it was set and the gap."""

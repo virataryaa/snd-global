@@ -14,7 +14,7 @@ with st.sidebar:
     section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Revisions"], key="co_section", label_visibility="collapsed")
     st.markdown("<div class='sb-sep'></div><div class='sb-label'>Crop years</div>", unsafe_allow_html=True)
     st.radio("Crop years", ["Last 7", "All"], horizontal=True, key="yrs_span", label_visibility="collapsed")
-    st.toggle("Record flags (10y)", key="lim_flags", help="Edit mode: red on cells past the 10-year high/low, outline near it")
+    st.toggle("Record flags (10y)", value=True, key="lim_flags", help="Edit mode: red on cells past the 10-year high/low, outline near it")
     st.toggle("Show only editable", key="rows_only", help="Edit mode: hide the calculated rows")
 
 if section == "SnD":

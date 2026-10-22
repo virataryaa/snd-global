@@ -198,10 +198,10 @@ function ensurePanel() {
       "#snd-xinfo { gap: 24px; padding: 14px 22px; border-radius: 18px; max-width: 94vw; }" +
       "#snd-xinfo .xi-l { min-width: 170px; } #snd-xinfo .xi-n { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #94a3b8; margin-bottom: 2px; }" +
       "#snd-xinfo .xt-v { font-size: 26px; } #snd-xinfo .xt-d, #snd-xinfo .xt-was { font-size: 14px; } #snd-xinfo .xt-tag { font-size: 12px; }" +
-      "#snd-xinfo .xi-r { font-size: 12px; min-width: 190px; max-height: 110px; overflow: hidden; border-left: 1px solid rgba(10,36,99,.08); padding-left: 18px; }" +
+      "#snd-xinfo .xi-r { font-size: 12px; min-width: 200px; max-height: 190px; overflow: hidden; border-left: 1px solid rgba(10,36,99,.08); padding-left: 18px; }" +
       "#snd-xinfo .row { padding: 3px 0; white-space: nowrap; } #snd-xinfo .row + .row { border-top: 1px solid rgba(10,36,99,.06); }" +
       "#snd-xinfo .dt { color: #94a3b8; margin-right: 8px; } #snd-xinfo .rs { color: #94a3b8; margin-left: 8px; }" +
-      "#snd-xinfo .xi-c svg { display: block; }" +
+      "#snd-xinfo .xi-c svg { display: block; } #snd-xinfo .xi-r svg { display: block; width: 220px; height: auto; margin: 2px 0 4px; }" +
       "#snd-xinfo .xt-top { justify-content: flex-start; gap: 8px; } #snd-xinfo .xt-was { margin-left: 0; margin-right: 0; }" +
       "#snd-xinfo svg { margin-top: 0 !important; }";
     P.head.appendChild(st);
@@ -234,9 +234,9 @@ function panelHtml(t) {
   var rev = td.querySelector(".rev-pop");
   if (rev) {                                                  // saved revisions: chart (if none yet) + the latest changes
     var svg = rev.querySelector("svg");
-    if (!chart && svg) chart = svg.outerHTML;
-    right = "<div class='xi-r'><div class='xi-n'>Saved revisions</div>" +
-            Array.prototype.slice.call(rev.querySelectorAll(".row"), 0, 4).map(function (r) { return r.outerHTML; }).join("") + "</div>";
+    if (!chart && svg) { chart = svg.outerHTML; svg = null; }            // no edit chart: the revision chart takes the middle
+    right = "<div class='xi-r'><div class='xi-n'>Saved revisions</div>" + (svg ? svg.outerHTML : "") +
+            Array.prototype.slice.call(rev.querySelectorAll(".row"), 0, svg ? 2 : 4).map(function (r) { return r.outerHTML; }).join("") + "</div>";
   }
   return "<div class='xi-l'><div class='xi-n'>" + where(td) + "</div>" + left + "</div>" + (chart ? "<div class='xi-c'>" + chart + "</div>" : "") + right;
 }
