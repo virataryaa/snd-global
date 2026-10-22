@@ -110,8 +110,9 @@ function commit(td, live) {
 var tip = document.createElement("div"); tip.className = "xtip"; document.body.appendChild(tip);
 function f1(x, pct) { return pct ? x.toFixed(0) + "%" : x.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
 function num(t) { return Number(t.replace(/[,%()]/g, "")) * (/^\(/.test(t) ? -1 : 1); }
+function shown(td) { var c = td.cloneNode(true); c.querySelectorAll(".rev-pop, .rev-dot").forEach(function (x) { x.remove(); }); return c.textContent.trim(); }
 function card(td) {
-  var h = "", now = td.textContent.trim();
+  var h = "", now = shown(td);
   if (td.dataset.was !== undefined) {
     var d = num(now) - num(td.dataset.was);
     h += "<div class='xt-h'><i class='v'></i>Moved with your edit</div><div class='xt-big'><span class='old'>" + (td.dataset.was || "&ndash;") +
@@ -120,18 +121,19 @@ function card(td) {
   }
   if (td.dataset.lim) {
     var L = JSON.parse(td.dataset.lim), p = L.pct;
-    var up = L.k === "hi" || L.k === "nh";
     var lab = { hi: "Above 10-year high", lo: "Below 10-year low", nh: "Near 10-year high", nl: "Near 10-year low" }[L.k];
-    var tone = L.k === "hi" ? "up" : L.k === "lo" ? "dn" : "n";
+    var tone = L.k === "hi" || L.k === "nh" ? "up" : "dn";
     var gap = L.k === "hi" ? L.v - L.hi : L.k === "lo" ? L.v - L.lo : null;
-    var pos = Math.max(0, Math.min(100, (L.v - L.lo) / ((L.hi - L.lo) || 1) * 100));
+    var pos = Math.max(3, Math.min(97, 14 + (L.v - L.lo) / ((L.hi - L.lo) || 1) * 72));   // the 10y range is the middle 72%
     if (h) h += "<div class='xt-sep'></div>";
     h += "<div class='xt-h'><i class='" + tone + "'></i>" + lab + "</div>" +
          (td.dataset.was !== undefined ? "" : "<div class='xt-big'>" + now + "</div>") +
-         (gap === null ? "" : "<div class='xt-ends' style='margin-top:3px'><span>" + (gap >= 0 ? "+" : "&minus;") + f1(Math.abs(gap), p) + " vs record</span></div>") +
-         "<div class='xt-bar'><b class='" + (tone === "n" ? "" : tone) + "' style='left:" + pos + "%'></b></div>" +
+         (gap === null ? "" : "<div class='xt-gap " + tone + "'>" + (gap >= 0 ? "+" : "&minus;") + f1(Math.abs(gap), p) + " beyond the record</div>") +
+         "<div class='xt-bar'><i class='trk'></i><i class='rng'></i><b class='" + (L.k.length === 2 && L.k[0] === "n" ? "" : tone) + "' style='left:" + pos + "%'></b></div>" +
          "<div class='xt-ends'><span>" + f1(L.lo, p) + "<em>" + L.ylo + "</em></span><span>" + f1(L.hi, p) + "<em>" + L.yhi + "</em></span></div>";
   }
+  var rev = td.querySelector(".rev-pop");
+  if (rev) { h += "<div class='xt-sep'></div><div class='xt-h'><i class='n'></i>Saved revisions</div><div class='rev-pop'>" + rev.innerHTML + "</div>"; }
   return h;
 }
 document.addEventListener("mouseover", function (e) {

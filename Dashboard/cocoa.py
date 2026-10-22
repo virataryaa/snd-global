@@ -420,7 +420,7 @@ def edit_view(S, years, part="snd", title="Edit Cocoa SnD"):
                             label_visibility="collapsed", max_chars=140, disabled=not n)
     bar.button("Undo", disabled=not n, width="content", key="co_undo", on_click=_undo)
     save = bar.button("Save" + (f" · {n}" if n else ""), type="primary", disabled=(not n) or bad, width="content", key="co_save")
-    st.sidebar.button("+ Crop year", key="co_addyr", disabled=bool(extra), width="content",
+    st.sidebar.button("Add a Crop Year", key="co_addyr", disabled=bool(extra), width="content",
                on_click=lambda: st.session_state.__setitem__("co_new_year", nxt))
     if save:
         try:

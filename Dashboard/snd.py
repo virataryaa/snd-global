@@ -76,7 +76,8 @@ table.snd td.ed:hover::before { border-color: rgba(217,130,43,.55); background: 
 table.snd td.ed:focus { outline: none; background: #ffffff !important; }
 table.snd td.ed:focus::before { border: 1.5px solid #d9822b; box-shadow: 0 0 0 3px rgba(217,130,43,.15); }
 table.snd tr:has(td.ed) > td:last-child { position: relative; }
-table.snd tr:has(td.ed) > td:last-child::after { content: ""; position: absolute; right: 1px; top: 4px; bottom: 4px; width: 3px; border-radius: 2px; background: #f0b37e; }
+table.snd tr:has(td.ed) > td:last-child::after { content: "✎"; position: absolute; right: 5px; top: 50%; transform: translateY(-50%); font-size: 11px; line-height: 1; color: #d9822b; opacity: .85; }
+table.snd td.spark-td { padding-right: 24px !important; }
 table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
 table.snd td.mv { position: relative; z-index: 1; background: transparent !important; box-shadow: none !important; }
 table.snd td.lim, table.snd td.edge { position: relative; cursor: help; }
@@ -89,7 +90,7 @@ table.snd td.lim.hi::after { content: "▲"; color: #15803d; } table.snd td.lim.
 table.snd td.edge.nh::after { content: "▲"; color: #86efac; } table.snd td.edge.nl::after { content: "▼"; color: #fca5a5; }
 @keyframes mvshine { 0%, 100% { background-position: 0% 50%; box-shadow: 0 0 5px rgba(139,92,246,.3); } 50% { background-position: 100% 50%; box-shadow: 0 0 13px rgba(139,92,246,.65); } }
 @keyframes limshine { 0%, 100% { background-position: 0% 50%; box-shadow: 0 0 5px rgba(239,68,68,.3); } 50% { background-position: 100% 50%; box-shadow: 0 0 13px rgba(239,68,68,.6); } }
-.xtip { display: none; position: fixed; z-index: 99999; width: 250px; background: #ffffff; border-radius: 14px; padding: 13px 15px 12px;
+.xtip { display: none; position: fixed; z-index: 99999; width: 270px; background: #ffffff; border-radius: 14px; padding: 13px 15px 12px;
   pointer-events: none; font-size: 12px; color: #475569; border: 1px solid rgba(15,23,42,.06);
   box-shadow: 0 18px 40px rgba(10,36,99,.18), 0 2px 8px rgba(10,36,99,.06); animation: xtin .16s ease-out; }
 @keyframes xtin { from { opacity: 0; transform: translateY(5px) scale(.98); } to { opacity: 1; transform: none; } }
@@ -101,11 +102,15 @@ table.snd td.edge.nh::after { content: "▲"; color: #86efac; } table.snd td.edg
 .xt-big .old { color: #94a3b8; font-weight: 500; font-size: 17px; }
 .xt-big .g { font-size: 12px; font-weight: 600; margin-left: auto; padding: 2px 7px; border-radius: 999px; }
 .xt-big .g.up { color: #15803d; background: #dcfce7; } .xt-big .g.dn { color: #b91c1c; background: #fee2e2; }
-.xt-bar { position: relative; height: 4px; margin: 14px 2px 7px; border-radius: 2px; background: #e2e8f0; }
-.xt-bar b { position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%); background: #0a2463; border: 2.5px solid #fff;
-  box-shadow: 0 1px 5px rgba(10,36,99,.35); }
-.xt-bar b.up { background: #16a34a; } .xt-bar b.dn { background: #dc2626; }
-.xt-ends { display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b; font-variant-numeric: tabular-nums; }
+.xt-bar { position: relative; height: 22px; margin: 10px 0 2px; }
+.xt-bar .trk { position: absolute; left: 0; right: 0; top: 9px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #fee2e2 0 14%, #e2e8f0 14% 86%, #dcfce7 86% 100%); }
+.xt-bar .rng { position: absolute; left: 14%; right: 14%; top: 7px; height: 8px; border-left: 1.5px solid #94a3b8; border-right: 1.5px solid #94a3b8; }
+.xt-bar b { position: absolute; top: 11px; width: 13px; height: 13px; border-radius: 50%; transform: translate(-50%, -50%); background: #0a2463; border: 2.5px solid #fff;
+  box-shadow: 0 1px 6px rgba(10,36,99,.35); }
+.xt-bar b.up { background: #16a34a; box-shadow: 0 0 0 4px rgba(22,163,74,.18), 0 1px 6px rgba(22,163,74,.4); }
+.xt-bar b.dn { background: #dc2626; box-shadow: 0 0 0 4px rgba(220,38,38,.18), 0 1px 6px rgba(220,38,38,.4); }
+.xt-ends { display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b; font-variant-numeric: tabular-nums; padding: 0 9%; }
+.xt-gap { font-size: 11.5px; font-weight: 600; margin-top: 2px; } .xt-gap.up { color: #15803d; } .xt-gap.dn { color: #b91c1c; }
 .xt-ends span em { font-style: normal; color: #94a3b8; margin-left: 3px; }
 .xt-sep { height: 1px; background: #f1f5f9; margin: 11px 0; }
 table.snd td.rev { position: relative; }
@@ -116,6 +121,9 @@ table.snd td.rev { position: relative; }
            border: 1px solid rgba(0,0,0,.08); border-radius: 8px; padding: 7px 10px; font-size: 10.5px; white-space: nowrap;
            box-shadow: 0 6px 20px rgba(0,0,0,.18); text-align: left; font-weight: 400; letter-spacing: 0; }
 table.snd td.rev:hover .rev-pop { display: block; }
+table.snd td[data-was]:hover .rev-pop, table.snd td[data-lim]:hover .rev-pop { display: none !important; }
+.xtip .rev-pop { display: block !important; position: static; margin: 0; padding: 0; border: 0; box-shadow: none; background: none; width: auto; }
+.xtip .rev-pop svg { max-width: 100%; height: auto; }
 .rev-pop .row { padding: 2px 0; }
 .rev-pop .row + .row { border-top: 1px solid rgba(0,0,0,.08); }
 .rev-pop .dt { color: #86868b; margin-right: 6px; }
@@ -618,7 +626,7 @@ def render_edit(df, meta, notes, years, shown, editable):
     bar.button("Undo", disabled=not n_all, width="content", key="snd_undo", on_click=_undo)
     save = bar.button("Save" + (f" · {n_all}" if n_all else ""), type="primary", disabled=(not n_all) or bad,
                       width="content", key="snd_save")
-    st.sidebar.button("+ Crop year", key="snd_addyr", disabled=bool(extra), width="content",
+    st.sidebar.button("Add a Crop Year", key="snd_addyr", disabled=bool(extra), width="content",
                on_click=lambda: st.session_state.__setitem__("snd_new_year", nxt))
     if save:
         try:

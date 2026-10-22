@@ -92,6 +92,12 @@ button[kind="pillsActive"] p, button[kind="segmented_controlActive"] p { color: 
 .st-key-edit_bar button[kind="secondary"] p { color: #0a2463 !important; }
 .st-key-edit_bar button[kind="primary"] { background: #d9822b !important; border: none !important; box-shadow: 0 2px 10px rgba(217,130,43,.35); }
 .st-key-edit_bar button[kind="primary"] p { color: #ffffff !important; font-weight: 700 !important; }
+[class*="_addyr"] button { border-radius: 999px !important; min-height: 32px !important; height: 32px; padding: 0 18px !important;
+  background: linear-gradient(180deg, #ffffff, #f4f6fb) !important; border: 1px dashed rgba(10,36,99,.35) !important; color: #0a2463 !important;
+  box-shadow: 0 1px 4px rgba(10,36,99,.08); transition: all .18s; }
+[class*="_addyr"] button p { font-size: 12.5px !important; font-weight: 600 !important; }
+[class*="_addyr"] button:hover { border-color: #d9822b !important; color: #c2410c !important; box-shadow: 0 0 0 3px rgba(217,130,43,.12), 0 3px 10px rgba(217,130,43,.2); }
+[class*="_addyr"] button:hover p { color: #c2410c !important; }
 .st-key-edit_bar_idle { display: none !important; }
 .st-key-edit_bar button p { font-size: 12.5px !important; }
 .st-key-edit_bar [data-baseweb="input"], .st-key-edit_bar [data-baseweb="base-input"] { min-height: 38px !important; height: 38px !important; }

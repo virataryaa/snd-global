@@ -402,7 +402,7 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     bar.button("Undo", disabled=not n_all, width="content", key="br_undo", on_click=_undo)
     save = bar.button("Save" + (f" · {n_all}" if n_all else ""), type="primary", disabled=(not n_all) or bad,
                       width="content", key="br_save")
-    st.sidebar.button("+ Crop year", key="br_addyr", disabled=bool(extra), width="content",
+    st.sidebar.button("Add a Crop Year", key="br_addyr", disabled=bool(extra), width="content",
                on_click=lambda: st.session_state.__setitem__("br_new_year", nxt))
     if save:
         try:
