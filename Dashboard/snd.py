@@ -100,7 +100,6 @@ table.snd td.rev { position: relative; }
            border: 1px solid rgba(0,0,0,.08); border-radius: 8px; padding: 7px 10px; font-size: 10.5px; white-space: nowrap;
            box-shadow: 0 6px 20px rgba(0,0,0,.18); text-align: left; font-weight: 400; letter-spacing: 0; }
 table.snd td.rev:hover .rev-pop { display: block; }
-table.snd td[data-was]:hover .rev-pop, table.snd td[data-lim]:hover .rev-pop { display: none !important; }
 .rev-pop .row { padding: 2px 0; }
 .rev-pop .row + .row { border-top: 1px solid rgba(0,0,0,.08); }
 .rev-pop .dt { color: #86868b; margin-right: 6px; }
