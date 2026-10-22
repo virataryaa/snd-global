@@ -138,6 +138,7 @@ var tip = document.createElement("div"); tip.className = "xtip"; document.body.a
 function f1(x, pct) { return pct ? x.toFixed(0) + "%" : x.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
 function num(t) { return Number(t.replace(/[,%()]/g, "")) * (/^\(/.test(t) ? -1 : 1); }
 function shown(td) { var c = td.cloneNode(true); c.querySelectorAll(".rev-pop, .rev-dot").forEach(function (x) { x.remove(); }); return c.textContent.trim(); }
+function sy(t) { return t.replace(/^\d{2}(\d{2}\/\d{2})/, "$1"); }   // 2026/27* -> 26/27*
 function bars(td, tone, rec, recLab) {
   // the row as bars: this cell in colour, others soft grey; hatched ghost + cap = value before the edit; record = labelled line
   var tds = Array.prototype.filter.call(td.parentNode.children, function (c) { return c.tagName === "TD" && !c.classList.contains("lbl") && !c.classList.contains("spark-td"); });
@@ -145,7 +146,10 @@ function bars(td, tone, rec, recLab) {
   var was = tds.map(function (c) { return c.dataset.was !== undefined && c.dataset.was !== "" ? num(c.dataset.was) : NaN; });
   var ok = v.concat(was).filter(function (x) { return !isNaN(x); }); if (ok.length < 2) return "";
   var hi = Math.max.apply(null, ok.concat([0, rec === null ? 0 : rec])), lo = Math.min.apply(null, ok.concat([0, rec === null ? 0 : rec]));
-  var W = 320, H = 84, T = 14, n = v.length, bw = W / n, y = function (x) { return T + (hi - x) / ((hi - lo) || 1) * (H - T - 4); };
+  var hdr = null;                                                // crop years from the header row above
+  for (var r = td.parentNode.previousElementSibling; r; r = r.previousElementSibling) { if (r.querySelector("th.y")) { hdr = r; break; } }
+  var yrs = tds.map(function (c) { var th = hdr ? hdr.children[Array.prototype.indexOf.call(c.parentNode.children, c)] : null; return th ? sy(th.textContent.trim()) : ""; });
+  var W = 400, B = 15, H = 100, T = 14, n = v.length, bw = W / n, y = function (x) { return T + (hi - x) / ((hi - lo) || 1) * (H - B - T - 4); };
   var col = { up: ["#22c55e", "#15803d"], dn: ["#f87171", "#b91c1c"], v: ["#a78bfa", "#6d28d9"] }[tone];
   var g = "<defs><linearGradient id='xg' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='" + col[0] + "'/><stop offset='1' stop-color='" + col[1] + "'/></linearGradient>" +
           "<linearGradient id='xm' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#ddd6fe'/><stop offset='1' stop-color='#c4b5fd'/></linearGradient>" +
@@ -159,7 +163,9 @@ function bars(td, tone, rec, recLab) {
     if (isNaN(x)) return;
     var moved = !isNaN(was[j]) && Math.abs(was[j] - x) > 1e-9;
     if (moved) g += bar(j, was[j], "url(#xh)");                                   // before the edit: hatched
-    g += bar(j, x, j === i ? "url(#xg)" : moved ? "url(#xm)" : "#e5e9f0", j === i ? " filter='drop-shadow(0 2px 3px rgba(15,23,42,.18))'" : "");
+    g += "<text x='" + (bx(j) + ww / 2).toFixed(1) + "' y='" + (H - 3) + "' font-size='8.5' text-anchor='middle' font-family='Inter, system-ui, sans-serif' fill='" +
+         (j === i ? "#0a2463' font-weight='700" : "#94a3b8") + "'>" + yrs[j] + "</text>";
+    g += bar(j, x, j === i ? "url(#xg)" : moved ? "url(#xm)" : "#b9c4d6", j === i ? " filter='drop-shadow(0 2px 3px rgba(15,23,42,.18))'" : "");
     if (moved) g += "<line x1='" + (bx(j) - 2).toFixed(1) + "' x2='" + (bx(j) + ww + 2).toFixed(1) + "' y1='" + y(was[j]).toFixed(1) + "' y2='" + y(was[j]).toFixed(1) +
                     "' stroke='#334155' stroke-width='1.6' stroke-linecap='round'/>";   // cap where it was
   });
@@ -214,7 +220,7 @@ function where(td) {
   for (var r = tr.previousElementSibling; r; r = r.previousElementSibling) {
     if (r.querySelector("th.y")) { var th = r.children[col]; yr = th ? th.textContent.trim() : ""; break; }
   }
-  return (lbl ? shown(lbl) : "") + (yr && !td.classList.contains("spark-td") ? " &middot; " + yr : "");
+  return (lbl ? shown(lbl) : "") + (yr && !td.classList.contains("spark-td") ? " &middot; " + sy(yr) : "");
 }
 function panelHtml(t) {
   var sp = t.closest(".spark-wrap");
