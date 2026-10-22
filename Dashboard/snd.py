@@ -598,8 +598,7 @@ def render_edit(df, meta, notes, years, shown, editable):
                         edit=dict(base=base, changed=set(edits), all=not st.session_state.get("rows_only", False)))
         table = tableedit.mark_limits(tableedit.mark_moved(table, ref))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
-    bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small", key="edit_bar")   # one compact row, left-aligned
-    bar.markdown("<div class='snd-head'><span class='t edit'>Edit Global SnD</span></div>", unsafe_allow_html=True)   # title shares the toolbar row
+    ctrl.markdown("<div class='snd-head'><span class='t edit'>Edit Global SnD</span></div>", unsafe_allow_html=True)   # same title row as View
     tableedit.editable_table(table, tableedit.css_of(CSS), "snd_tbl", epoch, editable, edits)
     st.session_state["_snd_edits"] = dict(edits)
     if not editable:
@@ -611,12 +610,15 @@ def render_edit(df, meta, notes, years, shown, editable):
         ctrl.error("Values cannot be negative.")
 
 
+    # pending edits -> a slim bar floats at the bottom of the screen; nothing pending -> it is hidden
+    bar = st.container(horizontal=True, vertical_alignment="center", gap="small", key="edit_bar" if n_all else "edit_bar_idle")
+    bar.markdown(f"<span class='eb-n'>{n_all} unsaved change{'s' if n_all != 1 else ''}</span>", unsafe_allow_html=True)
     reason = bar.text_input("Reason", key=f"snd_reason_{epoch}", placeholder="Reason for Change...", width=320,
                               label_visibility="collapsed", max_chars=140, disabled=not n_all)
     bar.button("Undo", disabled=not n_all, width="content", key="snd_undo", on_click=_undo)
     save = bar.button("Save" + (f" · {n_all}" if n_all else ""), type="primary", disabled=(not n_all) or bad,
                       width="content", key="snd_save")
-    bar.button("+ Crop year", key="snd_addyr", disabled=bool(extra), width="content",
+    st.sidebar.button("+ Crop year", key="snd_addyr", disabled=bool(extra), width="content",
                on_click=lambda: st.session_state.__setitem__("snd_new_year", nxt))
     if save:
         try:

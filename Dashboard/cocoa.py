@@ -401,8 +401,7 @@ def edit_view(S, years, part="snd", title="Edit Cocoa SnD"):
     if changes:                                                  # tint every calculated cell the unsaved edits move
         table = tableedit.mark_limits(tableedit.mark_moved(table, edit_html(S, years, E, part)))
     ctrl = st.container()
-    bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small", key="edit_bar")
-    bar.markdown(f"<div class='snd-head'><span class='t edit'>{title}</span></div>", unsafe_allow_html=True)   # title shares the toolbar row
+    ctrl.markdown(f"<div class='snd-head'><span class='t edit'>{title}</span></div>", unsafe_allow_html=True)   # same title row as View
     tableedit.editable_table(table, tableedit.css_of(snd.CSS), "co_tbl", epoch, editable, edits)
     st.session_state["_co_edits"] = dict(edits)
     st.markdown("<div class='card-desc' style='margin:4px 0 0'>Stat crop = Tree + carry-in + smuggling + held · Total = origins × 0.99 · "
@@ -414,11 +413,14 @@ def edit_view(S, years, part="snd", title="Edit Cocoa SnD"):
     bad = any(c[3] is not None and c[3] < 0 and not any(a in c[0] for a in ADJ) for c in changes)   # adjustments may be negative
     if bad:
         ctrl.error("Crops, grind and stock cannot be negative.")
+    # pending edits -> a slim bar floats at the bottom of the screen; nothing pending -> it is hidden
+    bar = st.container(horizontal=True, vertical_alignment="center", gap="small", key="edit_bar" if n else "edit_bar_idle")
+    bar.markdown(f"<span class='eb-n'>{n} unsaved change{'s' if n != 1 else ''}</span>", unsafe_allow_html=True)
     reason = bar.text_input("Reason", key=f"co_reason_{epoch}", placeholder="Reason for Change...", width=320,
                             label_visibility="collapsed", max_chars=140, disabled=not n)
     bar.button("Undo", disabled=not n, width="content", key="co_undo", on_click=_undo)
     save = bar.button("Save" + (f" · {n}" if n else ""), type="primary", disabled=(not n) or bad, width="content", key="co_save")
-    bar.button("+ Crop year", key="co_addyr", disabled=bool(extra), width="content",
+    st.sidebar.button("+ Crop year", key="co_addyr", disabled=bool(extra), width="content",
                on_click=lambda: st.session_state.__setitem__("co_new_year", nxt))
     if save:
         try:
