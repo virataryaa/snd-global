@@ -435,7 +435,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
 def _style(fig, height=230, fmt=",.1f", legend=True):
     fig.update_layout(template="plotly_white", height=height, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                       font=dict(color="#1d1d1f", size=11, family="-apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif"), margin=dict(t=4, b=24, l=8, r=8), hovermode="x unified",
-                      legend=dict(orientation="h", x=0, y=1.14, bgcolor="rgba(0,0,0,0)", font=dict(size=10.5)) if legend else None,
+                      legend=dict(orientation="h", x=0, y=1.02, yanchor="bottom", bgcolor="rgba(0,0,0,0)", font=dict(size=10), itemwidth=30) if legend else None,
                       showlegend=legend, bargap=0.35,
                       xaxis=dict(color=AXIS, showgrid=False, type="category", tickfont=dict(size=10),
                                  tickangle=-45, tickvals=None),
@@ -506,7 +506,7 @@ def charts(a, r, glob, shown):
         fig = go.Figure()
         for o, col in zip(order, pal + [GREY] * len(order)):
             _bars(fig, x, orig[o], o, col, est)
-        st.plotly_chart(_style(fig, 300).update_layout(barmode="stack", legend=dict(font=dict(size=9.5), y=1.2)), width="stretch", key="c_orig")
+        st.plotly_chart(_style(fig, 300).update_layout(barmode="stack", legend=dict(font=dict(size=9.5))), width="stretch", key="c_orig")
     with cells[5], st.container(border=True):
         st.markdown("<div class='chart-head'>Stocks to use</div>", unsafe_allow_html=True)
         fig = go.Figure()
