@@ -380,7 +380,6 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
         ref = full_table(A0, C0, O0, _shown(years), edit=dict(base=base, changed=set(edits), all=not st.session_state.get("rows_only", False)))
         table = tableedit.mark_limits(tableedit.mark_moved(table, ref))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
-    ctrl.markdown("<div class='snd-head'><span class='t edit'>Edit Brazil Internal SnD</span></div>", unsafe_allow_html=True)   # same title row as View
     tableedit.editable_table(table, tableedit.css_of(snd.CSS), "br_tbl", epoch, editable, edits)
     st.markdown("<div class='card-desc' style='margin:4px 0 0'>Rule: Arabica consumption + Conillon consumption = Overall consumption. "
                 "Edit Arabica and Overall; Conillon is worked out as Overall minus Arabica.</div>", unsafe_allow_html=True)
@@ -540,7 +539,7 @@ def render(view="Brazil SnD"):
     title = "Brazil Internal SnD" if view == "Brazil SnD" else "AgriAcies format"
     editing = view == "Brazil SnD" and st.session_state.get("snd_mode") == "Edit"
     head = f"<span class='t edit'>Edit {title}</span>" if editing else f"<span class='t'>{title}</span>"
-    if not editing:
+    if view == "AgriAcies format":                               # SnD pages: the page switch already names the table
         st.markdown(f"<div class='snd-head'>{head}</div>", unsafe_allow_html=True)
     if view == "AgriAcies format":
         st.markdown(agri_html(agri), unsafe_allow_html=True)

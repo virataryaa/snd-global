@@ -606,7 +606,6 @@ def render_edit(df, meta, notes, years, shown, editable):
                         edit=dict(base=base, changed=set(edits), all=not st.session_state.get("rows_only", False)))
         table = tableedit.mark_limits(tableedit.mark_moved(table, ref))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
-    ctrl.markdown("<div class='snd-head'><span class='t edit'>Edit Global SnD</span></div>", unsafe_allow_html=True)   # same title row as View
     tableedit.editable_table(table, tableedit.css_of(CSS), "snd_tbl", epoch, editable, edits)
     st.session_state["_snd_edits"] = dict(edits)
     if not editable:
