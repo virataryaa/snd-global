@@ -246,7 +246,7 @@ def render():
         for col, basis in zip(st.columns(2, gap="small"), ("Botanical", "Statistical")):
             col.markdown(f"<div class='snd-wrap cmp'><table class='snd cmp'>{table_html(basis, balance(S, years, basis), shown, compact=True)}"
                          "</table></div>", unsafe_allow_html=True)
-        st.markdown("<div style='margin-top:4px;font-size:10px;font-style:italic;color:#94a3b8;opacity:.6'>"
+        st.markdown("<div style='margin-top:4px;font-size:10.5px;font-style:italic;color:#64748b'>"
                     f"Tot = Σorig×0.99 · SnD = Tot−Grind · Stk typed ≤{ANCHOR[2:]}, then prev+SnD · Stat = Tree+CI+Smug+Held</div>",
                     unsafe_allow_html=True)
     else:
