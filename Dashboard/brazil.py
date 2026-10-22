@@ -218,7 +218,7 @@ def block_html(title, fr, shown, edit=None, hist=None) -> str:
                 cls += " rev"
                 lo, ln = revs[0][1], revs[0][2]
                 dc = "up" if lo is not None and ln is not None and ln > lo else "down" if lo is not None and ln is not None and ln < lo else ""
-                rows = "".join(f"<div class='row'><span class='dt'>{ts[:10]}</span>{snd.fnum(o, 1) or '-'} &rarr; {snd.fnum(n, 1) or '-'}"
+                rows = "".join(f"<div class='row'><span class='dt' data-ts='{ts}'>{ts[:10]}</span>{snd.fnum(o, 1) or '-'} &rarr; {snd.fnum(n, 1) or '-'}"
                                + (f"<span class='rs'>{html.escape(r, quote=True)}</span>" if r else "") + "</div>" for ts, o, n, r in revs[:8])
                 pop = f"<span class='rev-dot {dc}'></span><div class='rev-pop'>{snd._rev_chart(revs, label)}{rows}</div>"
             return f"<td class='{cls.strip()}'{attrs}>{fmt(fr.loc[label, y])}{pop}</td>"

@@ -388,7 +388,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
                 dir_cls = "up" if last_old is not None and last_new is not None and last_new > last_old \
                     else "down" if last_old is not None and last_new is not None and last_new < last_old else ""
                 rows = "".join(
-                    f"<div class='row'><span class='dt'>{ts[:10]}</span>{fnum(o, 1) or '-'} &rarr; {fnum(n, 1) or '-'}"
+                    f"<div class='row'><span class='dt' data-ts='{ts}'>{ts[:10]}</span>{fnum(o, 1) or '-'} &rarr; {fnum(n, 1) or '-'}"
                     + (f"<span class='rs'>{html.escape(r, quote=True)}</span>" if r else "") + "</div>"
                     for ts, o, n, r in revs[:8])
                 pop = f"<span class='rev-dot {dir_cls}'></span><div class='rev-pop'>{_rev_chart(revs, label)}{rows}</div>"

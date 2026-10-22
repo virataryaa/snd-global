@@ -152,7 +152,7 @@ def _cell(v, y, txt, cls, label, revs):
         cls += " rev"
         lo, ln = revs[0][1], revs[0][2]
         dc = "up" if pd.notna(lo) and pd.notna(ln) and ln > lo else "down" if pd.notna(lo) and pd.notna(ln) and ln < lo else ""
-        rows = "".join(f"<div class='row'><span class='dt'>{str(ts)[:10]}</span>{fnum(o, 0) or '-'} &rarr; {fnum(n, 0) or '-'}"
+        rows = "".join(f"<div class='row'><span class='dt' data-ts='{ts}'>{str(ts)[:10]}</span>{fnum(o, 0) or '-'} &rarr; {fnum(n, 0) or '-'}"
                        + (f"<span class='rs'>{html.escape(r, quote=True)}</span>" if r else "") + "</div>" for ts, o, n, r in revs[:8])
         pop = f"<span class='rev-dot {dc}'></span><div class='rev-pop'>{snd._rev_chart(revs, label)}{rows}</div>"
     return f"<td class='{cls.strip()}'>{txt}{pop}</td>"

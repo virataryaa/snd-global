@@ -30,8 +30,8 @@
 .xi-kv > span { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #94a3b8; }
 .xi-kv > b { font-variant-numeric: tabular-nums; text-align: right; } .xi-kv .xt-v { font-size: 24px; line-height: 1.15; }
 .xi-kv .xi-was { font-size: 13px; font-weight: 500; color: #64748b; } .xi-kv .xt-d { font-size: 13px; } .xi-kv .xt-d i { font-style: normal; opacity: .75; font-weight: 500; }
-.xr-list { margin-top: 8px; } .xr { display: grid; grid-template-columns: 46px 1fr auto; column-gap: 8px; align-items: baseline; padding: 4px 0; font-size: 12px; }
-.xr + .xr { border-top: 1px solid rgba(10,36,99,.06); } .xr-d { color: #94a3b8; font-size: 11px; } .xr-v { color: #64748b; font-variant-numeric: tabular-nums; }
+.xr-list { margin-top: 8px; } .xr { display: grid; grid-template-columns: 92px 1fr auto; column-gap: 8px; align-items: baseline; padding: 4px 0; font-size: 12px; }
+.xr + .xr { border-top: 1px solid rgba(10,36,99,.06); } .xr-d { color: #94a3b8; font-size: 11px; white-space: nowrap; } .xr-d i { font-style: normal; color: #64748b; } .xr-d em { font-style: normal; font-size: 9px; font-weight: 700; color: #0f766e; text-transform: uppercase; letter-spacing: .04em; margin-left: 2px; } .xr-v { color: #64748b; font-variant-numeric: tabular-nums; }
 .xr-v b { color: #0a2463; } .xr-c { font-weight: 600; font-variant-numeric: tabular-nums; font-size: 11.5px; } .xr-c.up { color: #15803d; } .xr-c.dn { color: #b91c1c; }
 .xr-w { grid-column: 2 / 4; color: #94a3b8; font-size: 10.5px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .xt-tag { display: inline-block; font-size: 10.5px; font-weight: 600; margin-top: 3px; } .xt-tag.up { color: #15803d; } .xt-tag.dn { color: #b91c1c; }
@@ -214,7 +214,7 @@ function ensurePanel() {
       "#snd-xinfo { gap: 24px; padding: 14px 22px; border-radius: 18px; max-width: 94vw; }" +
       "#snd-xinfo .xi-l { min-width: 170px; } #snd-xinfo .xi-n { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #94a3b8; margin-bottom: 2px; }" +
       "#snd-xinfo .xt-v { font-size: 26px; } #snd-xinfo .xt-d, #snd-xinfo .xt-was { font-size: 14px; } #snd-xinfo .xt-tag { font-size: 12px; }" +
-      "#snd-xinfo .xi-r { font-size: 12px; min-width: 200px; max-height: 240px; overflow: hidden; border-left: 1px solid rgba(10,36,99,.08); padding-left: 18px; }" +
+      "#snd-xinfo .xi-r { font-size: 12px; min-width: 260px; max-height: 240px; overflow: hidden; border-left: 1px solid rgba(10,36,99,.08); padding-left: 18px; }" +
       "#snd-xinfo .row { padding: 3px 0; white-space: nowrap; } #snd-xinfo .row + .row { border-top: 1px solid rgba(10,36,99,.06); }" +
       "#snd-xinfo .dt { color: #94a3b8; margin-right: 8px; } #snd-xinfo .rs { color: #94a3b8; margin-left: 8px; }" +
       "#snd-xinfo { transition: box-shadow .25s, border-color .25s; }" +
@@ -240,7 +240,7 @@ var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
 function revView(rev, wide) {
   // rows look like: <span class='dt'>2026-10-22</span>100.0 -> 99.0<span class='rs'>reason</span>; newest first
   var rs = Array.prototype.map.call(rev.querySelectorAll(".row"), function (r) {
-    var dt = (r.querySelector(".dt") || {}).textContent || "", why = (r.querySelector(".rs") || {}).textContent || "";
+    var de = r.querySelector(".dt"), dt = de ? (de.getAttribute("data-ts") || de.textContent) : "", why = (r.querySelector(".rs") || {}).textContent || "";
     var c = r.cloneNode(true); c.querySelectorAll(".dt, .rs").forEach(function (x) { x.remove(); });
     var m = c.textContent.split(/→|->/);
     return { dt: dt.trim(), o: num((m[0] || "").trim()), n: num((m[1] || "").trim()), ot: (m[0] || "").trim(), nt: (m[1] || "").trim(), why: why.trim() };
@@ -253,15 +253,18 @@ function revView(rev, wide) {
   var X = function (i) { return P + i * (W - 2 * P) / Math.max(1, vals.length - 1); }, Y = function (v) { return 8 + (hi - v) / sp * (H - 22); };
   var path = vals.map(function (v, i) { return (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1); }).join(" ");
   var last = vals.length - 1;
-  var svg = "<svg width='" + W + "' height='" + H + "' style='display:block;overflow:visible'>" +
+  var svg = "<svg width='" + W + "' height='" + H + "' viewBox='0 0 " + W + " " + H + "' style='display:block;overflow:visible'>" +
     "<path d='" + path + "' fill='none' stroke='#5b74a8' stroke-width='1.8' stroke-linejoin='round'/>" +
     vals.map(function (v, i) { return "<circle cx='" + X(i).toFixed(1) + "' cy='" + Y(v).toFixed(1) + "' r='" + (i === last ? 3.6 : 2) + "' fill='" + (i === last ? "#0a2463" : "#94a3b8") + "'/>"; }).join("") +
     "<text x='" + X(0) + "' y='" + (H - 2) + "' font-size='9' fill='#94a3b8' font-family='Inter, system-ui, sans-serif'>first " + f1(vals[0], false) + "</text>" +
     "<text x='" + X(last) + "' y='" + (H - 2) + "' font-size='9' font-weight='700' text-anchor='end' fill='#0a2463' font-family='Inter, system-ui, sans-serif'>now " + f1(vals[last], false) + "</text></svg>";
-  var day = function (d) { var p = d.split("-"); return p.length === 3 ? (+p[2]) + " " + MON[+p[1] - 1] : d; };
-  var list = rs.slice(0, 3).map(function (r) {
+  var day = function (d) {                                     // 22 Oct 14:05 (your local time) so same-day saves stay in order
+    var t = new Date(d); if (isNaN(t)) return d;
+    return t.getDate() + " " + MON[t.getMonth()] + (/T/.test(d) ? " <i>" + ("0" + t.getHours()).slice(-2) + ":" + ("0" + t.getMinutes()).slice(-2) + "</i>" : "");
+  };
+  var list = rs.slice(0, 3).map(function (r, i) {
     var d = r.n - r.o, cls = isNaN(d) ? "" : d >= 0 ? "up" : "dn";
-    return "<div class='xr'><span class='xr-d'>" + day(r.dt) + "</span><span class='xr-v'>" + (r.ot || "&ndash;") + " &rarr; <b>" + (r.nt || "&ndash;") + "</b></span>" +
+    return "<div class='xr'><span class='xr-d'>" + day(r.dt) + (i === 0 ? " <em>latest</em>" : "") + "</span><span class='xr-v'>" + (r.ot || "&ndash;") + " &rarr; <b>" + (r.nt || "&ndash;") + "</b></span>" +
            (isNaN(d) ? "" : "<span class='xr-c " + cls + "'>" + (d >= 0 ? "+" : "&minus;") + f1(Math.abs(d), false) + "</span>") +
            (r.why ? "<div class='xr-w'>" + r.why + "</div>" : "") + "</div>";
   }).join("");
