@@ -72,7 +72,7 @@ table.snd tr.sep td { border: 0; height: 6px; padding: 0; }
 table.snd td.neg { color: #c0392b; }
 table.snd td.ed { cursor: text; position: relative; color: #0a2463 !important; }
 table.snd td.ed::before { content: ""; position: absolute; inset: 2px 3px; border: 1px solid transparent; border-radius: 6px; pointer-events: none; transition: border-color .12s, background .12s; }
-table.snd td.ed:hover::before { border-color: rgba(217,130,43,.55); background: rgba(255,237,213,.35); }
+table.snd td.ed:hover::before { background: rgba(255,237,213,.65); }
 table.snd td.ed:focus { outline: none; background: #ffffff !important; }
 table.snd td.ed:focus::before { border: 1.5px solid #d9822b; box-shadow: 0 0 0 3px rgba(217,130,43,.15); }
 table.snd tr:has(td.ed) > td:last-child { position: relative; }
