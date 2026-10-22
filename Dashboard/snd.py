@@ -462,39 +462,39 @@ def charts(a, r, glob, shown):
     """Global SnD visuals: supply mix, stocks, balance, demand, origins and stocks to use. Estimates are faded."""
     x = [y[2:] for y in shown]                                        # 2024/25 -> 24/25 on the axes
     est = [is_estimate(y) for y in shown]
-    rows = [st.columns(2, gap="small") for _ in range(3)]
+    cells = [c for _ in range(2) for c in st.columns(3, gap="small")]   # 3 charts a row
 
-    with rows[0][0], st.container(border=True):
+    with cells[0], st.container(border=True):
         st.markdown("<div class='chart-head'>Production: Arabica and Robusta</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, a.loc["Production", shown], "Arabica", NAVY, est)
         _bars(fig, x, r.loc["Production", shown], "Robusta", AMBER, est)
         _line(fig, x, r.loc["Production", shown] / glob.loc["Production Global", shown] * 100, "Robusta share (right)", RED, right=True, pct=True)
-        st.plotly_chart(_y2(_style(fig, 280).update_layout(barmode="stack")), width="stretch", key="c_prod")
-    with rows[0][1], st.container(border=True):
+        st.plotly_chart(_y2(_style(fig, 230).update_layout(barmode="stack")), width="stretch", key="c_prod")
+    with cells[1], st.container(border=True):
         st.markdown("<div class='chart-head'>End season stocks</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, a.loc["End Season Stock", shown], "Arabica", NAVY, est)
         _bars(fig, x, r.loc["End Season Stock", shown], "Robusta", AMBER, est)
         _line(fig, x, glob.loc["Combined S/U", shown] * 100, "Global S/U (right)", RED, right=True, pct=True)
-        st.plotly_chart(_y2(_style(fig, 280).update_layout(barmode="stack")), width="stretch", key="c_stock")
+        st.plotly_chart(_y2(_style(fig, 230).update_layout(barmode="stack")), width="stretch", key="c_stock")
 
-    with rows[1][0], st.container(border=True):
+    with cells[2], st.container(border=True):
         st.markdown("<div class='chart-head'>Balance</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, a.loc["Balance", shown], "Arabica", NAVY, est)
         _bars(fig, x, r.loc["Balance", shown], "Robusta", AMBER, est)
         _line(fig, x, glob.loc["Global Balance", shown], "Global", RED)
-        st.plotly_chart(_style(fig, 280).update_layout(barmode="group"), width="stretch", key="c_bal")
-    with rows[1][1], st.container(border=True):
+        st.plotly_chart(_style(fig, 230).update_layout(barmode="group"), width="stretch", key="c_bal")
+    with cells[3], st.container(border=True):
         st.markdown("<div class='chart-head'>Consumption</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, a.loc["Consumption", shown], "Arabica", NAVY, est)
         _bars(fig, x, r.loc["Consumption", shown], "Robusta", AMBER, est)
         _line(fig, x, glob.loc["Global demand chg", shown] * 100, "Growth (right)", RED, right=True, pct=True)
-        st.plotly_chart(_y2(_style(fig, 280).update_layout(barmode="stack")), width="stretch", key="c_cons")
+        st.plotly_chart(_y2(_style(fig, 230).update_layout(barmode="stack")), width="stretch", key="c_cons")
 
-    with rows[2][0], st.container(border=True):
+    with cells[4], st.container(border=True):
         st.markdown("<div class='chart-head'>Production by origin</div>", unsafe_allow_html=True)
         orig = {}
         for comm, fr in (("Arabica", a), ("Robusta", r)):
@@ -507,7 +507,7 @@ def charts(a, r, glob, shown):
         for o, col in zip(order, pal + [GREY] * len(order)):
             _bars(fig, x, orig[o], o, col, est)
         st.plotly_chart(_style(fig, 300).update_layout(barmode="stack", legend=dict(font=dict(size=9.5), y=1.2)), width="stretch", key="c_orig")
-    with rows[2][1], st.container(border=True):
+    with cells[5], st.container(border=True):
         st.markdown("<div class='chart-head'>Stocks to use</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _line(fig, x, a.loc["S/U", shown] * 100, "Arabica", NAVY, pct=True)

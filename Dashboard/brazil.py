@@ -463,53 +463,53 @@ def charts(A, C, O, shown):
     est = [snd.is_estimate(y) for y in shown]
     NAVY, TEAL, AMBER, GREEN, RED, GREY = snd.NAVY, snd.TEAL, snd.AMBER, snd.GREEN, snd.RED, snd.GREY
     total = A.loc["Production", shown] + C.loc["Production", shown]
-    rows = [st.columns(2, gap="small") for _ in range(3)]
+    cells = [c for _ in range(2) for c in st.columns(3, gap="small")]   # 3 charts a row
 
-    with rows[0][0], st.container(border=True):
+    with cells[0], st.container(border=True):
         st.markdown("<div class='chart-head'>Production: Arabica and Conillon</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, A.loc["Production", shown], "Arabica", NAVY, est)
         _bars(fig, x, C.loc["Production", shown], "Conillon", AMBER, est)
         _line(fig, x, (C.loc["Production", shown] / total * 100), "Conillon share (right)", RED, right=True, pct=True)
-        st.plotly_chart(_y2(snd._style(fig, 280).update_layout(barmode="stack")), width="stretch", key="br_c_prod")
-    with rows[0][1], st.container(border=True):
+        st.plotly_chart(_y2(snd._style(fig, 230).update_layout(barmode="stack")), width="stretch", key="br_c_prod")
+    with cells[1], st.container(border=True):
         st.markdown("<div class='chart-head'>Closing stocks</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, A.loc["Closing Stock", shown], "Arabica", NAVY, est)
         _bars(fig, x, C.loc["Closing Stock", shown], "Conillon", AMBER, est)
         _line(fig, x, O.loc["Stock/Use", shown] * 100, "Brazil S/U (right)", RED, right=True, pct=True)
-        st.plotly_chart(_y2(snd._style(fig, 280).update_layout(barmode="stack")), width="stretch", key="br_c_stock")
+        st.plotly_chart(_y2(snd._style(fig, 230).update_layout(barmode="stack")), width="stretch", key="br_c_stock")
 
-    with rows[1][0], st.container(border=True):
+    with cells[2], st.container(border=True):
         st.markdown("<div class='chart-head'>Exports</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, A.loc["Exports", shown], "Arabica", NAVY, est)
         _bars(fig, x, C.loc["Green Exports", shown], "Conillon green", AMBER, est)
         _bars(fig, x, C.loc["Soluble Exports", shown], "Soluble", TEAL, est)
         _line(fig, x, O.loc["Exports % of Production", shown] * 100, "% of crop (right)", RED, right=True, pct=True)
-        st.plotly_chart(_y2(snd._style(fig, 280).update_layout(barmode="stack")), width="stretch", key="br_c_exp")
-    with rows[1][1], st.container(border=True):
+        st.plotly_chart(_y2(snd._style(fig, 230).update_layout(barmode="stack")), width="stretch", key="br_c_exp")
+    with cells[3], st.container(border=True):
         st.markdown("<div class='chart-head'>Domestic consumption</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, A.loc["Consumption", shown], "Arabica", NAVY, est)
         _bars(fig, x, C.loc["Consumption", shown], "Conillon", AMBER, est)
         _line(fig, x, C.loc["Consumption", shown] / O.loc["Consumption", shown] * 100, "Conillon share (right)", RED, right=True, pct=True)
-        st.plotly_chart(_y2(snd._style(fig, 280).update_layout(barmode="stack")), width="stretch", key="br_c_cons")
+        st.plotly_chart(_y2(snd._style(fig, 230).update_layout(barmode="stack")), width="stretch", key="br_c_cons")
 
-    with rows[2][0], st.container(border=True):
+    with cells[4], st.container(border=True):
         st.markdown("<div class='chart-head'>Stock build / draw</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _bars(fig, x, A.loc["Stock Change", shown], "Arabica", NAVY, est)
         _bars(fig, x, C.loc["Stock Change", shown], "Conillon", AMBER, est)
         _line(fig, x, O.loc["Stock Change", shown], "Brazil", RED)
-        st.plotly_chart(snd._style(fig, 280).update_layout(barmode="group"), width="stretch", key="br_c_chg")
-    with rows[2][1], st.container(border=True):
+        st.plotly_chart(snd._style(fig, 230).update_layout(barmode="group"), width="stretch", key="br_c_chg")
+    with cells[5], st.container(border=True):
         st.markdown("<div class='chart-head'>Stocks to use</div>", unsafe_allow_html=True)
         fig = go.Figure()
         _line(fig, x, A.loc["Stock/Use Arabica", shown] * 100, "Arabica", NAVY, pct=True)
         _line(fig, x, C.loc["Stock/Use Conillon", shown] * 100, "Conillon", AMBER, pct=True)
         _line(fig, x, O.loc["Stock/Use", shown] * 100, "Brazil", RED, pct=True)
-        st.plotly_chart(snd._style(fig, 280).update_layout(yaxis_ticksuffix="%"), width="stretch", key="br_c_su")
+        st.plotly_chart(snd._style(fig, 230).update_layout(yaxis_ticksuffix="%"), width="stretch", key="br_c_su")
 
 
 def render(view="Brazil SnD"):
