@@ -24,6 +24,7 @@
 .xt-rng .t b { position: absolute; top: 7px; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%, -50%); background: #0a2463; border: 2px solid #fff;
   box-shadow: 0 0 0 1px rgba(10,36,99,.25); }
 .xt-rng .t b.up { background: #16a34a; box-shadow: 0 0 0 1px rgba(22,163,74,.35); } .xt-rng .t b.dn { background: #dc2626; box-shadow: 0 0 0 1px rgba(220,38,38,.35); }
+.xt-was { font-size: 12px; color: #94a3b8; margin-left: auto; margin-right: 8px; font-variant-numeric: tabular-nums; }
 .xt-tag { display: inline-block; font-size: 10.5px; font-weight: 600; margin-top: 3px; } .xt-tag.up { color: #15803d; } .xt-tag.dn { color: #b91c1c; }
 .xt-h { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
 .xtip .rev-pop { display: block !important; position: static; margin: 0; padding: 0; border: 0; box-shadow: none; background: none; width: auto; }
@@ -140,7 +141,8 @@ function bars(td, tone, rec) {
   // the whole row as small bars; this cell highlighted, the 10-year record as a dashed line
   var tds = Array.prototype.filter.call(td.parentNode.children, function (c) { return c.tagName === "TD" && !c.classList.contains("lbl") && !c.classList.contains("spark-td"); });
   var v = tds.map(function (c) { return num(shown(c)); }), i = tds.indexOf(td);
-  var ok = v.filter(function (x) { return !isNaN(x); }); if (ok.length < 2) return "";
+  var was = tds.map(function (c) { return c.dataset.was !== undefined && c.dataset.was !== "" ? num(c.dataset.was) : NaN; });   // before the edit
+  var ok = v.concat(was).filter(function (x) { return !isNaN(x); }); if (ok.length < 2) return "";
   var hi = Math.max.apply(null, ok.concat([0, rec === null ? 0 : rec])), lo = Math.min.apply(null, ok.concat([0, rec === null ? 0 : rec]));
   var W = 214, H = 54, n = v.length, bw = W / n, y = function (x) { return 4 + (hi - x) / ((hi - lo) || 1) * (H - 8); };
   var col = { up: "#16a34a", dn: "#dc2626", v: "#8b5cf6" }[tone];
@@ -149,7 +151,12 @@ function bars(td, tone, rec) {
     if (isNaN(x)) return;
     var t = Math.min(y(x), y(0)), h = Math.max(1.5, Math.abs(y(x) - y(0)));
     g += "<rect x='" + (j * bw + bw * .18).toFixed(1) + "' y='" + t.toFixed(1) + "' width='" + (bw * .64).toFixed(1) + "' height='" + h.toFixed(1) +
-         "' rx='1.5' fill='" + (j === i ? col : "#d5dbe6") + "'/>";
+         "' rx='1.5' fill='" + (j === i ? col : !isNaN(was[j]) ? "#c4b5fd" : "#d5dbe6") + "'/>";
+    if (!isNaN(was[j]) && was[j] !== x) {                    // ghost of the value before the edit
+      var t0 = Math.min(y(was[j]), y(0)), h0 = Math.max(1.5, Math.abs(y(was[j]) - y(0)));
+      g += "<rect x='" + (j * bw + bw * .18).toFixed(1) + "' y='" + t0.toFixed(1) + "' width='" + (bw * .64).toFixed(1) + "' height='" + h0.toFixed(1) +
+           "' rx='1.5' fill='none' stroke='#64748b' stroke-width='1' stroke-dasharray='2 1.5'/>";
+    }
   });
   if (rec !== null) g += "<line x1='0' x2='" + W + "' y1='" + y(rec).toFixed(1) + "' y2='" + y(rec).toFixed(1) + "' stroke='" + col + "' stroke-width='1' stroke-dasharray='3 3' opacity='.7'/>";
   return "<svg width='" + W + "' height='" + H + "' style='display:block;margin-top:8px'>" + g + "</svg>";
@@ -160,7 +167,7 @@ function card(td) {
   var tone = brk ? (L.k === "hi" ? "up" : "dn") : "v";
   var tag = brk ? "<span class='xt-tag " + tone + "'>" + (L.k === "hi" ? "&#9650; 10-yr high" : "&#9660; 10-yr low") + "</span>" : "";
   var h = "<div class='xt-top'><span class='xt-v'>" + now + "</span>" +
-          (isNaN(d) ? "" : "<span class='xt-d " + (d >= 0 ? "up" : "dn") + "'>" + (d >= 0 ? "+" : "&minus;") + f1(Math.abs(d), false) + "</span>") + "</div>" + tag +
+          (isNaN(d) ? "" : "<span class='xt-was'>" + td.dataset.was + " &rarr;</span><span class='xt-d " + (d >= 0 ? "up" : "dn") + "'>" + (d >= 0 ? "+" : "&minus;") + f1(Math.abs(d), false) + "</span>") + "</div>" + tag +
           bars(td, tone, brk ? (L.k === "hi" ? L.hi : L.lo) : null);
   var rev = td.querySelector(".rev-pop");
   if (rev) { h += "<div class='xt-sep'></div><div class='xt-h'>Saved revisions</div><div class='rev-pop'>" + rev.innerHTML + "</div>"; }
