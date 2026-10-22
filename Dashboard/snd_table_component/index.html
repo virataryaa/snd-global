@@ -5,7 +5,7 @@
 <style id="theme"></style>
 <style>
 /* hover card: kept with its script so both always update together */
-.xtip { display: none; position: fixed; z-index: 99999; width: 230px; background: #ffffff; border-radius: 12px; padding: 12px 14px;
+.xtip { display: none; position: fixed; z-index: 99999; width: 242px; background: #ffffff; border-radius: 12px; padding: 12px 14px;
   pointer-events: none; font-size: 12px; color: #475569; border: 1px solid rgba(15,23,42,.07);
   box-shadow: 0 12px 32px rgba(10,36,99,.16), 0 1px 4px rgba(10,36,99,.06); animation: xtin .14s ease-out; }
 @keyframes xtin { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -24,6 +24,7 @@
 .xt-rng .t b { position: absolute; top: 7px; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%, -50%); background: #0a2463; border: 2px solid #fff;
   box-shadow: 0 0 0 1px rgba(10,36,99,.25); }
 .xt-rng .t b.up { background: #16a34a; box-shadow: 0 0 0 1px rgba(22,163,74,.35); } .xt-rng .t b.dn { background: #dc2626; box-shadow: 0 0 0 1px rgba(220,38,38,.35); }
+.xt-tag { display: inline-block; font-size: 10.5px; font-weight: 600; margin-top: 3px; } .xt-tag.up { color: #15803d; } .xt-tag.dn { color: #b91c1c; }
 .xt-h { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
 .xtip .rev-pop { display: block !important; position: static; margin: 0; padding: 0; border: 0; box-shadow: none; background: none; width: auto; }
 .xtip .rev-pop svg { max-width: 100%; height: auto; }
@@ -135,25 +136,32 @@ var tip = document.createElement("div"); tip.className = "xtip"; document.body.a
 function f1(x, pct) { return pct ? x.toFixed(0) + "%" : x.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
 function num(t) { return Number(t.replace(/[,%()]/g, "")) * (/^\(/.test(t) ? -1 : 1); }
 function shown(td) { var c = td.cloneNode(true); c.querySelectorAll(".rev-pop, .rev-dot").forEach(function (x) { x.remove(); }); return c.textContent.trim(); }
+function bars(td, tone, rec) {
+  // the whole row as small bars; this cell highlighted, the 10-year record as a dashed line
+  var tds = Array.prototype.filter.call(td.parentNode.children, function (c) { return c.tagName === "TD" && !c.classList.contains("lbl") && !c.classList.contains("spark-td"); });
+  var v = tds.map(function (c) { return num(shown(c)); }), i = tds.indexOf(td);
+  var ok = v.filter(function (x) { return !isNaN(x); }); if (ok.length < 2) return "";
+  var hi = Math.max.apply(null, ok.concat([0, rec === null ? 0 : rec])), lo = Math.min.apply(null, ok.concat([0, rec === null ? 0 : rec]));
+  var W = 214, H = 54, n = v.length, bw = W / n, y = function (x) { return 4 + (hi - x) / ((hi - lo) || 1) * (H - 8); };
+  var col = { up: "#16a34a", dn: "#dc2626", v: "#8b5cf6" }[tone];
+  var g = "";
+  v.forEach(function (x, j) {
+    if (isNaN(x)) return;
+    var t = Math.min(y(x), y(0)), h = Math.max(1.5, Math.abs(y(x) - y(0)));
+    g += "<rect x='" + (j * bw + bw * .18).toFixed(1) + "' y='" + t.toFixed(1) + "' width='" + (bw * .64).toFixed(1) + "' height='" + h.toFixed(1) +
+         "' rx='1.5' fill='" + (j === i ? col : "#d5dbe6") + "'/>";
+  });
+  if (rec !== null) g += "<line x1='0' x2='" + W + "' y1='" + y(rec).toFixed(1) + "' y2='" + y(rec).toFixed(1) + "' stroke='" + col + "' stroke-width='1' stroke-dasharray='3 3' opacity='.7'/>";
+  return "<svg width='" + W + "' height='" + H + "' style='display:block;margin-top:8px'>" + g + "</svg>";
+}
 function card(td) {
-  var now = shown(td), h = "<div class='xt-top'><span class='xt-v'>" + now + "</span>", sub = "";
-  if (td.dataset.was !== undefined) {
-    var d = num(now) - num(td.dataset.was);
-    if (!isNaN(d)) h += "<span class='xt-d " + (d >= 0 ? "up" : "dn") + "'>" + (d >= 0 ? "+" : "&minus;") + f1(Math.abs(d), false) + "</span>";
-    sub = "<div class='xt-sub'>was " + (td.dataset.was || "&ndash;") + " before your edit</div>";
-  }
-  h += "</div>" + sub;
-  if (td.dataset.lim) {
-    var L = JSON.parse(td.dataset.lim), p = L.pct, up = L.k === "hi" || L.k === "nh", near = L.k[0] === "n";
-    var rec = up ? L.hi : L.lo, yr = up ? L.yhi : L.ylo, gap = Math.abs(L.v - rec);
-    var msg = near ? "Close to 10-yr " + (up ? "high" : "low")
-                   : (up ? "New 10-yr high" : "New 10-yr low") + ", " + (up ? "+" : "&minus;") + f1(gap, p);
-    var pos = Math.max(2, Math.min(98, 10 + (L.v - L.lo) / ((L.hi - L.lo) || 1) * 80));
-    h += "<div class='xt-sep'></div><div class='xt-msg " + (near ? "n" : up ? "up" : "dn") + "'>" + msg +
-         " <span>vs " + f1(rec, p) + " in " + yr + "</span></div>" +
-         "<div class='xt-rng'><span>" + f1(L.lo, p) + "</span><div class='t'><i></i><b class='" + (near ? "" : up ? "up" : "dn") +
-         "' style='left:" + pos + "%'></b></div><span>" + f1(L.hi, p) + "</span></div>";
-  }
+  var now = shown(td), d = td.dataset.was !== undefined ? num(now) - num(td.dataset.was) : NaN;
+  var L = td.dataset.lim ? JSON.parse(td.dataset.lim) : null, brk = L && L[0] !== "n" && (L.k === "hi" || L.k === "lo");
+  var tone = brk ? (L.k === "hi" ? "up" : "dn") : "v";
+  var tag = brk ? "<span class='xt-tag " + tone + "'>" + (L.k === "hi" ? "&#9650; 10-yr high" : "&#9660; 10-yr low") + "</span>" : "";
+  var h = "<div class='xt-top'><span class='xt-v'>" + now + "</span>" +
+          (isNaN(d) ? "" : "<span class='xt-d " + (d >= 0 ? "up" : "dn") + "'>" + (d >= 0 ? "+" : "&minus;") + f1(Math.abs(d), false) + "</span>") + "</div>" + tag +
+          bars(td, tone, brk ? (L.k === "hi" ? L.hi : L.lo) : null);
   var rev = td.querySelector(".rev-pop");
   if (rev) { h += "<div class='xt-sep'></div><div class='xt-h'>Saved revisions</div><div class='rev-pop'>" + rev.innerHTML + "</div>"; }
   return h;
