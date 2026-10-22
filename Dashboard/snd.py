@@ -73,8 +73,8 @@ table.snd td.ed { cursor: text; background: #fffaf5 !important; box-shadow: inse
 table.snd td.ed:hover { box-shadow: inset 0 0 0 1px #9db3e6; background: #f3f6fd; }
 table.snd td.ed:focus { outline: none; box-shadow: inset 0 0 0 2px #0a2463; background: #ffffff; }
 table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
-table.snd td.mv { background: linear-gradient(135deg, #dbeafe, #f0f7ff 55%, #dbeafe) !important; background-size: 200% 200% !important; color: #1d4ed8 !important; font-weight: 700; box-shadow: inset 0 0 0 1.5px #60a5fa, 0 0 10px rgba(59,130,246,.55); position: relative; z-index: 1; animation: mvshine 2.4s ease-in-out infinite; }
-@keyframes mvshine { 0%, 100% { background-position: 0% 50%; box-shadow: inset 0 0 0 1.5px #60a5fa, 0 0 6px rgba(59,130,246,.35); } 50% { background-position: 100% 50%; box-shadow: inset 0 0 0 1.5px #3b82f6, 0 0 14px rgba(59,130,246,.7); } }
+table.snd td.mv { background: linear-gradient(135deg, #ede9fe, #f5f3ff 55%, #ede9fe) !important; background-size: 200% 200% !important; color: #5b21b6 !important; font-weight: 700; box-shadow: inset 0 0 0 1.5px #a78bfa, 0 0 10px rgba(139,92,246,.55); position: relative; z-index: 1; animation: mvshine 2.4s ease-in-out infinite; }
+@keyframes mvshine { 0%, 100% { background-position: 0% 50%; box-shadow: inset 0 0 0 1.5px #a78bfa, 0 0 6px rgba(139,92,246,.35); } 50% { background-position: 100% 50%; box-shadow: inset 0 0 0 1.5px #8b5cf6, 0 0 14px rgba(139,92,246,.7); } }
 table.snd td.rev { position: relative; }
 .rev-dot { display: inline-block; width: 3px; height: 3px; border-radius: 50%; margin-left: 4px; vertical-align: middle; background: #94a3b8; }
 .rev-dot.up { background: #1f9d6f; }
