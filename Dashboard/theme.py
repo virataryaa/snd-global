@@ -83,6 +83,12 @@ button[kind="pillsActive"] p, button[kind="segmented_controlActive"] p { color: 
   border-radius: 12px; padding: 6px 10px; box-shadow: 0 1px 2px rgba(10,36,99,.04), inset 0 1px 0 rgba(255,255,255,.9); }
 [data-testid="stSidebar"] [data-baseweb="checkbox"] [role="checkbox"], [data-testid="stSidebar"] label[data-baseweb="checkbox"] > div:first-child {
   box-shadow: inset 0 1px 2px rgba(10,36,99,.15); }
+/* section list: plain vertical nav, no oval container */
+.st-key-section div[role="radiogroup"], .st-key-co_section div[role="radiogroup"] { background: none !important; border: 0 !important; box-shadow: none !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; padding: 0 !important; display: flex !important; flex-direction: column; gap: 2px; width: 100%; }
+.st-key-section div[role="radiogroup"] label, .st-key-co_section div[role="radiogroup"] label { border-radius: 9px !important; padding: 6px 12px !important; width: 100%; }
+.st-key-section div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p,
+.st-key-co_section div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 13px !important; }
 [data-testid="stSidebar"] [data-baseweb="checkbox"] p { font-size: 12.5px; color: #3a4466; }
 
 /* Page text and cards */
