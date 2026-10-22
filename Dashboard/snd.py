@@ -84,10 +84,9 @@ table.snd td.mv { color: #5b21b6 !important; font-weight: 700; cursor: help; }
 table.snd td.mv::before { content: ""; position: absolute; inset: 2px 3px; border-radius: 3px;
   z-index: -1; pointer-events: none; background-size: 200% 200%; }
 table.snd td.mv::before { background-image: linear-gradient(135deg, #ede9fe, #f5f3ff 55%, #ede9fe); border: 1.5px solid #a78bfa; box-shadow: 0 0 8px rgba(139,92,246,.4); }
-table.snd td.lim::after, table.snd td.edge::after { content: ""; position: absolute; top: 2px; right: 3px; width: 0; height: 0; z-index: 3;
-  border-top: 8px solid currentColor; border-left: 8px solid transparent; border-top-right-radius: 3px; }
-table.snd td.lim.hi::after { border-top-color: #15803d; } table.snd td.lim.lo::after { border-top-color: #b91c1c; }
-table.snd td.edge.nh::after { border-top-color: #86efac; } table.snd td.edge.nl::after { border-top-color: #fca5a5; }
+table.snd td.lim::after, table.snd td.edge::after { position: absolute; top: 50%; right: 7px; transform: translateY(-50%); font-size: 8px; line-height: 1; z-index: 3; }
+table.snd td.lim.hi::after { content: "▲"; color: #15803d; } table.snd td.lim.lo::after { content: "▼"; color: #b91c1c; }
+table.snd td.edge.nh::after { content: "▲"; color: #86efac; } table.snd td.edge.nl::after { content: "▼"; color: #fca5a5; }
 @keyframes mvshine { 0%, 100% { background-position: 0% 50%; box-shadow: 0 0 5px rgba(139,92,246,.3); } 50% { background-position: 100% 50%; box-shadow: 0 0 13px rgba(139,92,246,.65); } }
 @keyframes limshine { 0%, 100% { background-position: 0% 50%; box-shadow: 0 0 5px rgba(239,68,68,.3); } 50% { background-position: 100% 50%; box-shadow: 0 0 13px rgba(239,68,68,.6); } }
 .xtip { display: none; position: fixed; z-index: 99999; width: 250px; background: #ffffff; border-radius: 14px; padding: 13px 15px 12px;
