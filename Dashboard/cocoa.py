@@ -397,7 +397,7 @@ def edit_view(S, years, part="snd"):
     E = dict(base=base, changed=set(edits), all=allrows)
     table = edit_html(_apply(S, changes), years, E, part)
     if changes:                                                  # tint every calculated cell the unsaved edits move
-        table = tableedit.mark_moved(table, edit_html(S, years, E, part))
+        table = tableedit.mark_limits(tableedit.mark_moved(table, edit_html(S, years, E, part)))
     ctrl = st.container()
     bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")
     bar.radio("Rows", ["Show all rows", "Show only editable"], horizontal=True, key="co_rows", label_visibility="collapsed")

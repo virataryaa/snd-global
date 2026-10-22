@@ -376,7 +376,7 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     if allc:                                                     # tint every calculated cell the unsaved edits move
         A0, C0, O0, _ = compute(inp, etg_a, etg_r, years, meta)
         ref = full_table(A0, C0, O0, years, edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") != "Show only editable"))
-        table = tableedit.mark_moved(table, ref)
+        table = tableedit.mark_limits(tableedit.mark_moved(table, ref))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
     bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")   # one compact row, left-aligned
     bar.radio("Rows", ["Show all rows", "Show only editable"], horizontal=True, key="edit_rows", label_visibility="collapsed")

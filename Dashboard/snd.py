@@ -74,6 +74,14 @@ table.snd td.ed:hover { box-shadow: inset 0 0 0 1px #9db3e6; background: #f3f6fd
 table.snd td.ed:focus { outline: none; box-shadow: inset 0 0 0 2px #0a2463; background: #ffffff; }
 table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
 table.snd td.mv { background: linear-gradient(135deg, #ede9fe, #f5f3ff 55%, #ede9fe) !important; background-size: 200% 200% !important; color: #5b21b6 !important; font-weight: 700; box-shadow: inset 0 0 0 1.5px #a78bfa, 0 0 10px rgba(139,92,246,.55); position: relative; z-index: 1; animation: mvshine 2.4s ease-in-out infinite; }
+table.snd td.lim { background: linear-gradient(135deg, #fee2e2, #fff5f5 55%, #fee2e2) !important; background-size: 200% 200% !important;
+  color: #b91c1c !important; font-weight: 700; box-shadow: inset 0 0 0 1.5px #f87171, 0 0 10px rgba(239,68,68,.5); position: relative; z-index: 2;
+  animation: limshine 2s ease-in-out infinite; cursor: help; }
+table.snd td.lim.hi::after { content: '▲'; } table.snd td.lim.lo::after { content: '▼'; }
+table.snd td.lim::after { position: absolute; top: 0; right: 2px; font-size: 7px; color: #dc2626; line-height: 1; }
+table.snd td.edge { box-shadow: inset 0 0 0 1px rgba(239,68,68,.55) !important; color: #b91c1c !important; cursor: help; }
+@keyframes limshine { 0%, 100% { background-position: 0% 50%; box-shadow: inset 0 0 0 1.5px #f87171, 0 0 5px rgba(239,68,68,.3); }
+  50% { background-position: 100% 50%; box-shadow: inset 0 0 0 1.5px #ef4444, 0 0 14px rgba(239,68,68,.65); } }
 @keyframes mvshine { 0%, 100% { background-position: 0% 50%; box-shadow: inset 0 0 0 1.5px #a78bfa, 0 0 6px rgba(139,92,246,.35); } 50% { background-position: 100% 50%; box-shadow: inset 0 0 0 1.5px #8b5cf6, 0 0 14px rgba(139,92,246,.7); } }
 table.snd td.rev { position: relative; }
 .rev-dot { display: inline-block; width: 3px; height: 3px; border-radius: 50%; margin-left: 4px; vertical-align: middle; background: #94a3b8; }
@@ -563,7 +571,7 @@ def render_edit(df, meta, notes, years, shown, editable):
         ref = snd_table(df, meta, notes, years, shown, {"Arabica": a0, "Robusta": r0}, global_block(a0, r0, years),
                         a0.loc["Brazil"] + r0.loc["Brazil"],
                         edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") != "Show only editable"))
-        table = tableedit.mark_moved(table, ref)
+        table = tableedit.mark_limits(tableedit.mark_moved(table, ref))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
     bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")   # one compact row, left-aligned
     bar.radio("Rows", ["Show all rows", "Show only editable"], horizontal=True, key="edit_rows", label_visibility="collapsed")
