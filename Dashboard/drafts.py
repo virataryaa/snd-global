@@ -41,7 +41,7 @@ def count(paths) -> int:
 
 
 def label(n, pend) -> str:
-    parts = ([f"{n} unsaved"] if n else []) + ([f"{pend} in draft"] if pend else [])
+    parts = ([f"{n} unsaved"] if n else []) + ([f"{pend} pencilled in"] if pend else [])
     return " · ".join(parts)
 
 

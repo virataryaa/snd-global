@@ -602,7 +602,7 @@ def render_edit(df, meta, notes, years, shown, editable):
     reason = bar.text_input("Reason", key=f"snd_reason_{epoch}", placeholder="Reason for Change...", width=320,
                             label_visibility="collapsed", max_chars=140, disabled=not (n_all or pend))
     bar.button("Undo", disabled=not n_all, width="content", key="snd_undo", on_click=_undo)
-    draft = bar.button("Save draft", disabled=(not n_all) or bad, width="content", key="snd_draft",
+    draft = bar.button("Pencil in", disabled=(not n_all) or bad, width="content", key="snd_draft",
                        help="Saved for everyone, but kept out of the change log until you publish")
     save = bar.button("Publish" + (f" · {n_all + pend}" if n_all or pend else ""), type="primary", disabled=(not (n_all or pend)) or bad,
                       width="content", key="snd_save", help="Log every draft and unsaved edit as one revision")
@@ -630,7 +630,7 @@ def render_edit(df, meta, notes, years, shown, editable):
             ctrl.error(f"GitHub save failed: {ex}")
         else:
             _undo()
-            st.session_state["en_flash"] = ("Published." if save else f"Saved {n_all} change(s) as draft.")
+            st.session_state["en_flash"] = ("Published." if save else f"Saved {n_all} change(s) pencilled in.")
             st.rerun()
 
 

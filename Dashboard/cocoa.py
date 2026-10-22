@@ -422,7 +422,7 @@ def edit_view(S, years, part="snd", title="Edit Cocoa SnD"):
     reason = bar.text_input("Reason", key=f"co_reason_{epoch}", placeholder="Reason for Change...", width=320,
                             label_visibility="collapsed", max_chars=140, disabled=not (n or pend))
     bar.button("Undo", disabled=not n, width="content", key="co_undo", on_click=_undo)
-    draft = bar.button("Save draft", disabled=(not n) or bad, width="content", key="co_draft",
+    draft = bar.button("Pencil in", disabled=(not n) or bad, width="content", key="co_draft",
                        help="Saved for everyone, but kept out of the change log until you publish")
     save = bar.button("Publish" + (f" · {n + pend}" if n or pend else ""), type="primary", disabled=(not (n or pend)) or bad,
                       width="content", key="co_save", help="Log every draft and unsaved edit as one revision")
@@ -442,7 +442,7 @@ def edit_view(S, years, part="snd", title="Edit Cocoa SnD"):
             ctrl.error(f"GitHub save failed: {ex}")
         else:
             _undo()
-            st.toast(("Published." if save else f"Saved {n} change(s) as draft."))
+            st.toast(("Published." if save else f"Saved {n} change(s) pencilled in."))
             st.rerun()
 
 
