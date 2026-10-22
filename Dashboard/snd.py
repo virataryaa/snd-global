@@ -17,6 +17,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+import theme
+
 import ghstore as gh
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -53,6 +55,8 @@ table.snd th.y { font-size: 11px; font-weight: 600; color: #0a2463; padding: 4px
 table.snd th.y.fc { background: #dbe4f7; }
 table.snd th.y.first { text-align: left; }
 table.snd td.fc { background: #f6f8fd; }
+table.snd tr:nth-child(even) > td:not(.fc) { background-color: #f7f8fb; }
+table.snd tr:not(.b):has(td) + tr.b > td { border-top: 1.2px solid rgba(10,36,99,.45); }
 table.snd tr.b td { font-weight: 650; color: #0f172a; }
 table.snd tr.b td.lbl { color: #0f172a; }
 table.snd tr.bal td { background: #e8eefb; font-weight: 700; border-bottom: 1px solid #dbe4f7; }
@@ -641,7 +645,7 @@ def render():
     st.markdown(CSS, unsafe_allow_html=True)
     df, meta, notes, years = load()
     with (MODE_SLOT or st.sidebar), st.container(key="mode_nav"):
-        mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="snd_mode", label_visibility="collapsed")
+        mode = theme.mode_switch("snd_mode")
     shown = years[-7:] if st.session_state.get("yrs_span", "All") == "Last 7" else years
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))

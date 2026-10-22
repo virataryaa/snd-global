@@ -14,6 +14,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+import theme
+
 import ghstore as gh
 import snd
 from snd import fnum, fpct, ystart
@@ -231,7 +233,7 @@ def render():
     left, right = st.columns([3, 1], vertical_alignment="center")
     page = left.radio("Page", ["Cocoa SnD", "IC & GH detail"], horizontal=True, key="co_page", label_visibility="collapsed")
     with right.container(key="mode_nav"):
-        mode = st.radio("Mode", ["View", "Edit"], horizontal=True, key="co_mode", label_visibility="collapsed")
+        mode = theme.mode_switch("co_mode")
     if mode == "Edit":
         part = "snd" if page == "Cocoa SnD" else "detail"
         title = "Edit Cocoa SnD" if part == "snd" else "Edit IC & GH detail"

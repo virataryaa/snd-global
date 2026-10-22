@@ -132,6 +132,16 @@ table.snd td.neg { color: #c94a4a !important; }
 .st-key-mode_nav div[role="radiogroup"] label:has(input:checked) { background: #d9822b !important; }
 .st-key-mode_nav [data-testid="stRadio"], .st-key-mode_nav [role="radiogroup"] { margin-left: auto; }
 .st-key-mode_nav { display: flex; justify-content: flex-end; }
+.st-key-mode_nav [data-testid="stButton"] { margin-left: auto; width: auto; }
+[class*="_mode_to_"] button { border-radius: 999px !important; min-height: 32px !important; height: 32px; padding: 0 22px !important; font-weight: 600 !important;
+  letter-spacing: .02em; transition: box-shadow .2s, transform .2s; }
+[class*="_mode_to_"] button p { font-size: 13px !important; font-weight: 600 !important; }
+[class*="_mode_to_edit"] button { background: linear-gradient(180deg, #ffffff, #fff4e8) !important; color: #c2410c !important;
+  border: 1px solid rgba(217,130,43,.5) !important; box-shadow: 0 0 0 3px rgba(217,130,43,.09), 0 3px 12px rgba(217,130,43,.22); }
+[class*="_mode_to_edit"] button:hover { box-shadow: 0 0 0 4px rgba(217,130,43,.14), 0 4px 16px rgba(217,130,43,.32); transform: translateY(-1px); }
+[class*="_mode_to_view"] button { background: linear-gradient(180deg, #ffffff, #eef2fb) !important; color: #0a2463 !important;
+  border: 1px solid rgba(10,36,99,.32) !important; box-shadow: 0 0 0 3px rgba(10,36,99,.06), 0 3px 12px rgba(10,36,99,.16); }
+[class*="_mode_to_view"] button:hover { box-shadow: 0 0 0 4px rgba(10,36,99,.10), 0 4px 16px rgba(10,36,99,.26); transform: translateY(-1px); }
 /* Analysis page (Global / Brazil Internal): muted red so it reads without a caption */
 .st-key-an_page_nav div[role="radiogroup"] label:has(input:checked) { background: #a0414b !important; }
 
@@ -158,6 +168,17 @@ table.snd td.neg { color: #c94a4a !important; }
 [class*="st-key-co_reason"] input { background: #ffffff !important; font-size: 12.5px; padding-left: 14px; }
 </style>
 """
+
+
+def mode_switch(key: str) -> str:
+    """A single soft-glow button: shows 'Edit' while viewing and 'View' while editing. Returns the current mode."""
+    cur = st.session_state.get(key, "View")
+    nxt = "Edit" if cur == "View" else "View"
+
+    def flip():
+        st.session_state[key] = nxt
+    st.button(nxt, key=f"{key}_to_{nxt.lower()}", on_click=flip)
+    return cur
 
 
 def gate(title: str):
