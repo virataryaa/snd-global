@@ -75,7 +75,7 @@ table.snd td.ed:hover::before { border-color: rgba(217,130,43,.55); background: 
 table.snd td.ed:focus { outline: none; background: #ffffff !important; }
 table.snd td.ed:focus::before { border: 1.5px solid #d9822b; box-shadow: 0 0 0 3px rgba(217,130,43,.15); }
 table.snd tr:has(td.ed) td.lbl { box-shadow: inset 2.5px 0 0 #e9a868; }
-table.snd tr:has(td.ed) td.lbl::after { content: "¸E"; margin-left: 5px; font-size: 10px; color: #d9822b; opacity: .75; }
+table.snd tr:has(td.ed) td.lbl::after { content: "✎"; margin-left: 5px; font-size: 10px; color: #d9822b; opacity: .75; }
 table.snd td.chg { background: #fff4d6 !important; color: #7a4b00; font-weight: 700; }
 table.snd td.mv { background: linear-gradient(135deg, #ede9fe, #f5f3ff 55%, #ede9fe) !important; background-size: 200% 200% !important; color: #5b21b6 !important; font-weight: 700; box-shadow: inset 0 0 0 1.5px #a78bfa, 0 0 10px rgba(139,92,246,.55); position: relative; z-index: 1; animation: mvshine 2.4s ease-in-out infinite; }
 table.snd td.lim { background: linear-gradient(135deg, #fee2e2, #fff5f5 55%, #fee2e2) !important; background-size: 200% 200% !important;
