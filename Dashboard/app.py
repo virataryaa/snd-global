@@ -28,7 +28,7 @@ with st.sidebar:
     st.markdown("<div class='sb-title'>Coffee SnD</div>", unsafe_allow_html=True)
     st.markdown("<div class='sb-sep'></div><div class='sb-label'>Section</div>", unsafe_allow_html=True)
     section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Sensitivity", "Revisions"],
-                       key="section", label_visibility="collapsed")
+                       format_func=lambda s: {"Analysis": "Insights", "Scenarios": "What-if", "Sensitivity": "Stress test", "Revisions": "Change log"}.get(s, s), key="section", label_visibility="collapsed")
     st.markdown("<div class='sb-sep'></div><div class='sb-label'>Crop years</div>", unsafe_allow_html=True)
     st.radio("Crop years", ["Last 7", "All"], index=1, horizontal=True, key="yrs_span", label_visibility="collapsed")   # coffee: all by default
     st.toggle("Record flags (10y)", value=True, key="lim_flags", help="Edit mode: red on cells past the 10-year high/low, outline near it")
