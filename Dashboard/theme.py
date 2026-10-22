@@ -68,6 +68,21 @@ button[kind="pillsActive"] p, button[kind="segmented_controlActive"] p { color: 
 .sb-label, [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
     font-size: 10.5px !important; font-weight: 700; color: #0a2463 !important; text-transform: uppercase; letter-spacing: .11em; margin: 10px 0 6px; }
 .sb-sep { border-top: 1px solid #e0e4ee; margin: 14px 0 10px; }
+/* glass sidebar */
+[data-testid="stSidebar"] { background: linear-gradient(160deg, rgba(246,248,253,.92) 0%, rgba(233,238,248,.88) 55%, rgba(240,236,246,.9) 100%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%);
+  border-right: 1px solid rgba(255,255,255,.75) !important; box-shadow: inset -1px 0 0 rgba(10,36,99,.06), 6px 0 28px rgba(10,36,99,.06); }
+[data-testid="stSidebar"] div[role="radiogroup"] { background: rgba(255,255,255,.55) !important; border: 1px solid rgba(255,255,255,.85);
+  box-shadow: 0 1px 2px rgba(10,36,99,.05), inset 0 1px 0 rgba(255,255,255,.9); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+[data-testid="stSidebar"] div[role="radiogroup"] label { transition: background .15s; }
+[data-testid="stSidebar"] div[role="radiogroup"] label:not(:has(input:checked)):hover { background: rgba(10,36,99,.06) !important; }
+[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) { background: linear-gradient(180deg, #13307a, #0a2463) !important;
+  box-shadow: 0 2px 8px rgba(10,36,99,.28), inset 0 1px 0 rgba(255,255,255,.18); }
+[data-testid="stSidebar"] .sb-sep { border-top: 1px solid rgba(10,36,99,.08); box-shadow: 0 1px 0 rgba(255,255,255,.8); }
+[data-testid="stSidebar"] [data-testid="stCheckbox"], [data-testid="stSidebar"] .stToggle { background: rgba(255,255,255,.5); border: 1px solid rgba(255,255,255,.85);
+  border-radius: 12px; padding: 6px 10px; box-shadow: 0 1px 2px rgba(10,36,99,.04), inset 0 1px 0 rgba(255,255,255,.9); }
+[data-testid="stSidebar"] [data-baseweb="checkbox"] [role="checkbox"], [data-testid="stSidebar"] label[data-baseweb="checkbox"] > div:first-child {
+  box-shadow: inset 0 1px 2px rgba(10,36,99,.15); }
 [data-testid="stSidebar"] [data-baseweb="checkbox"] p { font-size: 12.5px; color: #3a4466; }
 
 /* Page text and cards */
