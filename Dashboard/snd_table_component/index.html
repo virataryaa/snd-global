@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <style id="theme"></style>
 <style id='card-css'>
+.panel .spark-wrap:hover .spark-pop, .panel td.rev:hover .rev-pop { display: none !important; }
 /* hover card: kept with its script so both always update together */
 .xtip { display: none; position: fixed; z-index: 99999; width: 242px; background: #ffffff; border-radius: 12px; padding: 12px 14px;
   pointer-events: none; font-size: 12px; color: #475569; border: 1px solid rgba(15,23,42,.07);
@@ -144,7 +145,7 @@ function bars(td, tone, rec) {
   var was = tds.map(function (c) { return c.dataset.was !== undefined && c.dataset.was !== "" ? num(c.dataset.was) : NaN; });   // before the edit
   var ok = v.concat(was).filter(function (x) { return !isNaN(x); }); if (ok.length < 2) return "";
   var hi = Math.max.apply(null, ok.concat([0, rec === null ? 0 : rec])), lo = Math.min.apply(null, ok.concat([0, rec === null ? 0 : rec]));
-  var W = 214, H = 54, n = v.length, bw = W / n, y = function (x) { return 4 + (hi - x) / ((hi - lo) || 1) * (H - 8); };
+  var W = 300, H = 78, n = v.length, bw = W / n, y = function (x) { return 4 + (hi - x) / ((hi - lo) || 1) * (H - 8); };
   var col = { up: "#16a34a", dn: "#dc2626", v: "#8b5cf6" }[tone];
   var g = "";
   v.forEach(function (x, j) {
@@ -182,8 +183,14 @@ function ensurePanel() {
       "#snd-xinfo { position: fixed; left: 50%; transform: translateX(-50%); z-index: 999; display: none; align-items: center; gap: 16px;" +
       " padding: 10px 16px; border-radius: 16px; background: rgba(255,255,255,.72); -webkit-backdrop-filter: blur(22px) saturate(180%);" +
       " backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.7); font-family: Inter, system-ui, sans-serif;" +
-      " box-shadow: 0 0 0 1px rgba(10,36,99,.06), 0 12px 34px rgba(10,36,99,.18); pointer-events: none; color: #475569; }" +
-      "#snd-xinfo .xi-l { min-width: 150px; } #snd-xinfo .xi-n { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #94a3b8; }" +
+      " box-shadow: 0 0 0 1px rgba(10,36,99,.06), 0 14px 40px rgba(10,36,99,.20); pointer-events: none; color: #475569; }" +
+      "#snd-xinfo { gap: 24px; padding: 14px 22px; border-radius: 18px; max-width: 94vw; }" +
+      "#snd-xinfo .xi-l { min-width: 170px; } #snd-xinfo .xi-n { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #94a3b8; margin-bottom: 2px; }" +
+      "#snd-xinfo .xt-v { font-size: 26px; } #snd-xinfo .xt-d, #snd-xinfo .xt-was { font-size: 14px; } #snd-xinfo .xt-tag { font-size: 12px; }" +
+      "#snd-xinfo .xi-r { font-size: 12px; min-width: 190px; max-height: 110px; overflow: hidden; border-left: 1px solid rgba(10,36,99,.08); padding-left: 18px; }" +
+      "#snd-xinfo .row { padding: 3px 0; white-space: nowrap; } #snd-xinfo .row + .row { border-top: 1px solid rgba(10,36,99,.06); }" +
+      "#snd-xinfo .dt { color: #94a3b8; margin-right: 8px; } #snd-xinfo .rs { color: #94a3b8; margin-left: 8px; }" +
+      "#snd-xinfo .xi-c svg { display: block; }" +
       "#snd-xinfo .xt-top { justify-content: flex-start; gap: 8px; } #snd-xinfo .xt-was { margin-left: 0; margin-right: 0; }" +
       "#snd-xinfo svg { margin-top: 0 !important; }";
     P.head.appendChild(st);
@@ -196,20 +203,45 @@ function where(td) {
   for (var r = tr.previousElementSibling; r; r = r.previousElementSibling) {
     if (r.querySelector("th.y")) { var th = r.children[col]; yr = th ? th.textContent.trim() : ""; break; }
   }
-  return (lbl ? shown(lbl) : "") + (yr ? " &middot; " + yr : "");
+  return (lbl ? shown(lbl) : "") + (yr && !td.classList.contains("spark-td") ? " &middot; " + yr : "");
 }
-document.addEventListener("mouseover", function (e) {
-  var td = e.target.closest ? e.target.closest("td[data-lim], td[data-was]") : null;
-  var pn = ensurePanel();
-  if (pn) {                                                   // fixed panel at the bottom: never covers the table
-    if (!td) { clearTimeout(hideT); hideT = setTimeout(function () { pn.style.display = "none"; }, 250); return; }
-    clearTimeout(hideT);
+function panelHtml(t) {
+  var sp = t.closest(".spark-wrap");
+  if (sp) {                                                   // Trend: the detailed sparkline
+    var td = sp.closest("td"), pop = sp.querySelector(".spark-pop");
+    return pop ? "<div class='xi-l'><div class='xi-n'>" + where(td) + "</div><div class='xt-sub'>Trend, all crop years</div></div><div class='xi-c'>" + pop.innerHTML + "</div>" : "";
+  }
+  var td = t.closest("td[data-lim], td[data-was], td.rev");
+  if (!td) return "";
+  var left = "", chart = "", right = "";
+  if (td.dataset.lim || td.dataset.was !== undefined) {
     var c = card(td), k = c.indexOf("<svg");
-    pn.innerHTML = "<div class='xi-l'><div class='xi-n'>" + where(td) + "</div>" + (k < 0 ? c : c.slice(0, k)) + "</div>" + (k < 0 ? "" : c.slice(k));
-    pn.style.bottom = P.querySelector(".st-key-edit_bar") ? "84px" : "20px";   // sits above the save bar when that is up
+    left = k < 0 ? c : c.slice(0, k); chart = k < 0 ? "" : c.slice(k);
+  } else {
+    left = "<div class='xt-top'><span class='xt-v'>" + shown(td) + "</span></div>";
+  }
+  var rev = td.querySelector(".rev-pop");
+  if (rev) {                                                  // saved revisions: chart (if none yet) + the latest changes
+    var svg = rev.querySelector("svg");
+    if (!chart && svg) chart = svg.outerHTML;
+    right = "<div class='xi-r'><div class='xi-n'>Saved revisions</div>" +
+            Array.prototype.slice.call(rev.querySelectorAll(".row"), 0, 4).map(function (r) { return r.outerHTML; }).join("") + "</div>";
+  }
+  return "<div class='xi-l'><div class='xi-n'>" + where(td) + "</div>" + left + "</div>" + (chart ? "<div class='xi-c'>" + chart + "</div>" : "") + right;
+}
+if (P) document.documentElement.classList.add("panel");      // pop-ups inside the table give way to the panel
+document.addEventListener("mouseover", function (e) {
+  var pn = ensurePanel();
+  if (pn) {
+    var html = e.target.closest ? panelHtml(e.target) : "";
+    if (!html) { clearTimeout(hideT); hideT = setTimeout(function () { pn.style.display = "none"; }, 250); return; }
+    clearTimeout(hideT);
+    pn.innerHTML = html;
+    pn.style.bottom = P.querySelector(".st-key-edit_bar") ? "88px" : "20px";   // sits above the save bar when that is up
     pn.style.display = "flex";
     return;
   }
+  var td = e.target.closest ? e.target.closest("td[data-lim], td[data-was]") : null;
   if (!td) { tip.style.display = "none"; return; }
   tip.innerHTML = card(td); tip.style.display = "block";
   var r = td.getBoundingClientRect(), w = tip.offsetWidth, hh = tip.offsetHeight;
