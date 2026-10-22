@@ -17,7 +17,7 @@ st.markdown(theme.CSS, unsafe_allow_html=True)
 theme.gate("Coffee SnD")
 
 # Widgets that are not drawn in a run lose their value (e.g. the Years filter while another tab is open): keep a copy.
-KEEP = (["snd_page", "snd_span", "snd_mode", "an_page", "an_view", "an_br_scope", "an_br_start", "br_span", "yrs_span", "br_mode", "rv_set",
+KEEP = (["snd_page", "snd_span", "snd_mode", "an_page", "an_view", "an_br_scope", "an_br_start", "br_span", "yrs_span", "lim_flags", "br_mode", "rv_set",
          "sc_bar_span", "sc_years", "sc_scope", "sn_origin", "sn_vs", "sn_yr", "sn_unit", "sn_step_m bags", "sn_step_%", "sn_n"]
         + [scenario._skey(k, u) for k in scenario.ALL_KEYS for u in scenario.UNITS] + ["sc_unit"])
 for _k in KEEP:
@@ -31,6 +31,7 @@ with st.sidebar:
                        key="section", label_visibility="collapsed")
     st.markdown("<div class='sb-sep'></div><div class='sb-label'>Crop years</div>", unsafe_allow_html=True)
     st.radio("Crop years", ["Last 7", "All"], index=1, horizontal=True, key="yrs_span", label_visibility="collapsed")   # coffee: all by default
+    st.toggle("Record flags (10y)", key="lim_flags", help="Edit mode: red on cells past the 10-year high/low, outline near it")
 
 
 def _snd():

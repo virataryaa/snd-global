@@ -3,6 +3,7 @@ input cells be typed over in place. Edits come back as {key: number|None}; the p
 import re
 from pathlib import Path
 
+import streamlit as st
 import streamlit.components.v1 as components
 
 _COMP = components.declare_component("snd_table", path=str(Path(__file__).resolve().parent / "snd_table_component"))
@@ -57,6 +58,7 @@ def _num(t):
 
 
 def mark_limits(live: str, n: int = 10, edge: float = 0.05) -> str:
+    show = st.session_state.get("lim_flags", False)       # sidebar toggle
     """Edit mode: forecast years and changed cells in level rows (consumption, S/U, production, stocks, grind) are checked against the
     previous n actual years of the same row. Past the 10y high/low -> 'lim hi|lo' (red shine); within 5% of the range from an
     end -> 'edge'. A hover title gives the record, the year it was set and the gap."""
@@ -96,6 +98,8 @@ def mark_limits(live: str, n: int = 10, edge: float = 0.05) -> str:
                 add, tip = "edge", f"Near 10y low {lo:,.1f} ({ylo})"
             else:
                 continue
+            if not show:                                          # flags off: hover text only
+                add = ""
             out.append(live[pos:base + m.start()])
             out.append(f"<td class='{(cls + ' ' + add).strip()}'{m.group(2)} title='{tip} · range {lo:,.1f}–{hi:,.1f}'>{m.group(3)}</td>")
             pos = base + m.end()
