@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import snd
-from snd import AMBER, AXIS, GREEN, NAVY, ORIGINS, RED, TEAL, block, fnum, fpct, global_block, load, ystart
+from snd import AMBER, AXIS, GREEN, NAVY, ORIGINS, RED, TEAL, block, global_block, load, ystart
 
 SU_HIST = snd.ROOT / "Database" / "coffee_su_history.csv"
 CSS = """

@@ -525,7 +525,7 @@ def render(view="Brazil SnD"):
     st.markdown(snd.CSS, unsafe_allow_html=True)
     inp, meta, agri, years = load()
     etg_a, etg_r = etg_brazil(years)
-    mode, span = "View", "All"
+    mode = "View"
     if view == "Brazil SnD":
         with st.sidebar:
             st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)

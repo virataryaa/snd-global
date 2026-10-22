@@ -199,13 +199,14 @@ function card(td) {
   return h + bars(td, tone, brk ? (L.k === "hi" ? L.hi : L.lo) : null,
                   brk ? (L.k === "hi" ? "high " + f1(L.hi, L.pct) + " \u00b7 " + sy(L.yhi) : "low " + f1(L.lo, L.pct) + " \u00b7 " + sy(L.ylo)) : "");
 }
-var P = null, panel = null, hideT = null;
+var P = null, panel = null, hideT = null, styled = false;
 try { P = window.parent.document; P.body; } catch (err) { P = null; }
 function ensurePanel() {
   if (!P) return null;
   panel = P.getElementById("snd-xinfo");
-  if (!panel) {
-    var st = P.createElement("style"); st.id = "snd-xinfo-css";
+  if (!panel || !styled) {                                       // (re)write the page-side styles once per table load: no stale look after an update
+    styled = true;
+    var st = P.getElementById("snd-xinfo-css") || P.head.appendChild(P.createElement("style")); st.id = "snd-xinfo-css";
     st.textContent = document.getElementById("card-css").textContent +
       "#snd-xinfo { position: fixed; left: 50%; transform: translateX(-50%); z-index: 999; display: none; align-items: center; gap: 16px;" +
       " padding: 10px 16px; border-radius: 16px; background: rgba(255,255,255,.72); -webkit-backdrop-filter: blur(22px) saturate(180%);" +
@@ -224,8 +225,7 @@ function ensurePanel() {
       "#snd-xinfo .xi-c svg { display: block; } #snd-xinfo .xi-r svg { display: block; width: 220px; height: auto; margin: 2px 0 4px; }" +
       "#snd-xinfo .xt-top { justify-content: flex-start; gap: 8px; } #snd-xinfo .xt-was { margin-left: 0; margin-right: 0; }" +
       "#snd-xinfo svg { margin-top: 0 !important; }";
-    P.head.appendChild(st);
-    panel = P.createElement("div"); panel.id = "snd-xinfo"; P.body.appendChild(panel);
+    if (!panel) { panel = P.createElement("div"); panel.id = "snd-xinfo"; P.body.appendChild(panel); }
   }
   return panel;
 }

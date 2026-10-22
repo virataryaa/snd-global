@@ -4,7 +4,6 @@ Used by the Entry page. Needs `github_token` in Streamlit Secrets (Contents: rea
 One keep-alive session, the last sha of every file is remembered, so a save is a single PUT (re-read once on a conflict).
 """
 import base64
-import re
 
 import requests
 import streamlit as st

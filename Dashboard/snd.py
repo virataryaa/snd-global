@@ -637,7 +637,6 @@ def render():
     a, r = block(df, meta, "Arabica", years), block(df, meta, "Robusta", years)
     glob = global_block(a, r, years)
     combo = a.loc["Brazil"] + r.loc["Brazil"]
-    head = "<span class='t edit'>Edit Global SnD</span>" if mode == "Edit" else "<span class='t'>Global SnD</span>"
     if mode == "Edit":
         render_edit(df, meta, notes, years, shown, gh.enabled())
         return

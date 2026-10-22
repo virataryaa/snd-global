@@ -1,6 +1,5 @@
 """Cocoa visuals: Botanical vs Statistical comparison (on the SnD page), the Analysis section and the Scenarios section.
 Same chart style and helpers as the coffee pages (snd._style / _bars / _line, analytics.card)."""
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -133,7 +132,7 @@ def scenario_page():
         body += f"<tr class='b'><td class='lbl'>{lab} scenario</td>" + "".join(
             f"<td class='{'fc' if e else ''}'>{fmt(v)}</td>" for v, e in zip(B1.loc[key], est)) + "</tr>"
         d = B1.loc[key] - B0.loc[key]
-        body += f"<tr class='soft'><td class='lbl'>vs base</td>" + "".join(
+        body += "<tr class='soft'><td class='lbl'>vs base</td>" + "".join(
             f"<td class='{'fc ' if e else ''}{'neg' if pd.notna(v) and v < -1e-9 else ''}'>"
             f"{(fpct(v, 1) if f == 'p1' else fnum(v, 0)) if pd.notna(v) and abs(v) > 1e-9 else '–'}</td>" for v, e in zip(d, est)) + "</tr>"
     st.markdown(f"<div class='snd-wrap'><table class='snd'>{head}{body}</table></div>", unsafe_allow_html=True)
