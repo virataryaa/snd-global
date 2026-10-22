@@ -372,15 +372,14 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     live_meta = {**meta, "opening": {**meta["opening"], **{c[0][8:]: c[3] for c in opens if c[3] is not None}}}
     prod, rest = _split(changes)
     A, C, O, _eff = compute(_apply(inp, rest), *_linked_etg(etg_a, etg_r, prod), years, live_meta)
-    table = full_table(A, C, O, _shown(years), edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") != "Show only editable"))
+    table = full_table(A, C, O, _shown(years), edit=dict(base=base, changed=set(edits), all=not st.session_state.get("rows_only", False)))
     if allc:                                                     # tint every calculated cell the unsaved edits move
         A0, C0, O0, _ = compute(inp, etg_a, etg_r, years, meta)
-        ref = full_table(A0, C0, O0, _shown(years), edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") != "Show only editable"))
+        ref = full_table(A0, C0, O0, _shown(years), edit=dict(base=base, changed=set(edits), all=not st.session_state.get("rows_only", False)))
         table = tableedit.mark_limits(tableedit.mark_moved(table, ref))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
-    bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")   # one compact row, left-aligned
+    bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small", key="edit_bar")   # one compact row, left-aligned
     bar.markdown("<div class='snd-head'><span class='t edit'>Edit Brazil Internal SnD</span></div>", unsafe_allow_html=True)   # title shares the toolbar row
-    bar.radio("Rows", ["Show all rows", "Show only editable"], horizontal=True, key="edit_rows", label_visibility="collapsed")
     tableedit.editable_table(table, tableedit.css_of(snd.CSS), "br_tbl", epoch, editable, edits)
     st.markdown("<div class='card-desc' style='margin:4px 0 0'>Rule: Arabica consumption + Conillon consumption = Overall consumption. "
                 "Edit Arabica and Overall; Conillon is worked out as Overall minus Arabica.</div>", unsafe_allow_html=True)

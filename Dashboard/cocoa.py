@@ -392,15 +392,14 @@ def edit_view(S, years, part="snd", title="Edit Cocoa SnD"):
         years = years + [extra]
         S = S.reindex(columns=years)
     changes = [(k.split("|")[0], k.split("|")[1], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
-    allrows = st.session_state.get("co_rows") != "Show only editable"
+    allrows = not st.session_state.get("rows_only", False)
     E = dict(base=base, changed=set(edits), all=allrows)
     table = edit_html(_apply(S, changes), years, E, part)
     if changes:                                                  # tint every calculated cell the unsaved edits move
         table = tableedit.mark_limits(tableedit.mark_moved(table, edit_html(S, years, E, part)))
     ctrl = st.container()
-    bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")
+    bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small", key="edit_bar")
     bar.markdown(f"<div class='snd-head'><span class='t edit'>{title}</span></div>", unsafe_allow_html=True)   # title shares the toolbar row
-    bar.radio("Rows", ["Show all rows", "Show only editable"], horizontal=True, key="co_rows", label_visibility="collapsed")
     tableedit.editable_table(table, tableedit.css_of(snd.CSS), "co_tbl", epoch, editable, edits)
     st.session_state["_co_edits"] = dict(edits)
     st.markdown("<div class='card-desc' style='margin:4px 0 0'>Stat crop = Tree + carry-in + smuggling + held · Total = origins × 0.99 · "

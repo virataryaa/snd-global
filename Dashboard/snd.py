@@ -569,17 +569,16 @@ def render_edit(df, meta, notes, years, shown, editable):
     a, r = block(live, live_meta, "Arabica", years), block(live, live_meta, "Robusta", years)
     glob = global_block(a, r, years)
     table = snd_table(live, meta, notes, years, shown, {"Arabica": a, "Robusta": r}, glob, a.loc["Brazil"] + r.loc["Brazil"],
-                      edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") != "Show only editable"))
+                      edit=dict(base=base, changed=set(edits), all=not st.session_state.get("rows_only", False)))
     if changes or opens:                                         # tint every calculated cell the unsaved edits move
         a0, r0 = block(df, meta, "Arabica", years), block(df, meta, "Robusta", years)
         ref = snd_table(df, meta, notes, years, shown, {"Arabica": a0, "Robusta": r0}, global_block(a0, r0, years),
                         a0.loc["Brazil"] + r0.loc["Brazil"],
-                        edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") != "Show only editable"))
+                        edit=dict(base=base, changed=set(edits), all=not st.session_state.get("rows_only", False)))
         table = tableedit.mark_limits(tableedit.mark_moved(table, ref))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
-    bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")   # one compact row, left-aligned
+    bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small", key="edit_bar")   # one compact row, left-aligned
     bar.markdown("<div class='snd-head'><span class='t edit'>Edit Global SnD</span></div>", unsafe_allow_html=True)   # title shares the toolbar row
-    bar.radio("Rows", ["Show all rows", "Show only editable"], horizontal=True, key="edit_rows", label_visibility="collapsed")
     tableedit.editable_table(table, tableedit.css_of(CSS), "snd_tbl", epoch, editable, edits)
     st.session_state["_snd_edits"] = dict(edits)
     if not editable:
