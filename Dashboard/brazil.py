@@ -445,7 +445,7 @@ def consumption_share(A, C, shown):
     from analytics import _fig, card
     x = [short(y) for y in shown]
     with st.container(border=True):
-        card("Domestic consumption: Arabica vs Conillon share")
+        card("Consumption share: Arabica vs Conillon")
         fig = go.Figure()
         for fr, name, col in ((A, "Arabica", snd.NAVY), (C, "Conillon", snd.AMBER)):
             fig.add_trace(go.Bar(x=x, y=[fr.loc["Demand as % of total", y] * 100 for y in shown], name=name,
@@ -453,7 +453,8 @@ def consumption_share(A, C, shown):
                                  marker=dict(color=col, line_width=0, opacity=[0.55 if snd.is_estimate(y) else 1 for y in shown]),
                                  text=[f"{fr.loc['Demand as % of total', y]:.0%}" for y in shown], textposition="inside",
                                  hovertemplate=name + ": %{y:.0f}% · %{customdata:.1f}m bags<extra></extra>"))
-        st.plotly_chart(_fig(fig, height=280, fmt=",.0f").update_layout(barmode="stack", yaxis=dict(range=[0, 100], ticksuffix="%")),
+        st.plotly_chart(_fig(fig, height=230, fmt=",.0f").update_layout(barmode="stack", yaxis=dict(range=[0, 100], ticksuffix="%"),
+                                                                  xaxis=dict(type="category", tickangle=-45, tickfont=dict(size=10))),
                         width="stretch", key="br_cons_share")
 
 
@@ -463,7 +464,7 @@ def charts(A, C, O, shown):
     est = [snd.is_estimate(y) for y in shown]
     NAVY, TEAL, AMBER, GREEN, RED, GREY = snd.NAVY, snd.TEAL, snd.AMBER, snd.GREEN, snd.RED, snd.GREY
     total = A.loc["Production", shown] + C.loc["Production", shown]
-    cells = [c for _ in range(2) for c in st.columns(3, gap="small")]   # 3 charts a row
+    cells = [c for _ in range(3) for c in st.columns(3, gap="small")]   # 3 charts a row
 
     with cells[0], st.container(border=True):
         st.markdown("<div class='chart-head'>Production: Arabica and Conillon</div>", unsafe_allow_html=True)
@@ -510,6 +511,8 @@ def charts(A, C, O, shown):
         _line(fig, x, C.loc["Stock/Use Conillon", shown] * 100, "Conillon", AMBER, pct=True)
         _line(fig, x, O.loc["Stock/Use", shown] * 100, "Brazil", RED, pct=True)
         st.plotly_chart(snd._style(fig, 230).update_layout(yaxis_ticksuffix="%"), width="stretch", key="br_c_su")
+    with cells[6]:
+        consumption_share(A, C, shown)
 
 
 def render(view="Brazil SnD"):
@@ -538,5 +541,4 @@ def render(view="Brazil SnD"):
         edit_view(inp, meta, etg_a, etg_r, years, eff, gh.enabled())
         return
     st.markdown(full_table(A, C, O, shown), unsafe_allow_html=True)
-    consumption_share(A, C, shown)
     charts(A, C, O, shown)

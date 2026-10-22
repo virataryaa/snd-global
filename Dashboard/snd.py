@@ -438,7 +438,7 @@ def _style(fig, height=230, fmt=",.1f", legend=True):
                       legend=dict(orientation="h", x=0, y=1.14, bgcolor="rgba(0,0,0,0)", font=dict(size=10.5)) if legend else None,
                       showlegend=legend, bargap=0.35,
                       xaxis=dict(color=AXIS, showgrid=False, type="category", tickfont=dict(size=10),
-                                 tickangle=0, tickvals=None),
+                                 tickangle=-45, tickvals=None),
                       yaxis=dict(gridcolor=GRID, color=AXIS, hoverformat=fmt, zeroline=True, zerolinecolor="rgba(15,23,42,0.18)",
                                  tickfont=dict(size=10)))
     return fig
