@@ -26,6 +26,10 @@
   box-shadow: 0 0 0 1px rgba(10,36,99,.25); }
 .xt-rng .t b.up { background: #16a34a; box-shadow: 0 0 0 1px rgba(22,163,74,.35); } .xt-rng .t b.dn { background: #dc2626; box-shadow: 0 0 0 1px rgba(220,38,38,.35); }
 .xt-was { font-size: 12px; color: #94a3b8; margin-left: auto; margin-right: 8px; font-variant-numeric: tabular-nums; }
+.xi-kv { display: grid; grid-template-columns: auto auto; column-gap: 12px; row-gap: 1px; align-items: baseline; }
+.xi-kv > span { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #94a3b8; }
+.xi-kv > b { font-variant-numeric: tabular-nums; text-align: right; } .xi-kv .xt-v { font-size: 24px; line-height: 1.15; }
+.xi-kv .xi-was { font-size: 13px; font-weight: 500; color: #64748b; } .xi-kv .xt-d { font-size: 13px; } .xi-kv .xt-d i { font-style: normal; opacity: .75; font-weight: 500; }
 .xt-tag { display: inline-block; font-size: 10.5px; font-weight: 600; margin-top: 3px; } .xt-tag.up { color: #15803d; } .xt-tag.dn { color: #b91c1c; }
 .xt-h { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
 .xtip .rev-pop { display: block !important; position: static; margin: 0; padding: 0; border: 0; box-shadow: none; background: none; width: auto; }
@@ -172,22 +176,25 @@ function bars(td, tone, rec, recLab) {
   g += "<line x1='0' x2='" + W + "' y1='" + y(0).toFixed(1) + "' y2='" + y(0).toFixed(1) + "' stroke='#cbd5e1' stroke-width='1'/>";
   if (rec !== null) {
     var ry = y(rec).toFixed(1);
-    g += "<line x1='0' x2='" + W + "' y1='" + ry + "' y2='" + ry + "' stroke='" + col[1] + "' stroke-width='1.2' stroke-dasharray='4 3' opacity='.85'/>" +
-         "<rect x='0' y='" + (ry - 13) + "' width='" + (recLab.length * 5.6 + 12) + "' height='13' rx='6.5' fill='" + col[1] + "'/>" +
-         "<text x='6' y='" + (ry - 3.5) + "' font-size='9' font-weight='600' fill='#fff' font-family='Inter, system-ui, sans-serif'>" + recLab + "</text>";
+    g += "<line x1='0' x2='" + W + "' y1='" + ry + "' y2='" + ry + "' stroke='" + col[1] + "' stroke-width='1' stroke-dasharray='3 3' opacity='.45'/>" +
+         "<text x='" + W + "' y='" + (ry - 3) + "' font-size='8.5' text-anchor='end' fill='" + col[1] + "' opacity='.75' font-family='Inter, system-ui, sans-serif'>" + recLab + "</text>";
   }
   return "<svg width='" + W + "' height='" + H + "' style='display:block;overflow:visible'>" + g + "</svg>";
 }
 function card(td) {
-  var now = shown(td), d = td.dataset.was !== undefined ? num(now) - num(td.dataset.was) : NaN;
-  var L = td.dataset.lim ? JSON.parse(td.dataset.lim) : null, brk = L && L[0] !== "n" && (L.k === "hi" || L.k === "lo");
+  var now = shown(td), was = td.dataset.was, d = was !== undefined ? num(now) - num(was) : NaN, pc = d / Math.abs(num(was)) * 100;
+  var L = td.dataset.lim ? JSON.parse(td.dataset.lim) : null, brk = L && (L.k === "hi" || L.k === "lo");
   var tone = brk ? (L.k === "hi" ? "up" : "dn") : "v";
-  var tag = brk ? "<span class='xt-tag " + tone + "'>" + (L.k === "hi" ? "&#9650; 10-yr high" : "&#9660; 10-yr low") + "</span>" : "";
-  var h = "<div class='xt-top'><span class='xt-v'>" + now + "</span>" +
-          (isNaN(d) ? "" : "<span class='xt-was'>" + td.dataset.was + " &rarr;</span><span class='xt-d " + (d >= 0 ? "up" : "dn") + "'>" + (d >= 0 ? "+" : "&minus;") + f1(Math.abs(d), false) + "</span>") + "</div>" + tag +
-          bars(td, tone, brk ? (L.k === "hi" ? L.hi : L.lo) : null,
-               brk ? (L.k === "hi" ? "prev high " + f1(L.hi, L.pct) + " \u00b7 " + L.yhi : "prev low " + f1(L.lo, L.pct) + " \u00b7 " + L.ylo) : "");
-  return h;
+  var h = "<div class='xi-kv'><span>Now</span><b class='xt-v'>" + now + "</b>";
+  if (!isNaN(d)) {
+    h += "<span>Before</span><b class='xi-was'>" + (was || "&ndash;") + "</b>" +
+         "<span>Change</span><b class='xt-d " + (d >= 0 ? "up" : "dn") + "'>" + (d >= 0 ? "+" : "&minus;") + f1(Math.abs(d), false) +
+         (isFinite(pc) ? "<i> (" + (d >= 0 ? "+" : "&minus;") + Math.abs(pc).toFixed(0) + "%)</i>" : "") + "</b>";
+  }
+  h += "</div>";
+  if (brk) h += "<span class='xt-tag " + tone + "'>" + (L.k === "hi" ? "&#9650; New 10-yr high" : "&#9660; New 10-yr low") + "</span>";
+  return h + bars(td, tone, brk ? (L.k === "hi" ? L.hi : L.lo) : null,
+                  brk ? (L.k === "hi" ? "high " + f1(L.hi, L.pct) + " \u00b7 " + sy(L.yhi) : "low " + f1(L.lo, L.pct) + " \u00b7 " + sy(L.ylo)) : "");
 }
 var P = null, panel = null, hideT = null;
 try { P = window.parent.document; P.body; } catch (err) { P = null; }
