@@ -372,13 +372,14 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
     live_meta = {**meta, "opening": {**meta["opening"], **{c[0][8:]: c[3] for c in opens if c[3] is not None}}}
     prod, rest = _split(changes)
     A, C, O, _eff = compute(_apply(inp, rest), *_linked_etg(etg_a, etg_r, prod), years, live_meta)
-    table = full_table(A, C, O, years, edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") != "Show only editable"))
+    table = full_table(A, C, O, _shown(years), edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") != "Show only editable"))
     if allc:                                                     # tint every calculated cell the unsaved edits move
         A0, C0, O0, _ = compute(inp, etg_a, etg_r, years, meta)
-        ref = full_table(A0, C0, O0, years, edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") != "Show only editable"))
+        ref = full_table(A0, C0, O0, _shown(years), edit=dict(base=base, changed=set(edits), all=st.session_state.get("edit_rows") != "Show only editable"))
         table = tableedit.mark_limits(tableedit.mark_moved(table, ref))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
     bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")   # one compact row, left-aligned
+    bar.markdown("<div class='snd-head'><span class='t edit'>Edit Brazil Internal SnD</span></div>", unsafe_allow_html=True)   # title shares the toolbar row
     bar.radio("Rows", ["Show all rows", "Show only editable"], horizontal=True, key="edit_rows", label_visibility="collapsed")
     tableedit.editable_table(table, tableedit.css_of(snd.CSS), "br_tbl", epoch, editable, edits)
     st.markdown("<div class='card-desc' style='margin:4px 0 0'>Rule: Arabica consumption + Conillon consumption = Overall consumption. "
@@ -515,6 +516,10 @@ def charts(A, C, O, shown):
         st.plotly_chart(snd._style(fig, 230).update_layout(yaxis_ticksuffix="%"), width="stretch", key="br_c_su")
 
 
+def _shown(years):
+    return years[-7:] if st.session_state.get("yrs_span", "All") == "Last 7" else years
+
+
 def render(view="Brazil SnD"):
     st.markdown(snd.CSS, unsafe_allow_html=True)
     inp, meta, agri, years = load()
@@ -532,7 +537,8 @@ def render(view="Brazil SnD"):
     title = "Brazil Internal SnD" if view == "Brazil SnD" else "AgriAcies format"
     editing = view == "Brazil SnD" and st.session_state.get("snd_mode") == "Edit"
     head = f"<span class='t edit'>Edit {title}</span>" if editing else f"<span class='t'>{title}</span>"
-    st.markdown(f"<div class='snd-head'>{head}</div>", unsafe_allow_html=True)
+    if not editing:
+        st.markdown(f"<div class='snd-head'>{head}</div>", unsafe_allow_html=True)
     if view == "AgriAcies format":
         st.markdown(agri_html(agri), unsafe_allow_html=True)
         return

@@ -113,7 +113,7 @@ table.snd th.spark-h { font-size: 9.5px; text-transform: uppercase; letter-spaci
 .snd-bar { background: linear-gradient(90deg, #0a1d4d 0%, #0a2463 100%); color: #ffffff; font-size: 12px; font-weight: 700;
            letter-spacing: .12em; text-transform: uppercase; padding: 7px 14px; border-radius: 8px 8px 0 0; margin-top: 6px; }
 .crop { font-size: 9.5px; font-weight: 500; letter-spacing: .04em; text-transform: none; opacity: .75; margin-left: 10px; }
-.snd-head { display: flex; align-items: baseline; gap: 12px; margin: 2px 0 12px; }
+.snd-head { display: flex; align-items: center; gap: 12px; margin: 0; min-height: 42px; }
 .snd-head .t { font-size: 20px; font-weight: 700; color: #0a2463; letter-spacing: -.01em; }
 .snd-head .s { font-size: 12px; color: #94a3b8; letter-spacing: .02em; }
 </style>
@@ -578,6 +578,7 @@ def render_edit(df, meta, notes, years, shown, editable):
         table = tableedit.mark_limits(tableedit.mark_moved(table, ref))
     ctrl = st.container()                                        # Save / Undo / Reason sit above the table
     bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")   # one compact row, left-aligned
+    bar.markdown("<div class='snd-head'><span class='t edit'>Edit Global SnD</span></div>", unsafe_allow_html=True)   # title shares the toolbar row
     bar.radio("Rows", ["Show all rows", "Show only editable"], horizontal=True, key="edit_rows", label_visibility="collapsed")
     tableedit.editable_table(table, tableedit.css_of(CSS), "snd_tbl", epoch, editable, edits)
     st.session_state["_snd_edits"] = dict(edits)
@@ -631,7 +632,6 @@ def render():
     glob = global_block(a, r, years)
     combo = a.loc["Brazil"] + r.loc["Brazil"]
     head = "<span class='t edit'>Edit Global SnD</span>" if mode == "Edit" else "<span class='t'>Global SnD</span>"
-    st.markdown(f"<div class='snd-head'>{head}</div>", unsafe_allow_html=True)
     if mode == "Edit":
         render_edit(df, meta, notes, years, shown, gh.enabled())
         return

@@ -235,8 +235,7 @@ def render():
     if mode == "Edit":
         part = "snd" if page == "Cocoa SnD" else "detail"
         title = "Edit Cocoa SnD" if part == "snd" else "Edit IC & GH detail"
-        st.markdown(f"<div class='snd-head'><span class='t edit'>{title}</span></div>", unsafe_allow_html=True)
-        edit_view(S, years, part)
+        edit_view(S, years, part, title)
         return
     if page == "Cocoa SnD":
         # Botanical and Statistical side by side, compact
@@ -379,7 +378,7 @@ def _undo():
         pass
 
 
-def edit_view(S, years, part="snd"):
+def edit_view(S, years, part="snd", title="Edit Cocoa SnD"):
     import tableedit
     editable = gh.enabled()
     epoch = st.session_state.setdefault("co_epoch", 0)
@@ -400,6 +399,7 @@ def edit_view(S, years, part="snd"):
         table = tableedit.mark_limits(tableedit.mark_moved(table, edit_html(S, years, E, part)))
     ctrl = st.container()
     bar = ctrl.container(horizontal=True, vertical_alignment="center", gap="small")
+    bar.markdown(f"<div class='snd-head'><span class='t edit'>{title}</span></div>", unsafe_allow_html=True)   # title shares the toolbar row
     bar.radio("Rows", ["Show all rows", "Show only editable"], horizontal=True, key="co_rows", label_visibility="collapsed")
     tableedit.editable_table(table, tableedit.css_of(snd.CSS), "co_tbl", epoch, editable, edits)
     st.session_state["_co_edits"] = dict(edits)
