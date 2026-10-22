@@ -76,25 +76,26 @@ button[kind="pillsActive"] p, button[kind="segmented_controlActive"] p { color: 
 .card-title, .chart-head { color: #0a2463; font-weight: 600; font-size: .9rem; margin-bottom: 4px; letter-spacing: -.005em; }
 .st-key-edit_bar { position: fixed !important; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; width: auto !important;
   max-width: 92vw; flex-wrap: nowrap !important; align-items: center !important; justify-content: center !important; gap: 10px !important;
-  background: rgba(255,255,255,.55); -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%);
-  border: 1px solid rgba(255,255,255,.7); border-radius: 999px; padding: 8px 10px 8px 20px !important;
-  box-shadow: 0 10px 34px rgba(10,36,99,.16), 0 1px 3px rgba(10,36,99,.08), inset 0 1px 0 rgba(255,255,255,.8); animation: ebup .22s ease-out; }
+  background: rgba(255,255,255,.72); -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid rgba(255,255,255,.7); border-radius: 999px; padding: 11px 13px 11px 24px !important;
+  box-shadow: 0 0 0 1px rgba(217,130,43,.22), 0 14px 40px rgba(10,36,99,.22), 0 2px 6px rgba(10,36,99,.10), inset 0 1px 0 rgba(255,255,255,.8); animation: ebup .22s ease-out; }
 @keyframes ebup { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
 .st-key-edit_bar > div { margin: 0 !important; align-self: center !important; }
-.st-key-edit_bar [data-testid="stMarkdownContainer"], .st-key-edit_bar [data-testid="stMarkdownContainer"] p { margin: 0 !important; display: flex; align-items: center; height: 32px; }
-.eb-n { font-size: 13px; font-weight: 600; color: #0a2463; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; line-height: 1; }
+.st-key-edit_bar [data-testid="stMarkdownContainer"], .st-key-edit_bar [data-testid="stMarkdownContainer"] p { margin: 0 !important; display: flex; align-items: center; height: 38px; }
+.st-key-edit_bar button p, .st-key-edit_bar input { font-size: 14px !important; }
+.eb-n { font-size: 14px; font-weight: 600; color: #0a2463; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; line-height: 1; }
 .eb-n::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; box-shadow: 0 0 8px rgba(245,158,11,.9); }
 .st-key-edit_bar input { background: rgba(255,255,255,.7) !important; color: #0f172a !important; }
 .st-key-edit_bar [data-baseweb="input"] { border-radius: 999px !important; border: none !important; overflow: hidden; }
-.st-key-edit_bar button { height: 32px !important; min-height: 32px !important; border-radius: 999px !important; }
+.st-key-edit_bar button { height: 38px !important; min-height: 38px !important; padding: 0 20px !important; border-radius: 999px !important; }
 .st-key-edit_bar button[kind="secondary"] { background: rgba(255,255,255,.5) !important; border: 1px solid rgba(10,36,99,.15) !important; }
 .st-key-edit_bar button[kind="secondary"] p { color: #0a2463 !important; }
 .st-key-edit_bar button[kind="primary"] { background: #d9822b !important; border: none !important; box-shadow: 0 2px 10px rgba(217,130,43,.35); }
 .st-key-edit_bar button[kind="primary"] p { color: #ffffff !important; font-weight: 700 !important; }
 .st-key-edit_bar_idle { display: none !important; }
 .st-key-edit_bar button p { font-size: 12.5px !important; }
-.st-key-edit_bar [data-baseweb="input"], .st-key-edit_bar [data-baseweb="base-input"] { min-height: 32px !important; height: 32px !important; }
-.st-key-edit_bar input { height: 32px !important; padding: 0 12px !important; font-size: 12.5px !important; }
+.st-key-edit_bar [data-baseweb="input"], .st-key-edit_bar [data-baseweb="base-input"] { min-height: 38px !important; height: 38px !important; }
+.st-key-edit_bar input { height: 38px !important; padding: 0 12px !important; font-size: 12.5px !important; }
 .grp-hero { text-align: center; color: #0a2463; font-size: .8rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin: 18px 0 6px; }
 .grp-hero span { display: none; color: #64748b; font-size: .72rem; font-weight: 400; letter-spacing: .02em; text-transform: none; font-style: italic; margin-top: 1px; }
 .card-desc { color: #5a6688; font-size: .8rem; margin-top: -4px; margin-bottom: 8px; }
