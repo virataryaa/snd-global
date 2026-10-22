@@ -43,7 +43,7 @@ def analysis_page():
         card("SnD balance")
         fig = go.Figure(go.Bar(x=x, y=T.loc["SnD"], name="SnD", hovertemplate="SnD: %{y:,.0f}<extra></extra>",
                                marker=dict(color=[GREEN if v >= 0 else RED for v in T.loc["SnD"].fillna(0)],
-                                           opacity=[0.55 if e else 1 for e in est], line_width=0)))
+                                           opacity=[1 for e in est], line_width=0)))
         st.plotly_chart(_fig(fig, height=300, fmt=",.0f", legend=False), width="stretch", key="co_an_snd")
 
     r2 = st.columns(2, gap="small")

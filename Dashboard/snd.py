@@ -248,7 +248,7 @@ def _spark_detail(pairs, kind, title) -> str:
                 f"transform='rotate(-55 {xs[i]:.1f} {DETAIL_H - 6})'>{y[2:]}</text>")
     for i, (y, v) in enumerate(pts):
         top, bot = sorted([zero_y, Y(v)])
-        op = 0.5 if is_estimate(y) else 1
+        op = 1
         prev = vals[i - 1] if i > 0 else None
         if kind == "bal":
             color = GREEN if v >= 0 else RED
@@ -280,7 +280,7 @@ def sparkline(pairs, title, kind="growth") -> str:
     for i, (y, v) in enumerate(pts):
         bh = max(v / hi * (SPARK_H - 2), 0.6)
         x = pad + i * bw + 0.3
-        op = 0.5 if is_estimate(y) else 1
+        op = 1
         bars += f"<rect x='{x:.1f}' y='{SPARK_H - bh:.1f}' width='{bw - 0.6:.1f}' height='{bh:.1f}' rx='0.4' fill='#5b7fc7' opacity='{op}'/>"
     svg = f"<svg class='spark' viewBox='0 0 {SPARK_W} {SPARK_H}'>{bars}</svg>"
     return f"<span class='spark-wrap'>{svg}{_spark_detail(pts, kind, title)}</span>"
@@ -327,7 +327,7 @@ def sparkline_balance(pairs, title) -> str:
         bh = max(abs(v) / m * (mid - 1.5), 0.6)
         x = pad + i * bw + 0.3
         yy = mid - bh if v >= 0 else mid
-        op = 0.5 if is_estimate(y) else 1
+        op = 1
         bars += f"<rect x='{x:.1f}' y='{yy:.1f}' width='{bw - 0.6:.1f}' height='{bh:.1f}' rx='0.4' fill='{GREEN if v >= 0 else RED}' opacity='{op}'/>"
     svg = (f"<svg class='spark' viewBox='0 0 {SPARK_W} {SPARK_H}'><line x1='0' y1='{mid}' x2='{SPARK_W}' y2='{mid}' "
           f"stroke='rgba(0,0,0,.18)' stroke-width='0.6'/>{bars}</svg>")
@@ -445,7 +445,7 @@ def _style(fig, height=230, fmt=",.1f", legend=True):
 
 
 def _bars(fig, x, y, name, color, est, **kw):
-    fig.add_trace(go.Bar(x=x, y=y, name=name, marker=dict(color=color, opacity=[0.55 if e else 1 for e in est], line_width=0),
+    fig.add_trace(go.Bar(x=x, y=y, name=name, marker=dict(color=color, opacity=[1 for e in est], line_width=0),
                          hovertemplate=name + ": %{y:.1f}<extra></extra>", **kw))
 
 

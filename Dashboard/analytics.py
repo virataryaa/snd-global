@@ -205,7 +205,7 @@ def view_cycle(frames, years, meta):
     with top_r, st.container(border=True):
         up = (g.fillna(0) >= 0).tolist()                              # the first year has nothing to compare with: navy
         colors = [NAVY if u else AMBER for u in up]
-        fig = go.Figure(go.Bar(x=short, y=prod.values, marker=dict(color=colors, opacity=[0.55 if e else 1 for e in est], line_width=0),
+        fig = go.Figure(go.Bar(x=short, y=prod.values, marker=dict(color=colors, opacity=[1 for e in est], line_width=0),
                                text=[f"{v:.1f}" for v in prod.values], textposition="outside", textfont=dict(size=9.5),
                                hovertemplate="%{x}: %{y:.1f}m bags<extra></extra>", name="Production"))
         nxt = [y for y in byears if ystart(y) >= cur][:1]
@@ -221,7 +221,7 @@ def view_cycle(frames, years, meta):
     bot_l, bot_r = st.columns(2, gap="small")
     with bot_l, st.container(border=True):
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=short, y=A.loc["Closing Stock"].values, name="Closing stock", marker=dict(color="#c3cbe0", opacity=[0.6 if e else 1 for e in est], line_width=0),
+        fig.add_trace(go.Bar(x=short, y=A.loc["Closing Stock"].values, name="Closing stock", marker=dict(color="#c3cbe0", opacity=[1 for e in est], line_width=0),
                              hovertemplate="%{x}: %{y:.1f}m bags<extra></extra>"))
         fig.add_trace(go.Scatter(x=short, y=(A.loc["Stock/Use Arabica"] * 100).values, name="S/U (right)", yaxis="y2", mode="lines+markers",
                                  line=dict(color=NAVY, width=2.2), marker=dict(size=5), hovertemplate="%{x}: %{y:.1f}%<extra></extra>"))

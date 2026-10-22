@@ -426,7 +426,7 @@ def edit_view(inp, meta, etg_a, etg_r, years, eff, editable):
 
 # ── Charts ────────────────────────────────────────────────────────────────────
 def _bars(fig, x, y, name, color, est, **kw):
-    fig.add_trace(go.Bar(x=x, y=y, name=name, marker=dict(color=color, opacity=[0.55 if e else 1 for e in est], line_width=0),
+    fig.add_trace(go.Bar(x=x, y=y, name=name, marker=dict(color=color, opacity=[1 for e in est], line_width=0),
                          hovertemplate=name + ": %{y:.1f}<extra></extra>", **kw))
 
 
@@ -450,7 +450,7 @@ def consumption_share(A, C, shown):
         for fr, name, col in ((A, "Arabica", snd.NAVY), (C, "Conillon", snd.AMBER)):
             fig.add_trace(go.Bar(x=x, y=[fr.loc["Demand as % of total", y] * 100 for y in shown], name=name,
                                  customdata=[fr.loc["Consumption", y] for y in shown],
-                                 marker=dict(color=col, line_width=0, opacity=[0.55 if snd.is_estimate(y) else 1 for y in shown]),
+                                 marker=dict(color=col, line_width=0, opacity=[1 for y in shown]),
                                  text=[f"{fr.loc['Demand as % of total', y]:.0%}" for y in shown], textposition="inside",
                                  hovertemplate=name + ": %{y:.0f}% · %{customdata:.1f}m bags<extra></extra>"))
         st.plotly_chart(_fig(fig, height=230, fmt=",.0f").update_layout(barmode="stack", yaxis=dict(range=[0, 100], ticksuffix="%"),
