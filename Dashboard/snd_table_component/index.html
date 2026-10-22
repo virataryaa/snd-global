@@ -112,28 +112,26 @@ function f1(x, pct) { return pct ? x.toFixed(0) + "%" : x.toLocaleString("en-US"
 function num(t) { return Number(t.replace(/[,%()]/g, "")) * (/^\(/.test(t) ? -1 : 1); }
 function shown(td) { var c = td.cloneNode(true); c.querySelectorAll(".rev-pop, .rev-dot").forEach(function (x) { x.remove(); }); return c.textContent.trim(); }
 function card(td) {
-  var h = "", now = shown(td);
+  var now = shown(td), h = "<div class='xt-top'><span class='xt-v'>" + now + "</span>", sub = "";
   if (td.dataset.was !== undefined) {
     var d = num(now) - num(td.dataset.was);
-    h += "<div class='xt-h'><i class='v'></i>Moved with your edit</div><div class='xt-big'><span class='old'>" + (td.dataset.was || "&ndash;") +
-         "</span><span class='ar'>&rarr;</span>" + now +
-         (isNaN(d) ? "" : "<span class='g " + (d >= 0 ? "up" : "dn") + "'>" + (d >= 0 ? "+" : "&minus;") + f1(Math.abs(d), false) + "</span>") + "</div>";
+    if (!isNaN(d)) h += "<span class='xt-d " + (d >= 0 ? "up" : "dn") + "'>" + (d >= 0 ? "+" : "&minus;") + f1(Math.abs(d), false) + "</span>";
+    sub = "<div class='xt-sub'>was " + (td.dataset.was || "&ndash;") + " before your edit</div>";
   }
+  h += "</div>" + sub;
   if (td.dataset.lim) {
-    var L = JSON.parse(td.dataset.lim), p = L.pct;
-    var lab = { hi: "Above 10-year high", lo: "Below 10-year low", nh: "Near 10-year high", nl: "Near 10-year low" }[L.k];
-    var tone = L.k === "hi" || L.k === "nh" ? "up" : "dn";
-    var gap = L.k === "hi" ? L.v - L.hi : L.k === "lo" ? L.v - L.lo : null;
-    var pos = Math.max(3, Math.min(97, 14 + (L.v - L.lo) / ((L.hi - L.lo) || 1) * 72));   // the 10y range is the middle 72%
-    if (h) h += "<div class='xt-sep'></div>";
-    h += "<div class='xt-h'><i class='" + tone + "'></i>" + lab + "</div>" +
-         (td.dataset.was !== undefined ? "" : "<div class='xt-big'>" + now + "</div>") +
-         (gap === null ? "" : "<div class='xt-gap " + tone + "'>" + (gap >= 0 ? "+" : "&minus;") + f1(Math.abs(gap), p) + " beyond the record</div>") +
-         "<div class='xt-bar'><i class='trk'></i><i class='rng'></i><b class='" + (L.k.length === 2 && L.k[0] === "n" ? "" : tone) + "' style='left:" + pos + "%'></b></div>" +
-         "<div class='xt-ends'><span>" + f1(L.lo, p) + "<em>" + L.ylo + "</em></span><span>" + f1(L.hi, p) + "<em>" + L.yhi + "</em></span></div>";
+    var L = JSON.parse(td.dataset.lim), p = L.pct, up = L.k === "hi" || L.k === "nh", near = L.k[0] === "n";
+    var rec = up ? L.hi : L.lo, yr = up ? L.yhi : L.ylo, gap = Math.abs(L.v - rec);
+    var msg = near ? "Close to 10-yr " + (up ? "high" : "low")
+                   : (up ? "New 10-yr high" : "New 10-yr low") + ", " + (up ? "+" : "&minus;") + f1(gap, p);
+    var pos = Math.max(2, Math.min(98, 10 + (L.v - L.lo) / ((L.hi - L.lo) || 1) * 80));
+    h += "<div class='xt-sep'></div><div class='xt-msg " + (near ? "n" : up ? "up" : "dn") + "'>" + msg +
+         " <span>vs " + f1(rec, p) + " in " + yr + "</span></div>" +
+         "<div class='xt-rng'><span>" + f1(L.lo, p) + "</span><div class='t'><i></i><b class='" + (near ? "" : up ? "up" : "dn") +
+         "' style='left:" + pos + "%'></b></div><span>" + f1(L.hi, p) + "</span></div>";
   }
   var rev = td.querySelector(".rev-pop");
-  if (rev) { h += "<div class='xt-sep'></div><div class='xt-h'><i class='n'></i>Saved revisions</div><div class='rev-pop'>" + rev.innerHTML + "</div>"; }
+  if (rev) { h += "<div class='xt-sep'></div><div class='xt-h'>Saved revisions</div><div class='rev-pop'>" + rev.innerHTML + "</div>"; }
   return h;
 }
 document.addEventListener("mouseover", function (e) {
