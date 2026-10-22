@@ -108,25 +108,29 @@ function commit(td, live) {
 
 // ── hover card for moved / record cells ──
 var tip = document.createElement("div"); tip.className = "xtip"; document.body.appendChild(tip);
-function f1(x, pct) { return pct ? x.toFixed(0) + "%" : x.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+function f1(x, pct) { return pct ? x.toFixed(0) + "%" : x.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+function num(t) { return Number(t.replace(/[,%()]/g, "")) * (/^\(/.test(t) ? -1 : 1); }
 function card(td) {
   var h = "", now = td.textContent.trim();
   if (td.dataset.was !== undefined) {
-    var a = Number(td.dataset.was.replace(/[,%()]/g, "")) * (/^\(/.test(td.dataset.was) ? -1 : 1);
-    var b = Number(now.replace(/[,%()]/g, "")) * (/^\(/.test(now) ? -1 : 1), d = b - a;
-    h += "<div class='xt-h v'>Moved with your edit</div><div class='xt-big'>" + (td.dataset.was || "–") + "<span class='ar'>&rarr;</span>" + now +
-         (isNaN(d) ? "" : "<span class='g " + (d >= 0 ? "up" : "dn") + "'>" + (d >= 0 ? "+" : "") + d.toFixed(1) + "</span>") + "</div>";
+    var d = num(now) - num(td.dataset.was);
+    h += "<div class='xt-h'><i class='v'></i>Moved with your edit</div><div class='xt-big'><span class='old'>" + (td.dataset.was || "&ndash;") +
+         "</span><span class='ar'>&rarr;</span>" + now +
+         (isNaN(d) ? "" : "<span class='g " + (d >= 0 ? "up" : "dn") + "'>" + (d >= 0 ? "+" : "&minus;") + f1(Math.abs(d), false) + "</span>") + "</div>";
   }
   if (td.dataset.lim) {
-    var L = JSON.parse(td.dataset.lim), p = L.pct, s = 1;   // values are already as shown (% rows in %)
-    var lab = { hi: "&#9650; Above 10-year high", lo: "&#9660; Below 10-year low", nh: "Near 10-year high", nl: "Near 10-year low" }[L.k];
+    var L = JSON.parse(td.dataset.lim), p = L.pct;
+    var up = L.k === "hi" || L.k === "nh";
+    var lab = { hi: "Above 10-year high", lo: "Below 10-year low", nh: "Near 10-year high", nl: "Near 10-year low" }[L.k];
+    var tone = L.k === "hi" ? "up" : L.k === "lo" ? "dn" : "n";
     var gap = L.k === "hi" ? L.v - L.hi : L.k === "lo" ? L.v - L.lo : null;
-    var pos = Math.max(-8, Math.min(108, (L.v - L.lo) / ((L.hi - L.lo) || 1) * 100));
+    var pos = Math.max(0, Math.min(100, (L.v - L.lo) / ((L.hi - L.lo) || 1) * 100));
     if (h) h += "<div class='xt-sep'></div>";
-    h += "<div class='xt-h r'>" + lab + "</div><div class='xt-big'>" + now +
-         (gap === null ? "" : "<span class='g dn'>" + (gap >= 0 ? "+" : "") + f1(gap * s, p) + " vs record</span>") + "</div>" +
-         "<div class='xt-bar'><b style='left:" + pos + "%'></b></div>" +
-         "<div class='xt-ends'><span>" + f1(L.lo * s, p) + " &middot; " + L.ylo + "</span><span>" + f1(L.hi * s, p) + " &middot; " + L.yhi + "</span></div>";
+    h += "<div class='xt-h'><i class='" + tone + "'></i>" + lab + "</div>" +
+         (td.dataset.was !== undefined ? "" : "<div class='xt-big'>" + now + "</div>") +
+         (gap === null ? "" : "<div class='xt-ends' style='margin-top:3px'><span>" + (gap >= 0 ? "+" : "&minus;") + f1(Math.abs(gap), p) + " vs record</span></div>") +
+         "<div class='xt-bar'><b class='" + (tone === "n" ? "" : tone) + "' style='left:" + pos + "%'></b></div>" +
+         "<div class='xt-ends'><span>" + f1(L.lo, p) + "<em>" + L.ylo + "</em></span><span>" + f1(L.hi, p) + "<em>" + L.yhi + "</em></span></div>";
   }
   return h;
 }

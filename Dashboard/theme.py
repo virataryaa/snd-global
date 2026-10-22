@@ -74,7 +74,8 @@ button[kind="pillsActive"] p, button[kind="segmented_controlActive"] p { color: 
 .snd-head .t.edit { color: #c2410c !important; }
 .page-title, .snd-head .t { color: #0a2463 !important; font-weight: 700; font-size: 1.15rem; margin: 0 0 4px 0; letter-spacing: -.01em; }
 .card-title, .chart-head { color: #0a2463; font-weight: 600; font-size: .9rem; margin-bottom: 4px; letter-spacing: -.005em; }
-.st-key-edit_bar { align-items: center !important; }
+.st-key-edit_bar { align-items: center !important; height: 42px !important; min-height: 42px !important; max-height: 42px !important; }
+.st-key-edit_bar > div, .st-key-edit_bar [data-testid="stMarkdownContainer"] { margin: 0 !important; }
 .st-key-edit_bar button { min-height: 30px !important; height: 30px !important; padding: 0 14px !important; font-size: 12.5px !important; line-height: 1 !important; }
 .st-key-edit_bar button p { font-size: 12.5px !important; }
 .st-key-edit_bar [data-baseweb="input"], .st-key-edit_bar [data-baseweb="base-input"] { min-height: 30px !important; height: 30px !important; }
@@ -133,9 +134,9 @@ table.snd td.neg { color: #c94a4a !important; }
 .st-key-mode_nav [data-testid="stRadio"], .st-key-mode_nav [role="radiogroup"] { margin-left: auto; }
 .st-key-mode_nav { display: flex; justify-content: flex-end; }
 .st-key-mode_nav [data-testid="stButton"] { margin-left: auto; width: auto; }
-[class*="_mode_to_"] button { border-radius: 999px !important; min-height: 32px !important; height: 32px; padding: 0 22px !important; font-weight: 600 !important;
+[class*="_mode_to_"] button { border-radius: 999px !important; min-height: 27px !important; height: 27px; padding: 0 14px !important; font-weight: 600 !important;
   letter-spacing: .02em; transition: box-shadow .2s, transform .2s; }
-[class*="_mode_to_"] button p { font-size: 13px !important; font-weight: 600 !important; }
+[class*="_mode_to_"] button p { font-size: 12px !important; font-weight: 600 !important; }
 [class*="_mode_to_edit"] button { background: linear-gradient(180deg, #ffffff, #fff4e8) !important; color: #c2410c !important;
   border: 1px solid rgba(217,130,43,.5) !important; box-shadow: 0 0 0 3px rgba(217,130,43,.09), 0 3px 12px rgba(217,130,43,.22); }
 [class*="_mode_to_edit"] button:hover { box-shadow: 0 0 0 4px rgba(217,130,43,.14), 0 4px 16px rgba(217,130,43,.32); transform: translateY(-1px); }
@@ -177,7 +178,7 @@ def mode_switch(key: str) -> str:
 
     def flip():
         st.session_state[key] = nxt
-    st.button(nxt, key=f"{key}_to_{nxt.lower()}", on_click=flip)
+    st.button(f"{nxt} Mode", key=f"{key}_to_{nxt.lower()}", on_click=flip)
     return cur
 
 
