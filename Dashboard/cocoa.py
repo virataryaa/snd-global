@@ -250,9 +250,9 @@ def render():
                     unsafe_allow_html=True)
     else:
         st.markdown("<div class='snd-head'><span class='t'>Ivory Coast & Ghana crop detail</span></div>", unsafe_allow_html=True)
-        for col, cty in zip(st.columns(2, gap="small"), ("IC", "GH")):        # Ivory Coast | Ghana, compact
-            col.markdown(f"<div class='snd-wrap cmp'><table class='snd cmp'>{detail_html(S, shown, (cty,))}</table></div>",
-                         unsafe_allow_html=True)
+        pair = "".join(f"<div class='snd-wrap cmp'><table class='snd cmp'>{detail_html(S, shown, (c,))}</table></div>" for c in ("IC", "GH"))
+        import tableedit
+        tableedit.editable_table(f"<div class='co-pair'>{pair}</div>", tableedit.css_of(snd.CSS), "co_view", 0, editable=False)   # same frame as Edit
 
 
 # ── Edit mode ─────────────────────────────────────────────────────────────────

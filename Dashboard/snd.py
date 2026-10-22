@@ -635,7 +635,9 @@ def render():
     if mode == "Edit":
         render_edit(df, meta, notes, years, shown, gh.enabled())
         return
-    st.markdown(snd_table(df, meta, notes, years, shown, {"Arabica": a, "Robusta": r}, glob, combo), unsafe_allow_html=True)
+    import tableedit
+    tableedit.editable_table(snd_table(df, meta, notes, years, shown, {"Arabica": a, "Robusta": r}, glob, combo),   # same frame as Edit
+                             tableedit.css_of(CSS), "snd_view", 0, editable=False)
     charts(a, r, glob, shown)
 
 

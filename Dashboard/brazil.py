@@ -546,5 +546,6 @@ def render(view="Brazil SnD"):
     if mode == "Edit":
         edit_view(inp, meta, etg_a, etg_r, years, eff, gh.enabled())
         return
-    st.markdown(full_table(A, C, O, shown), unsafe_allow_html=True)
+    import tableedit
+    tableedit.editable_table(full_table(A, C, O, shown), tableedit.css_of(snd.CSS), "br_view", 0, editable=False)   # same frame as Edit
     charts(A, C, O, shown)
