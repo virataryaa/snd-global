@@ -32,50 +32,48 @@ def analysis_page():
     T = cocoa.balance(S, years, basis)
     x, est = _x(years), _est(years)
 
-    r1 = st.columns(2, gap="small")
-    with r1[0], st.container(border=True):
+    cells = snd._grid([("Supply &amp; demand", "", 3), ("Balance &amp; stocks", "", 3)])
+    with cells[0], st.container(border=True):
         card("Supply vs grind")
         fig = go.Figure()
         snd._bars(fig, x, T.loc["Total"], "Supply (origins × 0.99)", NAVY, est)
         snd._line(fig, x, T.loc["Grind"], "Grind", AMBER)
-        st.plotly_chart(_fig(fig, height=300, fmt=",.0f"), width="stretch", key="co_an_supply")
-    with r1[1], st.container(border=True):
+        st.plotly_chart(_fig(fig, height=260, fmt=",.0f"), width="stretch", key="co_an_supply")
+    with cells[3], st.container(border=True):
         card("SnD balance")
         fig = go.Figure(go.Bar(x=x, y=T.loc["SnD"], name="SnD", hovertemplate="SnD: %{y:,.0f}<extra></extra>",
                                marker=dict(color=[GREEN if v >= 0 else RED for v in T.loc["SnD"].fillna(0)],
                                            opacity=[1 for e in est], line_width=0)))
-        st.plotly_chart(_fig(fig, height=300, fmt=",.0f", legend=False), width="stretch", key="co_an_snd")
+        st.plotly_chart(_fig(fig, height=260, fmt=",.0f", legend=False), width="stretch", key="co_an_snd")
 
-    r2 = st.columns(2, gap="small")
-    with r2[0], st.container(border=True):
+    with cells[4], st.container(border=True):
         card("Stock proxy and stock / grind")
         fig = go.Figure()
         snd._bars(fig, x, T.loc["Stock proxy"], "Stock", TEAL, est)
         snd._line(fig, x, T.loc["STU"] * 100, "STU %", NAVY, right=True, pct=True)
-        st.plotly_chart(snd._y2(_fig(fig, height=300, fmt=",.0f")), width="stretch", key="co_an_stock")
-    with r2[1], st.container(border=True):
+        st.plotly_chart(snd._y2(_fig(fig, height=260, fmt=",.0f")), width="stretch", key="co_an_stock")
+    with cells[1], st.container(border=True):
         card("Origin mix")
         fig = go.Figure()
         names = [("IC Total", "Ivory Coast"), ("GH Total", "Ghana")] + list(cocoa.OTHERS)
         for (key, name), col in zip(names, ORIGIN_COLORS):
             fig.add_trace(go.Bar(x=x, y=T.loc[key], name=name, marker=dict(color=col, line_width=0),
                                  hovertemplate=name + ": %{y:,.0f}<extra></extra>"))
-        st.plotly_chart(_fig(fig, height=300, fmt=",.0f").update_layout(barmode="stack"), width="stretch", key="co_an_mix")
+        st.plotly_chart(_fig(fig, height=260, fmt=",.0f").update_layout(barmode="stack"), width="stretch", key="co_an_mix")
 
-    r3 = st.columns(2, gap="small")
-    with r3[0], st.container(border=True):
+    with cells[2], st.container(border=True):
         card("Ivory Coast and Ghana: main vs mid crop")
         fig = go.Figure()
         for key, name, col in (("IC Main", "IC main", NAVY), ("IC Mid", "IC mid", "#6f86bd"), ("GH Main", "GH main", AMBER), ("GH Mid", "GH mid", "#e0bd75")):
             fig.add_trace(go.Bar(x=x, y=T.loc[key], name=name, marker=dict(color=col, line_width=0),
                                  offsetgroup="IC" if key.startswith("IC") else "GH", hovertemplate=name + ": %{y:,.0f}<extra></extra>"))
-        st.plotly_chart(_fig(fig, height=300, fmt=",.0f").update_layout(barmode="stack"), width="stretch", key="co_an_mainmid")
-    with r3[1], st.container(border=True):
+        st.plotly_chart(_fig(fig, height=260, fmt=",.0f").update_layout(barmode="stack"), width="stretch", key="co_an_mainmid")
+    with cells[5], st.container(border=True):
         card("Share of grind")
         fig = go.Figure()
         snd._line(fig, x, T.loc["IVC/GH share"] * 100, "IVC + GH", NAVY, pct=True)
         snd._line(fig, x, T.loc["Main %"] * 100, "Main crops", TEAL, pct=True)
-        st.plotly_chart(_fig(fig, height=300, fmt=",.1f").update_layout(yaxis=dict(ticksuffix="%")), width="stretch", key="co_an_share")
+        st.plotly_chart(_fig(fig, height=260, fmt=",.1f").update_layout(yaxis=dict(ticksuffix="%")), width="stretch", key="co_an_share")
 
 
 # ── Scenarios ────────────────────────────────────────────────────────────────────────────────────────────────

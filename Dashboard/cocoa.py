@@ -239,23 +239,18 @@ def render():
         title = "Edit Cocoa SnD" if part == "snd" else "Edit IC & GH detail"
         edit_view(S, years, part, title)
         return
+    import tableedit
+    if page == "Cocoa SnD":                                       # Botanical | Statistical, compact, side by side
+        pair = "".join(f"<div class='snd-wrap cmp'><table class='snd cmp'>{table_html(b, balance(S, years, b), shown, compact=True)}</table></div>"
+                       for b in ("Botanical", "Statistical"))
+    else:                                                         # Ivory Coast | Ghana
+        pair = "".join(f"<div class='snd-wrap cmp'><table class='snd cmp'>{detail_html(S, shown, (c,))}</table></div>" for c in ("IC", "GH"))
+    tableedit.editable_table(f"<div class='co-pair'>{pair}</div>", tableedit.css_of(snd.CSS), "co_tbl", st.session_state.get("co_epoch", 0),
+                             editable=False, red=False, edits=st.session_state.get("co_tbl"))   # same frame as Edit: no reload on switch
     if page == "Cocoa SnD":
-        # Botanical and Statistical side by side, compact
-        st.markdown("<style>table.snd.cmp td, table.snd.cmp th.y { padding: 3px 6px !important; font-size: 11px !important; }"
-                    "table.snd.cmp td.lbl { white-space: nowrap; } .snd-wrap.cmp { padding: 6px 8px 8px; }</style>"
-                    "<div class='snd-head'><span class='t'>Cocoa SnD</span></div>", unsafe_allow_html=True)
-        for col, basis in zip(st.columns(2, gap="small"), ("Botanical", "Statistical")):
-            col.markdown(f"<div class='snd-wrap cmp'><table class='snd cmp'>{table_html(basis, balance(S, years, basis), shown, compact=True)}"
-                         "</table></div>", unsafe_allow_html=True)
         st.markdown("<div style='margin-top:4px;font-size:10.5px;font-style:italic;color:#64748b'>"
                     f"Tot = Σorig×0.99 · SnD = Tot−Grind · Stk typed ≤{ANCHOR[2:]}, then prev+SnD · Stat = Tree+CI+Smug+Held</div>",
                     unsafe_allow_html=True)
-    else:
-        st.markdown("<div class='snd-head'><span class='t'>Ivory Coast & Ghana crop detail</span></div>", unsafe_allow_html=True)
-        pair = "".join(f"<div class='snd-wrap cmp'><table class='snd cmp'>{detail_html(S, shown, (c,))}</table></div>" for c in ("IC", "GH"))
-        import tableedit
-        tableedit.editable_table(f"<div class='co-pair'>{pair}</div>", tableedit.css_of(snd.CSS), "co_tbl", st.session_state.get("co_epoch", 0), editable=False, red=False,
-                                 edits=st.session_state.get("co_tbl"))   # same frame as Edit (detail page)   # same frame as Edit
 
 
 # ── Edit mode ─────────────────────────────────────────────────────────────────
@@ -279,22 +274,23 @@ def _editable(series, y) -> bool:
     return series != "Stock" or ystart(y) <= ystart(ANCHOR)          # stock is typed only up to the anchor year
 
 
-def edit_html(S, years, edit, part="snd") -> str:
+def edit_html(S, years, edit, part="snd", show=None) -> str:
     """part: "snd" = tree crops, other origins, grind, stock; "detail" = IC / GH tree, adjustments and stat crop."""
     """One table holding every input (editable cells) and the numbers they drive (calculated cells)."""
     allrows = edit.get("all")
-    ncol = len(years) + 2                                         # + Trend
+    disp = show or years                                          # columns shown; sums and stock still use every year
+    ncol = len(disp) + 2                                          # + Trend
 
     def head(title, sub="Oct–Sep · k tonnes"):
         return (f"<tr class='comm'><th colspan='{ncol}'>{title}<span class='crop'>{sub}</span></th></tr>"
                 "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if is_est(y) else ''}'>{y[2:]}{'*' if is_est(y) else ''}</th>"
-                                                         for y in years) + "<th class='y spark-h'>Trend</th></tr>")
+                                                         for y in disp) + "<th class='y spark-h'>Trend</th></tr>")
 
     def row(label, vals, kind="", series=None, f=0, always=False, bars=False):
         if not allrows and series is None and not always:
             return ""
         cells = ""
-        for y in years:
+        for y in disp:
             v = vals[y]
             cls = ("fc " if is_est(y) else "") + ("neg " if kind == "bal" and pd.notna(v) and v < 0 else "")
             attrs = ""
@@ -304,7 +300,7 @@ def edit_html(S, years, edit, part="snd") -> str:
                 cls += "ed" + (" chg" if k in edit["changed"] else "")
                 attrs = f" data-k='{k}' data-base='{'' if b is None or pd.isna(b) else b}'"
             cells += f"<td class='{cls.strip()}'{attrs}>{_fmt(v, f)}</td>"
-        pairs = [(y, vals[y]) for y in years]
+        pairs = [(y, vals[y]) for y in disp]
         spark = (snd.sparkline_balance(pairs, label) if bars or kind == "bal"           # adjustments / balances: red-green bars
                  else snd.sparkline(pairs, label, "plain" if f in ("p0", "p1") else "growth"))
         return f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}<td class='spark-td'>{spark}</td></tr>"
@@ -397,15 +393,16 @@ def edit_view(S, years, part="snd", title="Edit Cocoa SnD"):
     changes = [(k.split("|")[0], k.split("|")[1], base.get(k), (None if v is None else float(v))) for k, v in edits.items()]
     allrows = not st.session_state.get("rows_only", False)
     E = dict(base=base, changed=set(edits), all=allrows)
-    table = edit_html(_apply(S, changes), years, E, part)
+    show = years[-7:] if st.session_state.get("yrs_span", "Last 7") == "Last 7" else years     # same columns as View; stock rolls on all
+    table = edit_html(_apply(S, changes), years, E, part, show)
     if changes:                                                  # tint every calculated cell the unsaved edits move
-        table = tableedit.mark_limits(tableedit.mark_moved(table, edit_html(S, years, E, part)))
+        table = tableedit.mark_limits(tableedit.mark_moved(table, edit_html(S, years, E, part, show)))
     ctrl = st.container()
-    ctrl.markdown(f"<div class='snd-head'><span class='t edit'>{title}</span></div>", unsafe_allow_html=True)   # same title row as View
     tableedit.editable_table(table, tableedit.css_of(snd.CSS), "co_tbl", epoch, editable, edits)
     st.session_state["_co_edits"] = dict(edits)
-    st.markdown("<div class='card-desc' style='margin:4px 0 0'>Stat crop = Tree + carry-in + smuggling + held · Total = origins × 0.99 · "
-                f"SnD = Total − Grind · Stock typed to {ANCHOR[2:]}, then previous stock + SnD.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:4px;font-size:10.5px;font-style:italic;color:#64748b'>"
+                f"Tot = Σorig×0.99 · SnD = Tot−Grind · Stk typed ≤{ANCHOR[2:]}, then prev+SnD · Stat = Tree+CI+Smug+Held</div>",
+                unsafe_allow_html=True)
     if not editable:
         ctrl.markdown("<div class='card-desc'>Read-only: add github_token in Secrets to edit.</div>", unsafe_allow_html=True)
         return
