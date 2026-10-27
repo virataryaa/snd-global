@@ -234,6 +234,8 @@ def render():
     page = left.radio("Page", ["Cocoa SnD", "IC & GH detail"], horizontal=True, key="co_page", label_visibility="collapsed")
     with right.container(key="mode_nav"):
         mode = theme.mode_switch("co_mode")
+        if mode == "Edit":
+            theme.edit_toggles()
     if mode == "Edit":
         part = "snd" if page == "Cocoa SnD" else "detail"
         title = "Edit Cocoa SnD" if part == "snd" else "Edit IC & GH detail"

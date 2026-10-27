@@ -365,7 +365,7 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
         return bool(comm) and is_estimate(y)
 
     def head(comm=None):
-        cells = "".join(f"<th class='y{' fc' if shaded(comm, y) else ''}'>{y}{'*' if starred(comm, y) else ''}</th>" for y in shown)
+        cells = "".join(f"<th class='y{' fc' if shaded(comm, y) else ''}'>{y[2:]}{'*' if starred(comm, y) else ''}</th>" for y in shown)
         return f"<tr><th class='y first'></th>{cells}<th class='y spark-h'>Trend</th></tr>"
 
     def tr(label, vals, kind="", fmt=fnum, comm=None, item=None, neg_red=False, editable=True):
@@ -631,6 +631,8 @@ def render():
     df, meta, notes, years = load()
     with (MODE_SLOT or st.sidebar), st.container(key="mode_nav"):
         mode = theme.mode_switch("snd_mode")
+        if mode == "Edit":
+            theme.edit_toggles()
     shown = years[-7:] if st.session_state.get("yrs_span", "All") == "Last 7" else years
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))

@@ -532,6 +532,8 @@ def render(view="Brazil SnD"):
             st.toggle("Detailed ratios", value=False, key="br_detail")
         with (MODE_SLOT or st.sidebar), st.container(key="mode_nav"):
             mode = theme.mode_switch("snd_mode")   # shared with Global
+            if mode == "Edit":
+                theme.edit_toggles()
     shown = years[-7:] if st.session_state.get("yrs_span", "All") == "Last 7" else years
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))

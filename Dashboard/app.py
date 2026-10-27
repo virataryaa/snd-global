@@ -34,17 +34,14 @@ for _k in KEEP:
     if _k not in st.session_state and f"_keep_{_k}" in st.session_state:
         st.session_state[_k] = st.session_state[f"_keep_{_k}"]
 
+st.session_state["yrs_span"] = "All"   # coffee always shows every crop year (no switch)
+
 with st.sidebar:
     st.markdown("<div class='sb-title'>Coffee SnD</div>", unsafe_allow_html=True)
     st.markdown("<div class='sb-sep'></div><div class='sb-label'>Section</div>", unsafe_allow_html=True)
     section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Sensitivity", "Revisions", "Exports"],
                        format_func=lambda s: {"Analysis": "Insights", "Scenarios": "What-if", "Sensitivity": "Stress test", "Revisions": "Change log",
                                               "Exports": "Aggregated Exports"}.get(s, s), key="section", label_visibility="collapsed")
-    if section != "Exports":   # SnD-only controls; Exports adds its own filters below
-        st.markdown("<div class='sb-sep'></div><div class='sb-label'>Crop years</div>", unsafe_allow_html=True)
-        st.radio("Crop years", ["Last 7", "All"], index=1, horizontal=True, key="yrs_span", label_visibility="collapsed")   # coffee: all by default
-        st.toggle("Record flags (10y)", value=True, key="lim_flags", help="Edit mode: red on cells past the 10-year high/low, outline near it")
-        st.toggle("Show only editable", key="rows_only", help="Edit mode: hide the calculated rows")
 
 
 def _snd():

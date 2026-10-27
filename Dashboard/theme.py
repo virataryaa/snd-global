@@ -317,6 +317,17 @@ div[data-testid="stExpander"] summary p {{ font-family: {HEAD_FONT} !important; 
 .stButton > button, .stDownloadButton > button {{ border-radius: 999px; border: 1px solid rgba(43,74,138,.18); background: linear-gradient(180deg, #ffffff, #eef2fa);
   color: #0a2463; font-weight: 600; box-shadow: 0 1px 2px rgba(10,36,99,.06); transition: box-shadow .18s, transform .18s; }}
 .stButton > button:hover, .stDownloadButton > button:hover {{ transform: translateY(-1px); box-shadow: 0 8px 20px rgba(10,36,99,.14); border-color: rgba(43,74,138,.35); color: #0a2463; }}
+/* use the full width: small side gutters instead of a centred 1500px column */
+.block-container {{ max-width: 100% !important; padding-left: 1.6rem !important; padding-right: 1.6rem !important; }}
+/* Edit-mode toggles: small, under the mode button */
+.st-key-edit_opts {{ margin-top: 4px; }}
+.st-key-edit_opts [data-testid="stWidgetLabel"] p, .st-key-edit_opts label p {{ font-size: 11px !important; color: #5a6688 !important; font-weight: 600 !important; }}
+/* Sidebar: Aggregated Exports set apart (space above, amber accent) */
+.st-key-section div[role="radiogroup"] label:last-of-type {{ margin-top: 22px !important; background: linear-gradient(180deg, #ffffff, #f3f6fc) !important;
+  border: 1px solid rgba(43,74,138,.22) !important; border-left: 3px solid #c98a1f !important; box-shadow: 0 2px 10px rgba(30,58,110,.10) !important; }}
+.st-key-section div[role="radiogroup"] label:last-of-type div[data-testid="stMarkdownContainer"] p {{ color: #0a2463 !important; font-weight: 700 !important; }}
+.st-key-section div[role="radiogroup"] label:last-of-type:has(input:checked) {{ background: linear-gradient(180deg, #2b4a8a, #1e3a6e) !important; }}
+.st-key-section div[role="radiogroup"] label:last-of-type:has(input:checked) div[data-testid="stMarkdownContainer"] p {{ color: #ffffff !important; }}
 {ICE_TABLE}
 </style>
 """
@@ -340,6 +351,14 @@ def ice_charts():
                                         font=dict(family="Inter, sans-serif", size=11, color="#1a1a2e")))
         pio.templates["ice"] = t
     pio.templates.default = "ice"
+
+
+def edit_toggles():
+    """Edit mode only: two small toggles under the mode button (record flags on by default)."""
+    with st.container(key="edit_opts", horizontal=True, horizontal_alignment="right", gap="small"):
+        st.session_state.setdefault("lim_flags", True)              # seeded, not value=, so a kept value never clashes
+        st.toggle("Record flags", key="lim_flags", help="Red on cells past the 10-year high/low, outline near it")
+        st.toggle("Only editable", key="rows_only", help="Hide the calculated rows")
 
 
 def mode_switch(key: str) -> str:

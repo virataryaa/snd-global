@@ -87,6 +87,15 @@ CSS = """
     line-height: 1.3; background: linear-gradient(90deg, rgba(43,74,138,.09) 0%, rgba(43,74,138,.035) 55%, rgba(43,74,138,0) 100%);
     border: 1px solid rgba(43,74,138,.08); border-radius: 12px; padding: 10px 16px; margin-bottom: 8px; }
 .st-key-mc_hero [data-testid="stVerticalBlock"]:has(> .st-key-mc_page) { align-items: flex-end; }
+/* In-chart toggles: slim one-line segmented control, flush right */
+[class*="st-key-mc_card_"] div[role="radiogroup"] { padding: 1px !important; gap: 0 !important; flex-wrap: nowrap !important;
+    box-shadow: none !important; border-color: rgba(43,74,138,.10) !important; min-height: 0 !important; }
+[class*="st-key-mc_card_"] div[role="radiogroup"] label { padding: 0 7px !important; min-height: 0 !important; line-height: 1.5 !important; }
+[class*="st-key-mc_card_"] div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 10px !important; white-space: nowrap;
+    line-height: 1.5 !important; margin: 0 !important; }
+[class*="st-key-mc_card_"] [data-testid="stRadio"] > div { gap: 0 !important; }
+[class*="st-key-mc_card_"] div[role="radiogroup"] label:has(input:checked) { box-shadow: 0 1px 3px rgba(30,58,110,.22) !important; }
+[class*="st-key-mc_card_"] [data-testid="stRadio"] { display: flex; justify-content: flex-end; }
 /* Filter bar: one wrapping row of glass dropdowns, no labels */
 .st-key-mc_bar { gap: 8px !important; flex-wrap: wrap; margin: 0 0 6px; }
 .st-key-mc_bar [data-baseweb="select"] > div { min-height: 32px !important; font-size: 12.5px; font-weight: 600; color: #0a2463 !important; }
@@ -332,20 +341,18 @@ def _views(title):
     lab = lambda name: (lambda v: f"{name} · {v}")                   # noqa: E731
     with st.container(key="mc_bar", horizontal=True, vertical_alignment="center"):
         comm = st.selectbox("Type", COMMS, key="mc_ch_comm", format_func=lab("Type"), label_visibility="collapsed", width=200)
-        basis = st.selectbox("Crop year", list(CY_PRESETS), key="mc_cy_basis", format_func=lab("Crop year"),
-                             label_visibility="collapsed", width=170)
-        span = st.selectbox("Years", ["Last 5", "Last 10", "All"], key="mc_ch_span", format_func=lab("Years"),
-                            label_visibility="collapsed", width=145)
-        unit = st.selectbox("Unit", list(UNITS), key="mc_ch_unit", format_func=lab("Unit"), label_visibility="collapsed", width=170)
-        b3 = st.container(width="content")                           # the Projection chip is drawn here once the data is in
         pool = [o["name"] for o in ORIGINS if o["type"] in TYPES[comm]]
         first = [n for n in pool if n in DEFAULT_ORIGINS]               # Brazil Arabica / Vietnam to start with
         okey = f"mc_origin_{comm}"
         if okey not in st.session_state:
             st.session_state[okey] = first
         picked = st.multiselect("Origin", pool, key=okey, placeholder="Origins", label_visibility="collapsed", width=420)
-        with st.container(key="mc_selall", width="content"):
-            st.button("All origins", key=f"mc_all_{comm}", on_click=lambda k=okey, p=pool: st.session_state.__setitem__(k, p))
+        basis = st.selectbox("Crop year", list(CY_PRESETS), key="mc_cy_basis", format_func=lab("Crop year"),
+                             label_visibility="collapsed", width=170)
+        span = st.selectbox("Years", ["Last 5", "Last 10", "All"], key="mc_ch_span", format_func=lab("Years"),
+                            label_visibility="collapsed", width=145)
+        unit = st.selectbox("Unit", list(UNITS), key="mc_ch_unit", format_func=lab("Unit"), label_visibility="collapsed", width=170)
+        b3 = st.container(width="content")                           # the Projection chip is drawn here once the data is in
     origins = tuple(n for n in pool if n in (picked or first))       # nothing picked = the starting origins
     start = CY_PRESETS[basis]
     saved = MONTHS, START
@@ -370,7 +377,7 @@ def _views_body(raw, gbe, title, comm, unit, span, b3):
         st.info("No data for this selection.")
         return
     _charts(ctx, proj)
-    t_col, p_col, y_col = st.columns([2.2, 0.95, 1], gap="medium")  # table | full-year totals | YTD bars
+    t_col, p_col, y_col = st.columns([2.9, 1, 1], gap="small")  # table | full-year totals | YTD bars
     with t_col, st.container(border=True, key="mc_card_table"):
         _table(ctx)
     with p_col, st.container(border=True, key="mc_card_pace"):
@@ -650,8 +657,7 @@ def _proj_trace(xs, ys, cy, ht):
 def _projection(piv, latest_cy, prev_cy, common, ref, unit, fmt):
     """Popover with the projection method for the months still to come; returns {crop month: projected value}."""
     rem = list(range(common + 1, 13))
-    if not rem:
-        st.caption(f"{latest_cy} complete")
+    if not rem:                                                    # latest crop year is complete: nothing to project, no chip
         return {}
     k_method = "mc_pj_method"
     seed(k_method, "Off")
@@ -882,7 +888,7 @@ def render_entry(head=None):
     with st.container(key="mc_bar", horizontal=True, vertical_alignment="center"):
         origin = st.selectbox("Origin", NAMES, key="en_origin", format_func=lambda v: f"Origin · {v}",
                               label_visibility="collapsed", width=240)
-        show_n = st.selectbox("Years shown", ["Recent", f"All ({FIRST_YEAR}-{LAST_YEAR})"], key="en_years",
+        show_n = st.selectbox("Years shown", [f"All ({FIRST_YEAR}-{LAST_YEAR})", "Recent"], key="en_years",   # All first = default
                               format_func=lambda v: f"Years · {v}", label_visibility="collapsed", width=210)
     o = BY_NAME[origin]
     vals = _origin_values(origin)
