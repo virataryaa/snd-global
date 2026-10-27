@@ -8,9 +8,28 @@ st.set_page_config(page_title="Coffee SnD", layout="wide", initial_sidebar_state
 # Aggregated Exports (history + TDM + Entry) lives in its own folder; appended so SnD's own modules win on a name clash
 sys.path.append(str(Path(__file__).resolve().parent.parent / "Coffee Aggregated Tradeflows" / "Dashboard"))
 
+import importlib  # noqa: E402
+
 import analytics  # noqa: E402  (after set_page_config)
 import brazil  # noqa: E402
+import data as _ex_data  # noqa: E402
+import exports_gh as _ex_gh  # noqa: E402
 import exports_view as ev  # noqa: E402
+import origins as _ex_origins  # noqa: E402
+
+
+def _fresh(mod):
+    """Streamlit only reloads modules under Dashboard/ when a push lands; the exports modules live next door, so reload them
+    here when their file changed (or once per process, for a module loaded before this check existed)."""
+    m = Path(mod.__file__).stat().st_mtime
+    if getattr(mod, "_mtime", None) != m:
+        mod = importlib.reload(mod)
+        mod._mtime = m
+    return mod
+
+
+_ex_origins, _ex_data, _ex_gh = _fresh(_ex_origins), _fresh(_ex_data), _fresh(_ex_gh)
+ev = _fresh(ev)
 import revisions  # noqa: E402
 import scenario  # noqa: E402
 import snd  # noqa: E402
