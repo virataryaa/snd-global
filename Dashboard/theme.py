@@ -322,10 +322,11 @@ div[data-testid="stExpander"] summary p {{ font-family: {HEAD_FONT} !important; 
 /* Edit-mode toggles: small, under the mode button */
 .st-key-edit_opts {{ margin-top: 4px; }}
 .st-key-edit_opts [data-testid="stWidgetLabel"] p, .st-key-edit_opts label p {{ font-size: 11px !important; color: #5a6688 !important; font-weight: 600 !important; }}
-/* Sidebar: Aggregated Exports set apart (space above, amber accent) */
-.st-key-section div[role="radiogroup"] label:last-of-type {{ margin-top: 22px !important; background: linear-gradient(180deg, #ffffff, #f3f6fc) !important;
-  border: 1px solid rgba(43,74,138,.22) !important; border-left: 3px solid #c98a1f !important; box-shadow: 0 2px 10px rgba(30,58,110,.10) !important; }}
-.st-key-section div[role="radiogroup"] label:last-of-type div[data-testid="stMarkdownContainer"] p {{ color: #0a2463 !important; font-weight: 700 !important; }}
+/* Sidebar: Aggregated Exports set apart quietly (space + hairline above, a touch bolder) */
+.st-key-section div[role="radiogroup"] label:last-of-type {{ margin-top: 18px !important; position: relative; }}
+.st-key-section div[role="radiogroup"] label:last-of-type::before {{ content: ""; position: absolute; left: 12px; right: 12px; top: -10px;
+  border-top: 1px solid rgba(43,74,138,.12); }}
+.st-key-section div[role="radiogroup"] label:last-of-type div[data-testid="stMarkdownContainer"] p {{ color: #1e3a6e !important; font-weight: 600 !important; }}
 .st-key-section div[role="radiogroup"] label:last-of-type:has(input:checked) {{ background: linear-gradient(180deg, #2b4a8a, #1e3a6e) !important; }}
 .st-key-section div[role="radiogroup"] label:last-of-type:has(input:checked) div[data-testid="stMarkdownContainer"] p {{ color: #ffffff !important; }}
 {ICE_TABLE}

@@ -6,7 +6,7 @@
   Database/settings.json         {"tdm_share": {origin: fraction}}
 
 Priority per origin and month: manual > history > TDM. TDM only fills origins whose source is "tdm" (origins.py),
-in months the other two do not have, as tonnes / 0.06 x the origin's share.
+in months the other two do not have, as green-bean-equivalent tonnes (green + roasted, no soluble) / 0.06 x the origin's share.
 """
 import json
 from pathlib import Path
@@ -19,6 +19,7 @@ DB = Path(__file__).resolve().parent.parent / "Database"
 HISTORY, MANUAL, TDM, SETTINGS = (DB / "history_exports.csv", DB / "manual_exports.csv", DB / "tdm_exports.parquet",
                                   DB / "settings.json")
 COLS = ["origin", "year", "month", "bags"]
+HS_USED = {90111, 90112, 90121, 90122}   # 0901 green (11/12) and roasted (21/22); the ingest also pulls soluble 2101 11/12
 
 
 def read_settings() -> dict:
@@ -49,8 +50,9 @@ def tdm_bags() -> pd.DataFrame:
     """TDM months as bags for the tdm origins (origin, year, month, bags)."""
     if not TDM.exists():
         return pd.DataFrame(columns=COLS)
-    t = pd.read_parquet(TDM, columns=["REPORTER", "YEAR", "MONTH", "QTY1"])
-    t = t.groupby(["REPORTER", "YEAR", "MONTH"], as_index=False)["QTY1"].sum()
+    t = pd.read_parquet(TDM, columns=["REPORTER", "COMMODITY", "YEAR", "MONTH", "GBE"])   # green-bean equivalent
+    t = t[t["COMMODITY"].astype(int).isin(HS_USED)]               # green + roasted only, soluble (2101) left out
+    t = t.groupby(["REPORTER", "YEAR", "MONTH"], as_index=False)["GBE"].sum()
     sh = shares()
     parts = []
     for o in ORIGINS:
@@ -59,7 +61,7 @@ def tdm_bags() -> pd.DataFrame:
         # TDM labels the reporter by country name; origins.py holds the code, so match on the name list below
         x = t[t["REPORTER"] == REPORTER_NAME[o["reporter"]]].copy()
         x["origin"] = o["name"]
-        x["bags"] = x["QTY1"] * BAGS_PER_TONNE * sh[o["name"]]
+        x["bags"] = x["GBE"] * BAGS_PER_TONNE * sh[o["name"]]
         parts.append(x.rename(columns={"YEAR": "year", "MONTH": "month"})[COLS])
     out = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=COLS)
     return out[out["bags"] > 0]

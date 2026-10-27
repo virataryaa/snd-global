@@ -16,9 +16,9 @@ ORIGINS = [
     dict(name="Peru",           type="Arabica", reporter="PE", source="tdm", share=1.0),
     dict(name="Vietnam",        type="Robusta", reporter="VN", source="manual"),
     dict(name="Brazil Robusta", type="Robusta", reporter="BR", source="manual"),
-    dict(name="Indonesia",      type="Robusta", reporter="ID", source="tdm", share=0.76),
+    dict(name="Indonesia",      type="Robusta", reporter="ID", source="tdm", share=1.0),
     dict(name="Uganda",         type="Robusta", reporter="UG", source="manual"),
-    dict(name="India",          type="Robusta", reporter="IN", source="tdm", share=0.92),
+    dict(name="India",          type="Robusta", reporter="IN", source="tdm", share=1.0),
 ]
 NAMES = [o["name"] for o in ORIGINS]
 BY_NAME = {o["name"]: o for o in ORIGINS}

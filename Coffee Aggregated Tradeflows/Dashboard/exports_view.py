@@ -28,6 +28,7 @@ COMMS = list(TYPES)
 BASE = ["Arabica", "Robusta"]
 TZ = "Europe/Amsterdam"
 UNITS = {"'000 bags": (1e-3, ",.0f"), "Bags": (1.0, ",.0f"), "Million bags": (1e-6, ",.2f")}
+TITLE = "{comm} {kind} Exports"   # chart titles; other pages (Colombia SnD) reuse the charts with their own wording
 PROJ_METHODS = ["Off", "YoY %", "Seasonal share", "Monthly value", "Full-year target"]
 
 # ── Palette (same as the Daily pages) ─────────────────────────────────────────
@@ -456,7 +457,7 @@ def _charts(ctx, proj):
     H = 500                                                        # one height for the three charts in the row
     l, mid, r = st.columns(3, gap="medium")
     with l, st.container(border=True, key="mc_card_monthly"):
-        view = chart_head(f"{comm} Monthly Exports", f"{u_desc} · bands = L{len(ref)}Y min-max and percentiles",
+        view = chart_head(TITLE.format(comm=comm, kind="Monthly"), f"{u_desc} · bands = L{len(ref)}Y min-max and percentiles",
                           lambda w: w.radio("Seasonal view", ["Latest vs range", "All years"], horizontal=True,
                                             key=f"{k}_view", label_visibility="collapsed"))
         plot_years = shown if view == "All years" else [y for y in shown if y in (latest_cy, prev_cy)]
@@ -479,7 +480,7 @@ def _charts(ctx, proj):
              key=f"{k}_seasonal")
 
     with mid, st.container(border=True, key="mc_card_cum"):
-        cview = chart_head(f"{comm} Cumulative Exports", f"{u_desc} · bands = L{len(ref)}Y cumulative",
+        cview = chart_head(TITLE.format(comm=comm, kind="Cumulative"), f"{u_desc} · bands = L{len(ref)}Y cumulative",
                            lambda w: w.radio("Cumulative view", ["Last 4", "All"], horizontal=True,
                                              key=f"{k}_cumview", label_visibility="collapsed"))
         fig = go.Figure()
@@ -512,7 +513,7 @@ def _charts(ctx, proj):
 
     with r, st.container(border=True, key="mc_card_rolling"):
         seed(f"{k}_roll", "12m")
-        win = chart_head(f"{comm} Rolling Exports", f"{u_desc} · trailing sum",
+        win = chart_head(TITLE.format(comm=comm, kind="Rolling"), f"{u_desc} · trailing sum",
                          lambda w: w.radio("Window", ["1m", "3m", "6m", "12m"], horizontal=True, key=f"{k}_roll",
                                            label_visibility="collapsed"))
         def rolling(pv):
@@ -626,7 +627,7 @@ def _table(ctx):
     piv, years, latest_cy, common, ref, ytd, yoy, cut, sc, fmt = (
         ctx[k_] for k_ in ("piv", "years", "latest_cy", "common", "ref", "ytd", "yoy", "cut", "sc", "fmt"))
     # rows follow the Years filter (Last 5 / Last 10 / All) so the whole page fits one screen
-    st.markdown(f"<div class='tbl-head'><div class='chart-head'>{ctx['comm']} Monthly Exports</div></div>",
+    st.markdown(f"<div class='tbl-head'><div class='chart-head'>{TITLE.format(comm=ctx['comm'], kind='Monthly')}</div></div>",
                 unsafe_allow_html=True)
     _heatmap(piv, ctx["shown"], latest_cy, common, ytd, yoy, ref, fmt, cut)
 
@@ -901,8 +902,18 @@ def render_entry(head=None):
     with st.container(border=True):
         st.markdown(f"<div class='card-title'>{origin} exports, bags <span class='pill'>{o['type']}</span>"
                     f"<span class='pill'>{source}</span>"
-                    + ("<span class='pill' style='background:#e6e9f0;color:#7a86a8'>grey = TDM</span>" if o["source"] == "tdm" else "")
                     + "</div>", unsafe_allow_html=True)
+        # editable grids cannot colour cells, so name the TDM-filled months instead
+        tdm_m = sorted(k for k, s in _origin_sources(origin).items() if s == "tdm")
+        if tdm_m:
+            runs, cur = [], [tdm_m[0]]
+            for k in tdm_m[1:]:
+                py, pm = cur[-1]
+                (cur.append(k) if k == ((py, pm + 1) if pm < 12 else (py + 1, 1)) else (runs.append(cur), cur := [k]))
+            runs.append(cur)
+            lab = lambda y, m: f"{CAL[m - 1]} {y}"                    # noqa: E731
+            txt = ", ".join(lab(*r[0]) if len(r) == 1 else f"{lab(*r[0])} – {lab(*r[-1])}" for r in runs)
+            st.markdown(f"<div class='card-desc'>From TDM (type a number to override): {txt}</div>", unsafe_allow_html=True)
         cfg = {CAL[m - 1]: st.column_config.TextColumn(CAL[m - 1], alignment="right", width=74) for m in range(1, 13)}
         cfg["_index"] = st.column_config.TextColumn("Year", width=64)
         g = _edit_grid(vals, yr_list)
@@ -944,24 +955,7 @@ def render_entry(head=None):
                     st.session_state.pop("en_pending", None)
                     st.rerun()
 
-    if o["source"] == "tdm":
-        cur = dx.shares()[origin]
-        with st.container(border=True):
-            st.markdown(f"<div class='card-title'>{origin} TDM share</div>", unsafe_allow_html=True)
-            gc = st.columns([1.2, 1, 5], vertical_alignment="center")
-            new = gc[0].number_input("TDM share", min_value=0.05, max_value=1.5, value=float(cur), step=0.01, format="%.2f",
-                                     label_visibility="collapsed", key=f"en_share_{origin}", disabled=not editable)
-            if gc[1].button("Save share", disabled=(not editable) or abs(new - cur) < 1e-9, width="stretch",
-                            key=f"en_share_save_{origin}"):
-                try:
-                    with st.spinner("Saving..."):
-                        _save_share(origin, cur, round(float(new), 4))
-                except (gh.GitHubError, Exception) as ex:
-                    st.error(f"GitHub save failed: {ex}")
-                else:
-                    st.session_state["en_flash"] = f"{origin} TDM share set to {new:g}."
-                    st.rerun()
-
+    # TDM shares are fixed (origins.py defaults / Database/settings.json), no editor on the page
     if editable:
         with st.expander("Save history", expanded=False):
             _history()

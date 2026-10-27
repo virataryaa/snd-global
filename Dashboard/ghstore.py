@@ -81,15 +81,25 @@ def read(path: str) -> tuple[str, str]:
     return text, j["sha"]
 
 
-def commit(path: str, change, message: str):
+def commit(path: str, change, message: str, default=None):
     """change(text) -> (new_text, info). One PUT using the remembered sha; re-read once if the file moved on.
-    Returns (new_text, info). Also puts the commit at the top of the remembered history."""
+    Returns (new_text, info). Also puts the commit at the top of the remembered history.
+    default: starting text when the file is not on the data branch yet (the first save creates it)."""
     st_ = _state()
-    text, sha = (st_[path]["text"], st_[path]["sha"]) if path in st_ else read(path)
+    if path in st_:
+        text, sha = st_[path]["text"], st_[path]["sha"]
+    else:
+        try:
+            text, sha = read(path)
+        except GitHubError as ex:
+            if ex.status != 404 or default is None:
+                raise
+            text, sha = default, None
     new_text, info = change(text)
     for attempt in (0, 1):
-        body = {"message": message, "branch": BRANCH, "sha": sha,
-                "content": base64.b64encode(new_text.encode("utf-8")).decode()}
+        body = {"message": message, "branch": BRANCH, "content": base64.b64encode(new_text.encode("utf-8")).decode()}
+        if sha:
+            body["sha"] = sha
         try:
             r = _session().put(_url(path), json=body, timeout=20)
             _check(r)

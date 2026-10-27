@@ -12,6 +12,7 @@ import importlib  # noqa: E402
 
 import analytics  # noqa: E402  (after set_page_config)
 import brazil  # noqa: E402
+import colombia  # noqa: E402
 import data as _ex_data  # noqa: E402
 import exports_gh as _ex_gh  # noqa: E402
 import exports_view as ev  # noqa: E402
@@ -47,6 +48,7 @@ theme.gate("Coffee SnD")
 KEEP = (["snd_page", "snd_span", "snd_mode", "an_page", "an_view", "an_br_scope", "an_br_start", "br_span", "yrs_span", "lim_flags", "rows_only", "br_mode", "rv_set",
          "sc_bar_span", "sc_years", "sc_scope", "sn_origin", "sn_vs", "sn_yr", "sn_unit", "sn_step_m bags", "sn_step_%", "sn_n"]
         + [scenario._skey(k, u) for k in scenario.ALL_KEYS for u in scenario.UNITS] + ["sc_unit"]
+        + ["cl_mode", "cl_series", "cl_span", "cl_unit"]
         + ["ex_mode", "mc_ch_comm", "mc_ch_unit", "mc_ch_span", "mc_cy_basis", "mc_pj_method", "mc_view", "mc_cumview",
            "mc_roll", "mc_stackview", "en_origin", "en_years"] + [f"mc_origin_{c}" for c in ev.COMMS])
 for _k in KEEP:
@@ -69,12 +71,15 @@ def _snd():
         st.session_state["snd_page"] = _old[st.session_state["snd_page"]]
     # one row: page switch on the left, Mode (View / Edit) on the right — SnD / Brazil draw Mode into that slot
     left, right = st.columns([3, 1], vertical_alignment="center")
-    page = left.radio("Page", ["Global SnD", "Brazil Internal SnD"], horizontal=True, key="snd_page", label_visibility="collapsed")
+    page = left.radio("Page", ["Global SnD", "Brazil Internal SnD", "Colombia Internal SnD"], horizontal=True, key="snd_page",
+                      label_visibility="collapsed")
     snd.MODE_SLOT = brazil.MODE_SLOT = right.container()
     if page == "Global SnD":
         snd.render()
-    else:
+    elif page == "Brazil Internal SnD":
         brazil.render("Brazil SnD")
+    else:
+        colombia.render(snd.MODE_SLOT)
 
 
 def _exports():
