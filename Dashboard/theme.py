@@ -4,9 +4,9 @@ import streamlit as st
 
 CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 html, body, [class*="css"], [data-testid="stAppViewContainer"], .stMarkdown, button, input, textarea {
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif !important; -webkit-font-smoothing: antialiased; }
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important; -webkit-font-smoothing: antialiased; }
 [data-testid="stAppViewContainer"], [data-testid="stMain"], .main { background: #fafafa !important; }
 /* Streamlit's top bar overlays the page: keep it short and see-through so content can start just below it */
 [data-testid="stHeader"] { background: transparent !important; height: 2.6rem !important; min-height: 0 !important; }
@@ -64,7 +64,7 @@ button[kind="pillsActive"] p, button[kind="segmented_controlActive"] p { color: 
 
 /* Sidebar */
 [data-testid="stSidebarUserContent"] { padding-top: 1rem !important; }
-.sb-title { font-family: 'Fraunces', Georgia, serif; font-size: 1.5rem; font-weight: 600; color: #0a2463 !important; margin-bottom: 10px; }
+.sb-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.5rem; font-weight: 600; color: #0a2463 !important; margin-bottom: 10px; }
 .sb-label, [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
     font-size: 10.5px !important; font-weight: 700; color: #0a2463 !important; text-transform: uppercase; letter-spacing: .11em; margin: 10px 0 6px; }
 .sb-sep { border-top: 1px solid #e0e4ee; margin: 14px 0 10px; }
@@ -218,15 +218,15 @@ table.snd td.neg { color: #c94a4a !important; }
 # ── Ice theme (same as LSEG COT_ALL / Daily Miner) ────────────────────────────
 # Injected last on every run, so it sits over CSS above and over each page's own block (e.g. Aggregated Exports).
 # ICE_TABLE is plain CSS so it can also go into the SnD table component's iframe (tableedit.css_of).
-FONTS = ("@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600;700"
-         "&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');\n")
-HEAD_FONT = "'Plus Jakarta Sans','Inter',system-ui,sans-serif"
+FONTS = ("@import url('https://fonts.googleapis.com/css2?"
+         "family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');\n")
+HEAD_FONT = "'Plus Jakarta Sans',system-ui,sans-serif"
 
 ICE_TABLE = f"""
 /* icy tables: frosted card, pale gradient headers, hairline rows, zebra, soft hover */
 .snd-wrap, .tbl-wrap {{ background: #ffffff !important; border: 1px solid rgba(43,74,138,.12) !important; border-radius: 14px !important;
   box-shadow: 0 1px 2px rgba(10,36,99,.04), 0 8px 24px rgba(10,36,99,.06) !important; }}
-table.snd, .tbl, .dtab {{ font-family: 'Inter', system-ui, sans-serif; color: #1a1a2e !important; font-variant-numeric: tabular-nums; }}
+table.snd, .tbl, .dtab {{ font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1a1a2e !important; font-variant-numeric: tabular-nums; }}
 table.snd td, .tbl td, .dtab td {{ border-bottom: 1px solid rgba(43,74,138,.07) !important; }}
 table.snd th.y, .tbl th, .dtab th, .dtab .sub th {{ background: linear-gradient(180deg, #f7f9fd, #edf2fa) !important; color: #1e3a6e !important;
   font-family: {HEAD_FONT}; font-size: 10.5px !important; font-weight: 700 !important; letter-spacing: .06em;
@@ -261,11 +261,11 @@ ICE = f"""
 {FONTS}
 :root {{ color-scheme: light !important; }}
 html, body, [class*="css"], [data-testid="stAppViewContainer"], .stMarkdown, button, input, textarea {{
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif !important; -webkit-font-smoothing: antialiased; }}
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important; -webkit-font-smoothing: antialiased; }}
 .stTabs [data-baseweb="tab"] p, div[role="radiogroup"] label p, [data-testid="stCaptionContainer"],
 .chart-head, .card-title, .grp-hero {{ font-family: {HEAD_FONT} !important; letter-spacing: .01em; }}
 .chart-head, .card-title {{ font-weight: 700 !important; color: #0a2463 !important; }}
-.sb-title {{ font-family: 'Fraunces', Georgia, serif !important; }}
+.sb-title {{ font-family: 'Plus Jakarta Sans', sans-serif !important; }}
 [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p, .sb-label, .mc-lbl {{ font-family: {HEAD_FONT} !important; font-size: 10.5px !important;
   font-weight: 700 !important; letter-spacing: .14em !important; text-transform: uppercase; color: #7a86a8 !important; }}
 [data-testid="stMain"] [data-testid="stWidgetLabel"] p {{ font-family: {HEAD_FONT} !important; font-size: 12.5px !important; font-weight: 600 !important;
@@ -337,7 +337,7 @@ div[data-testid="stExpander"] summary p {{ font-family: {HEAD_FONT} !important; 
 </style>
 """
 
-# Chart look: transparent card, Inter, hairline navy grid, COT palette
+# Chart look: transparent card, Plus Jakarta Sans, hairline navy grid, COT palette
 PALETTE = ["#0a2463", "#1f8a9c", "#c98a1f", "#1f9d6f", "#c94a4a", "#7a4fb0", "#8a94a8", "#e8770a"]
 
 
@@ -349,11 +349,11 @@ def ice_charts():
         t = go.layout.Template(pio.templates["plotly_white"])
         ax = dict(gridcolor="rgba(10,36,99,0.08)", zerolinecolor="rgba(0,0,0,0.12)", linecolor="rgba(0,0,0,0.08)",
                   tickfont=dict(size=10, color="#4a5578"), title=dict(font=dict(color="#1e3a6e")))
-        t.layout.update(font=dict(family="Inter, system-ui, -apple-system, Segoe UI, sans-serif", color="#1a1a2e", size=11),
+        t.layout.update(font=dict(family="Plus Jakarta Sans, sans-serif", color="#1a1a2e", size=11),
                         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", colorway=PALETTE, xaxis=ax, yaxis=ax,
-                        legend=dict(font=dict(family="Plus Jakarta Sans, Inter, sans-serif", size=10.5, color="#1e3a6e")),
+                        legend=dict(font=dict(family="Plus Jakarta Sans, sans-serif", size=10.5, color="#1e3a6e")),
                         hoverlabel=dict(bgcolor="#ffffff", bordercolor="rgba(43,74,138,0.25)",
-                                        font=dict(family="Inter, sans-serif", size=11, color="#1a1a2e")))
+                                        font=dict(family="Plus Jakarta Sans, sans-serif", size=11, color="#1a1a2e")))
         pio.templates["ice"] = t
     pio.templates.default = "ice"
 
