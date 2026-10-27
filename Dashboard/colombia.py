@@ -138,29 +138,82 @@ def _long(cy: str) -> str:
     return f"20{cy}"
 
 
+PROJ_YEARS = 5                                                     # complete crop years behind the seasonal shares
+BIG = """
+table.snd { font-size: 13.5px !important; }
+table.snd td, table.snd th.y { padding: 5px 13px !important; }
+table.snd th.y { font-size: 11.5px !important; }
+table.snd td.lbl { min-width: 130px; }
+table.snd td.pj, table.snd th.pj { background: rgba(201,138,31,.07) !important; font-style: italic; color: #7a5212 !important; }
+table.snd th.pj { border-bottom-color: rgba(201,138,31,.35) !important; }
+table.snd tr.bal td.pj.neg { color: #b03a3a !important; }
+"""
+
+
+def projection(d: pd.DataFrame) -> dict:
+    """Full-year forecast for the running crop year, per input, in bags: YTD / the share of the year those same months made
+    up on average over the last PROJ_YEARS complete crop years (seasonal share). An input already complete keeps its total.
+    Net exports and stocks change follow from the four. {} when the latest crop year is complete."""
+    out = {}
+    latest = complete_months(wide(d, "Production")).index[-1]
+    for s in INPUTS:
+        p = wide(d, s)
+        if latest not in p.index:
+            return {}
+        row = p.loc[latest]
+        k = int(row.notna().cumprod().sum())                       # months in from October, no gaps
+        if k == 0:
+            return {}
+        if k == 12:
+            out[s] = float(row.sum())
+            continue
+        full = [y for y in p.index if y != latest and p.loc[y].notna().all()][-PROJ_YEARS:]
+        if not full:
+            return {}
+        share = float((p.loc[full, list(range(1, k + 1))].sum(axis=1) / p.loc[full].sum(axis=1)).mean())
+        out[s] = float(row[list(range(1, k + 1))].sum()) / share
+        out[f"_k_{s}"] = k
+    if all(out.get(f"_k_{s}") is None for s in INPUTS):
+        return {}                                                  # latest year already complete: nothing to project
+    out["Net exports"] = out["Exports"] - out["Imports"]
+    out["Stocks change"] = out["Production"] - out["Net exports"] - out["Consumption"]
+    return out
+
+
 def balance_table(d: pd.DataFrame):
-    """Crop-year totals, transposed (series down, crop years across) in the SnD table style, m bags."""
+    """Crop-year totals, transposed (series down, crop years across) in the SnD table style, m bags, plus a full-year
+    forecast column for the running crop year."""
     import snd
     import tableedit
     sums = {c: complete_months(wide(d, c)).sum(axis=1, min_count=1) / 1e6 for c, _k in LAYOUT}
     years = sums["Production"].index.tolist()
     n = complete_months(wide(d, "Stocks change")).notna().sum(axis=1)
     part = {y: n.get(y, 12) < 12 for y in years}
-    ncol = len(years) + 2
+    proj = projection(d)
+    pj_lab = f"{years[-1]}F"
+    ncol = len(years) + 2 + bool(proj)
     out = [f"<tr class='comm'><th colspan='{ncol}'>Colombia<span class='crop'>Oct–Sep · m bags</span></th></tr>",
            "<tr><th class='y first'></th>" + "".join(f"<th class='y{' fc' if part[y] else ''}'>{y}{'*' if part[y] else ''}</th>" for y in years)
-           + "<th class='y spark-h'>Trend</th></tr>"]
+           + (f"<th class='y pj'>{pj_lab}</th>" if proj else "") + "<th class='y spark-h'>Trend</th></tr>"]
     for label, kind in LAYOUT:
         s = sums[label]
-        cells = "".join(f"<td class='{('fc ' if part[y] else '') + ('neg' if kind == 'bal' and pd.notna(s[y]) and s[y] < -0.0049 else '')}'>"
-                        f"{snd.fnum(s[y], 2)}</td>" for y in years)
+        neg = lambda v: kind == "bal" and pd.notna(v) and v < -0.0049     # noqa: E731
+        cells = "".join(f"<td class='{('fc ' if part[y] else '') + ('neg' if neg(s[y]) else '')}'>{snd.fnum(s[y], 2)}</td>" for y in years)
+        if proj:
+            v = proj[label] / 1e6
+            cells += f"<td class='pj{' neg' if neg(v) else ''}'>{snd.fnum(v, 2)}</td>"
         pts = [(_long(y), s[y]) for y in years]
         spark = snd.sparkline_balance(pts, label) if kind == "bal" else snd.sparkline(pts, label, "plain")
         out.append(f"<tr class='{kind}'><td class='lbl'>{label}</td>{cells}<td class='spark-td'>{spark}</td></tr>")
-    tableedit.editable_table(f"<div class='snd-wrap'><table class='snd'>{''.join(out)}</table></div>", tableedit.css_of(snd.CSS),
+    tableedit.editable_table(f"<div class='snd-wrap'><table class='snd'>{''.join(out)}</table></div>", tableedit.css_of(snd.CSS) + BIG,
                              "cl_bal_tbl", 0, editable=False)
-    st.markdown("<div class='card-desc'>* = crop year still running (months so far) · Stocks change = Production − Net exports − Consumption</div>",
-                unsafe_allow_html=True)
+    note = "* = crop year still running (months so far) · Stocks change = Production − Net exports − Consumption"
+    if proj:
+        ks = sorted({proj[f"_k_{s}"] for s in INPUTS if f"_k_{s}" in proj})
+        upto = MONTHS[ks[0] - 1] if len(ks) == 1 else "latest month"
+        note += (f" · <b>{pj_lab}</b> = full-year forecast: YTD (Oct–{upto}) ÷ the share of the year those months made up, "
+                 f"average of the last {PROJ_YEARS} complete crop years; consumption = its yearly figure")
+    st.markdown(f"<div class='card-desc'>{note}</div>", unsafe_allow_html=True)
 
 
 # ── View (reuses the Aggregated Exports charts) ───────────────────────────────
@@ -182,6 +235,7 @@ def _ctx(piv_bags: pd.DataFrame, label: str, unit: str, span: str) -> dict:
 
 def _explorer(d: pd.DataFrame):
     ev.seed("cl_span", "All")
+    ev.seed("cl_series", "Production")
     lab = lambda name: (lambda v: f"{name} · {v}")                   # noqa: E731
     with st.container(key="mc_bar", horizontal=True, vertical_alignment="center"):
         series = st.selectbox("Series", SERIES, key="cl_series", format_func=lab("Series"), label_visibility="collapsed", width=230)
@@ -194,7 +248,10 @@ def _explorer(d: pd.DataFrame):
     try:
         ev._charts(ctx, {})
         if series == "Stocks change":                              # YoY %, vs-10y-avg and full-year pace make no sense for a
-            return                                                 # flow that swings around zero; the bar table up top covers it
+            with st.container(border=True, key="mc_card_stocks"):  # flow that swings around zero: the data-bar table instead
+                bar_table(wide(d, "Stocks change"), "Colombia monthly stocks change",
+                          "bags · Production − (Exports − Imports) − Consumption · * = crop year still running")
+            return
         t_col, p_col, y_col = st.columns([2.9, 1, 1], gap="small")
         with t_col, st.container(border=True, key="mc_card_table"):
             ev._table(ctx)
@@ -219,9 +276,6 @@ def render(mode_slot=None):
         return
     st.markdown("<div class='mc-hero-t'>Colombia Internal SnD</div>", unsafe_allow_html=True)
     balance_table(d)
-    with st.container(border=True, key="mc_card_stocks"):
-        bar_table(wide(d, "Stocks change"), "Colombia monthly stocks change",
-                  "bags · Production − (Exports − Imports) − Consumption · * = crop year still running")
     ev.section("Series")
     _explorer(d)
 

@@ -317,6 +317,10 @@ div[data-testid="stExpander"] summary p {{ font-family: {HEAD_FONT} !important; 
 .stButton > button, .stDownloadButton > button {{ border-radius: 999px; border: 1px solid rgba(43,74,138,.18); background: linear-gradient(180deg, #ffffff, #eef2fa);
   color: #0a2463; font-weight: 600; box-shadow: 0 1px 2px rgba(10,36,99,.06); transition: box-shadow .18s, transform .18s; }}
 .stButton > button:hover, .stDownloadButton > button:hover {{ transform: translateY(-1px); box-shadow: 0 8px 20px rgba(10,36,99,.14); border-color: rgba(43,74,138,.35); color: #0a2463; }}
+/* page title strip (Global / Brazil / Colombia SnD, Aggregated Exports) */
+.mc-hero-t {{ color: #0a2463; font-family: {HEAD_FONT}; font-size: 17px; font-weight: 800; letter-spacing: -.01em; line-height: 1.3;
+  background: linear-gradient(90deg, rgba(43,74,138,.09) 0%, rgba(43,74,138,.035) 55%, rgba(43,74,138,0) 100%);
+  border: 1px solid rgba(43,74,138,.08); border-radius: 12px; padding: 10px 16px; margin-bottom: 8px; }}
 /* use the full width: small side gutters instead of a centred 1500px column */
 .block-container {{ max-width: 100% !important; padding-left: 1.6rem !important; padding-right: 1.6rem !important; }}
 /* Edit-mode toggles: small, under the mode button */

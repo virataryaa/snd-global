@@ -74,6 +74,9 @@ def _snd():
     page = left.radio("Page", ["Global SnD", "Brazil Internal SnD", "Colombia Internal SnD"], horizontal=True, key="snd_page",
                       label_visibility="collapsed")
     snd.MODE_SLOT = brazil.MODE_SLOT = right.container()
+    if page != "Colombia Internal SnD":                            # Colombia draws its own strip
+        edit = st.session_state.get("snd_mode") == "Edit"
+        st.markdown(f"<div class='mc-hero-t'>{page}{' · Edit Mode' if edit else ''}</div>", unsafe_allow_html=True)
     if page == "Global SnD":
         snd.render()
     elif page == "Brazil Internal SnD":
