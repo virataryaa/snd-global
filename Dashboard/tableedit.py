@@ -8,12 +8,12 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 _COMP = components.declare_component("snd_table", path=str(Path(__file__).resolve().parent / "snd_table_component"))
-FONT = "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');\n"
+from theme import FONTS as FONT, ICE_TABLE  # noqa: E402  (ice table look inside the component too)
 
 
 def css_of(style_block: str) -> str:
     """The CSS text of a '<style>...</style>' string, with the font import in front."""
-    return FONT + re.sub(r"</?style>", "", style_block)
+    return FONT + re.sub(r"</?style>", "", style_block) + ICE_TABLE
 
 
 _TD = re.compile(r"<td(?: class='([^']*)')?([^>]*)>(.*?)</td>", re.S)

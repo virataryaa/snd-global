@@ -19,6 +19,7 @@ import theme  # noqa: E402
 # Strict light theme shared with the Commodity Calendar app: CSS hard-codes colours (no
 # prefers-color-scheme) and the repo's .streamlit/config.toml pins base="light".
 st.markdown(theme.CSS, unsafe_allow_html=True)
+theme.ice_charts()
 
 
 theme.gate("Coffee SnD")
@@ -27,7 +28,7 @@ theme.gate("Coffee SnD")
 KEEP = (["snd_page", "snd_span", "snd_mode", "an_page", "an_view", "an_br_scope", "an_br_start", "br_span", "yrs_span", "lim_flags", "rows_only", "br_mode", "rv_set",
          "sc_bar_span", "sc_years", "sc_scope", "sn_origin", "sn_vs", "sn_yr", "sn_unit", "sn_step_m bags", "sn_step_%", "sn_n"]
         + [scenario._skey(k, u) for k in scenario.ALL_KEYS for u in scenario.UNITS] + ["sc_unit"]
-        + ["ex_page", "mc_ch_comm", "mc_ch_unit", "mc_ch_span", "mc_cy_basis", "mc_pj_method", "mc_view", "mc_cumview",
+        + ["ex_mode", "mc_ch_comm", "mc_ch_unit", "mc_ch_span", "mc_cy_basis", "mc_pj_method", "mc_view", "mc_cumview",
            "mc_roll", "mc_stackview", "en_origin", "en_years"] + [f"mc_origin_{c}" for c in ev.COMMS])
 for _k in KEEP:
     if _k not in st.session_state and f"_keep_{_k}" in st.session_state:
@@ -61,14 +62,17 @@ def _snd():
 
 
 def _exports():
-    # charts (history + TDM + manual) or the Entry page that edits the manual months and TDM shares
-    page = st.radio("Page", ["Exports", "Entry"], horizontal=True, key="ex_page", label_visibility="collapsed")
-    ev.render() if page == "Exports" else ev.render_entry()
+    # charts (history + TDM + manual) in View; Edit Mode = the Entry page (manual months, TDM shares), same switch as SnD
+    head, right = st.columns([4, 1], vertical_alignment="center")
+    with right, st.container(key="mode_nav"):
+        mode = theme.mode_switch("ex_mode")
+    ev.render(head) if mode == "View" else ev.render_entry(head)
 
 
 # only the chosen section runs (its own sidebar controls are added below the section switch)
 {"SnD": _snd, "Analysis": analytics.render, "Scenarios": scenario.page,
  "Sensitivity": scenario.sensitivity_page, "Revisions": revisions.render, "Exports": _exports}[section]()
+st.markdown(theme.ICE, unsafe_allow_html=True)   # last, so the ice look sits over every page's own CSS
 
 for _k in KEEP:
     if _k in st.session_state:

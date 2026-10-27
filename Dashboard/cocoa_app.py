@@ -7,6 +7,7 @@ import cocoa_viz  # noqa: E402
 import theme  # noqa: E402
 
 st.markdown(theme.CSS, unsafe_allow_html=True)
+theme.ice_charts()
 theme.gate("Cocoa SnD")
 
 with st.sidebar:
@@ -25,3 +26,4 @@ elif section == "Scenarios":
     cocoa_viz.scenario_page()
 else:
     cocoa.revisions_page()
+st.markdown(theme.ICE, unsafe_allow_html=True)   # last, so the ice look sits over every page's own CSS

@@ -285,7 +285,7 @@ def _heatmap_fig(z, labels, x_axis, y_axis, metric, big=False):
     for x0, x1, y0, y1 in [(n - 0.5, n + 0.5, -0.5, last + 0.5), (-0.5, last + 0.5, n - 0.5, n + 0.5)]:
         fig.add_shape(type="rect", x0=x0, x1=x1, y0=y0, y1=y1, line=dict(color="#000000", width=1.5),
                       fillcolor="rgba(0,0,0,0)", layer="above")
-    fig.update_layout(template="plotly_white", height=480 if big else 325, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+    fig.update_layout(template="ice", height=480 if big else 325, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                       margin=dict(t=4, b=34, l=60, r=6), font=dict(color="#1d1d1f", size=sz + 1),
                       xaxis=dict(title=dict(text=x_axis, font=dict(color="#0a2463")), type="category",
                                  tickfont=dict(size=sz), constrain="domain", showline=True, linewidth=1, linecolor="rgba(0,0,0,.15)", mirror=True),

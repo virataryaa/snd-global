@@ -215,6 +215,133 @@ table.snd td.neg { color: #c94a4a !important; }
 """
 
 
+# ── Ice theme (same as LSEG COT_ALL / Daily Miner) ────────────────────────────
+# Injected last on every run, so it sits over CSS above and over each page's own block (e.g. Aggregated Exports).
+# ICE_TABLE is plain CSS so it can also go into the SnD table component's iframe (tableedit.css_of).
+FONTS = ("@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600;700"
+         "&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');\n")
+HEAD_FONT = "'Plus Jakarta Sans','Inter',system-ui,sans-serif"
+
+ICE_TABLE = f"""
+/* icy tables: frosted card, pale gradient headers, hairline rows, zebra, soft hover */
+.snd-wrap, .tbl-wrap {{ background: #ffffff !important; border: 1px solid rgba(43,74,138,.12) !important; border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(10,36,99,.04), 0 8px 24px rgba(10,36,99,.06) !important; }}
+table.snd, .tbl, .dtab {{ font-family: 'Inter', system-ui, sans-serif; color: #1a1a2e !important; font-variant-numeric: tabular-nums; }}
+table.snd td, .tbl td, .dtab td {{ border-bottom: 1px solid rgba(43,74,138,.07) !important; }}
+table.snd th.y, .tbl th, .dtab th, .dtab .sub th {{ background: linear-gradient(180deg, #f7f9fd, #edf2fa) !important; color: #1e3a6e !important;
+  font-family: {HEAD_FONT}; font-size: 10.5px !important; font-weight: 700 !important; letter-spacing: .06em;
+  border-bottom: 1px solid rgba(43,74,138,.12) !important; }}
+table.snd th.y {{ padding: 6px 9px !important; }}
+table.snd th.y.first {{ border-radius: 0 !important; }} table.snd th.y:last-child {{ border-radius: 0 !important; }}
+table.snd tr.comm th {{ background: linear-gradient(90deg, rgba(43,74,138,.10) 0%, rgba(43,74,138,.035) 55%, rgba(43,74,138,0) 100%) !important;
+  color: #0a2463 !important; font-family: {HEAD_FONT}; font-size: 10.5px !important; font-weight: 800 !important; letter-spacing: .14em !important;
+  padding: 8px 12px 6px !important; }}
+table.snd td.lbl, .tbl td.lbl {{ color: #1e3a6e !important; font-weight: 600; }}
+.tbl td.lbl, .tbl td.x, .dtab td.dt {{ background: #f7f9fd !important; border-right: 1px solid rgba(43,74,138,.10) !important; }}
+.tbl td.x {{ border-left: 1px solid rgba(43,74,138,.22) !important; }}
+table.snd tr:nth-child(even) > td, .tbl tr:nth-child(even) > td, .dtab tr:nth-child(even) > td {{ background-color: #f9fbfe; }}
+table.snd tr:hover > td, .tbl tr:hover > td, .dtab tr:hover > td {{ background-color: rgba(43,74,138,.06); }}
+table.snd tr.b td {{ background: #f7f9fd !important; }}
+table.snd tr.bal td {{ background: #edf2fa !important; color: #0a2463 !important; border-top: 1px solid rgba(43,74,138,.14) !important;
+  border-bottom: 1px solid rgba(43,74,138,.14) !important; }}
+table.snd tr.soft td, table.snd tr.meta td {{ color: #7a86a8 !important; }}
+table.snd td.neg, .tbl td.down {{ color: #c94a4a !important; }}
+.tbl td.up {{ color: #1f9d6f !important; }}
+.tbl tr.ref td {{ background: #f5f7fc !important; color: #5a6688 !important; }}
+.tbl tr.sep td {{ background: rgba(43,74,138,.06) !important; }}
+.snd-bar {{ background: linear-gradient(180deg, #f7f9fd, #edf2fa) !important; color: #1e3a6e !important; font-family: {HEAD_FONT};
+  font-size: 10.5px !important; font-weight: 800 !important; letter-spacing: .14em !important; padding: 9px 14px !important;
+  border: 1px solid rgba(43,74,138,.12); border-bottom: 0; border-radius: 14px 14px 0 0 !important; }}
+.snd-bar + .snd-wrap {{ border-radius: 0 0 14px 14px !important; }}
+.snd-head .t, .page-title {{ font-family: {HEAD_FONT}; font-weight: 800 !important; color: #0a2463 !important; }}
+"""
+
+ICE = f"""
+<style>
+{FONTS}
+:root {{ color-scheme: light !important; }}
+html, body, [class*="css"], [data-testid="stAppViewContainer"], .stMarkdown, button, input, textarea {{
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif !important; -webkit-font-smoothing: antialiased; }}
+.stTabs [data-baseweb="tab"] p, div[role="radiogroup"] label p, [data-testid="stCaptionContainer"],
+.chart-head, .card-title, .grp-hero {{ font-family: {HEAD_FONT} !important; letter-spacing: .01em; }}
+.chart-head, .card-title {{ font-weight: 700 !important; color: #0a2463 !important; }}
+.sb-title {{ font-family: 'Fraunces', Georgia, serif !important; }}
+[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p, .sb-label, .mc-lbl {{ font-family: {HEAD_FONT} !important; font-size: 10.5px !important;
+  font-weight: 700 !important; letter-spacing: .14em !important; text-transform: uppercase; color: #7a86a8 !important; }}
+[data-testid="stMain"] [data-testid="stWidgetLabel"] p {{ font-family: {HEAD_FONT} !important; font-size: 12.5px !important; font-weight: 600 !important;
+  color: #1e3a6e !important; letter-spacing: .01em; }}
+
+/* pill tracks (tabs, radios): frosted glass, soft navy gradient pick, lift on hover */
+div[role="radiogroup"], .stTabs [data-baseweb="tab-list"] {{
+  background: linear-gradient(160deg, rgba(250,252,255,.97), rgba(236,242,251,.93) 60%, rgba(229,237,249,.9)) !important;
+  border: 1px solid rgba(43,74,138,.14) !important; box-shadow: 0 4px 16px rgba(30,58,110,.07), inset 0 1px 0 rgba(255,255,255,.95) !important; }}
+div[role="radiogroup"] label:has(input:checked), .stTabs [aria-selected="true"],
+[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {{
+  background: linear-gradient(180deg, #2b4a8a, #1e3a6e) !important; color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(30,58,110,.28), inset 0 1px 0 rgba(255,255,255,.18) !important; }}
+div[role="radiogroup"] label, .stTabs [data-baseweb="tab"] {{ transition: background .15s, transform .15s; }}
+div[role="radiogroup"] label:not(:has(input:checked)):hover, .stTabs [data-baseweb="tab"]:not([aria-selected="true"]):hover {{
+  background: rgba(43,74,138,.07) !important; transform: translateY(-1px); }}
+button[kind="pillsActive"], button[kind="segmented_controlActive"], [data-testid="stBaseButton-pillsActive"] {{
+  background: linear-gradient(180deg, #2b4a8a, #1e3a6e) !important; border-color: #1e3a6e !important; }}
+
+/* dropdowns: glass pill, lift on hover, wine focus ring + caret */
+[data-testid="stMain"] [data-baseweb="select"], [data-testid="stSidebar"] [data-baseweb="select"] {{ background: transparent !important; box-shadow: none !important; }}
+[data-baseweb="select"] > div {{ background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(238,242,250,.62)) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(170%); backdrop-filter: blur(14px) saturate(170%);
+  border: 1px solid rgba(255,255,255,.9) !important; border-radius: 999px !important; min-height: 34px;
+  box-shadow: 0 1px 2px rgba(10,36,99,.06), 0 6px 18px rgba(10,36,99,.08), inset 0 1px 0 rgba(255,255,255,.95); transition: box-shadow .18s, transform .18s; }}
+[data-baseweb="select"] > div:hover {{ box-shadow: 0 0 0 3px rgba(10,36,99,.07), 0 8px 22px rgba(10,36,99,.14), inset 0 1px 0 rgba(255,255,255,.95); transform: translateY(-1px); }}
+[data-baseweb="select"] > div:focus-within {{ box-shadow: 0 0 0 3px rgba(123,30,58,.16), 0 8px 22px rgba(10,36,99,.14) !important; }}
+[data-baseweb="select"] svg {{ fill: #7b1e3a !important; }}
+[data-baseweb="select"] > div:has([data-baseweb="tag"]) {{ border-radius: 16px !important; padding: 4px 6px !important; }}
+[data-baseweb="tag"] {{ height: 24px !important; margin: 2px 3px !important; border-radius: 8px !important; background: #1e3a6e !important; }}
+[data-baseweb="popover"] [data-baseweb="menu"], [data-baseweb="popover"] ul {{
+  background: rgba(255,255,255,.82) !important; -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%);
+  border: 1px solid rgba(255,255,255,.9) !important; border-radius: 14px !important; box-shadow: 0 14px 40px rgba(10,36,99,.18) !important; }}
+[data-baseweb="popover"] li:hover {{ background: rgba(43,74,138,.07) !important; }}
+[data-baseweb="popover"] li[aria-selected="true"] {{ background: rgba(123,30,58,.10) !important; }}
+
+/* cards, charts, expanders, buttons */
+[data-testid="stVerticalBlockBorderWrapper"]:has(> div > [data-testid="stVerticalBlock"]), [class*="st-key-mc_card_"] {{
+  background: #ffffff !important; border: 1px solid rgba(43,74,138,.10) !important; border-radius: 18px !important;
+  box-shadow: 0 1px 2px rgba(10,36,99,.04), 0 4px 14px rgba(30,58,110,.06), inset 0 1px 0 #ffffff !important; }}
+[data-testid="stMain"] [data-testid="stPlotlyChart"] {{ background: #ffffff; border: 1px solid rgba(43,74,138,.10); border-radius: 18px; padding: 6px 8px;
+  overflow: hidden; box-shadow: 0 1px 2px rgba(10,36,99,.04), 0 4px 14px rgba(30,58,110,.06), inset 0 1px 0 #ffffff; transition: box-shadow .2s; }}
+[data-testid="stMain"] [data-testid="stPlotlyChart"]:hover {{ box-shadow: 0 1px 2px rgba(10,36,99,.05), 0 8px 20px rgba(30,58,110,.09), inset 0 1px 0 #ffffff; }}
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPlotlyChart"], [class*="st-key-mc_card_"] [data-testid="stPlotlyChart"] {{
+  border: 0 !important; box-shadow: none !important; padding: 0 !important; background: transparent !important; }}   /* already inside a card */
+div[data-testid="stExpander"] {{ background: #ffffff !important; border: 1px solid rgba(43,74,138,.10) !important; border-radius: 12px !important; overflow: hidden; }}
+div[data-testid="stExpander"] summary {{ background: linear-gradient(90deg, rgba(43,74,138,.07) 0%, rgba(43,74,138,.025) 55%, rgba(43,74,138,0) 100%) !important; }}
+div[data-testid="stExpander"] summary p {{ font-family: {HEAD_FONT} !important; font-size: 13.5px !important; font-weight: 700 !important; color: #0a2463 !important; }}
+.stButton > button, .stDownloadButton > button {{ border-radius: 999px; border: 1px solid rgba(43,74,138,.18); background: linear-gradient(180deg, #ffffff, #eef2fa);
+  color: #0a2463; font-weight: 600; box-shadow: 0 1px 2px rgba(10,36,99,.06); transition: box-shadow .18s, transform .18s; }}
+.stButton > button:hover, .stDownloadButton > button:hover {{ transform: translateY(-1px); box-shadow: 0 8px 20px rgba(10,36,99,.14); border-color: rgba(43,74,138,.35); color: #0a2463; }}
+{ICE_TABLE}
+</style>
+"""
+
+# Chart look: transparent card, Inter, hairline navy grid, COT palette
+PALETTE = ["#0a2463", "#1f8a9c", "#c98a1f", "#1f9d6f", "#c94a4a", "#7a4fb0", "#8a94a8", "#e8770a"]
+
+
+def ice_charts():
+    """Register the 'ice' Plotly template and make it the default."""
+    import plotly.graph_objects as go
+    import plotly.io as pio
+    if "ice" not in pio.templates:
+        t = go.layout.Template(pio.templates["plotly_white"])
+        ax = dict(gridcolor="rgba(10,36,99,0.08)", zerolinecolor="rgba(0,0,0,0.12)", linecolor="rgba(0,0,0,0.08)",
+                  tickfont=dict(size=10, color="#4a5578"), title=dict(font=dict(color="#1e3a6e")))
+        t.layout.update(font=dict(family="Inter, system-ui, -apple-system, Segoe UI, sans-serif", color="#1a1a2e", size=11),
+                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", colorway=PALETTE, xaxis=ax, yaxis=ax,
+                        legend=dict(font=dict(family="Plus Jakarta Sans, Inter, sans-serif", size=10.5, color="#1e3a6e")),
+                        hoverlabel=dict(bgcolor="#ffffff", bordercolor="rgba(43,74,138,0.25)",
+                                        font=dict(family="Inter, sans-serif", size=11, color="#1a1a2e")))
+        pio.templates["ice"] = t
+    pio.templates.default = "ice"
+
+
 def mode_switch(key: str) -> str:
     """A single soft-glow button: shows 'Edit' while viewing and 'View' while editing. Returns the current mode."""
     cur = st.session_state.get(key, "View")

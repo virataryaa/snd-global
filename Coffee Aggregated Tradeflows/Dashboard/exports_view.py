@@ -35,8 +35,8 @@ NAVY, TEAL, GREEN, RED, AMBER, GREY = "#0a2463", "#1f8a9c", "#1f9d6f", "#c94a4a"
 INK, AXIS, GRID = "#1a1a2e", "#4a5578", "rgba(10,36,99,0.08)"
 OLDER = [TEAL, AMBER, GREEN, "#6b7fb8", GREY, "#8fc7d0", "#e2c38a", "#9fd1bb", "#b9c3de"]
 ORIGIN_COLORS = ["#6b7fb8", AMBER, GREEN, RED, "#8a5fb0", GREY]
-SEQ = ["#ffffff", "#f2f9f5", "#e3f3ea", "#cfeadc", "#b6dec9", "#99cfb3", "#7bbf9c"]   # soft greens
-DIV = ["#c94a4a", "#dc8585", "#edbcbc", "#f7e2e2", "#ffffff", "#e2f3eb", "#aee0c9", "#52b28a", "#1f7d5b"]
+SEQ = ["#ffffff", "#f4f7fc", "#e9eff8", "#dde6f3", "#d0dcee", "#c3d2e8", "#b5c7e2"]   # icy blues
+DIV = ["#eec5c5", "#f3d6d6", "#f7e4e4", "#fbf1f1", "#ffffff", "#eef7f3", "#dcefe7", "#c9e8dc", "#b7e0d1"]   # COT tints: red / green at up to .32
 
 CSS = """
 <style>
@@ -67,8 +67,9 @@ CSS = """
 [data-testid="stVerticalBlock"]:has(> .st-key-mc_view), [data-testid="stVerticalBlock"]:has(> .st-key-mc_cumview),
 [data-testid="stVerticalBlock"]:has(> .st-key-mc_roll) { align-items: flex-end; }
 /* Section dividers: rule + centred label */
-.mc-rule { border-top: 1px solid #dfe3ee; margin: 22px 0 0; }
-.mc-sec { font-size: 18px; font-weight: 700; color: #8b1a1a; text-align: center; letter-spacing: .01em; margin: 6px 0 8px; }
+.mc-rule { border-top: 1px solid rgba(43,74,138,.12); margin: 22px 0 0; }
+.mc-sec { font-family: 'Plus Jakarta Sans','Inter',sans-serif; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: #1e3a6e; text-align: center; margin: 14px 0 8px; }
 /* Compact table: smaller type, tight cells, values centred */
 .tbl { font-size: 11.5px; line-height: 1.25; }
 .tbl th { padding: 3px 5px; font-size: 11px; }
@@ -82,15 +83,15 @@ CSS = """
 .tbl-head { text-align: center; margin-top: 4px; }
 .tbl td.x { font-weight: 700; }
 /* 1 + 7. Navy header bar: the title div itself is the bar, so it always wraps the text */
-.mc-hero-t { color: #ffffff; font-size: 20px; font-weight: 700; letter-spacing: .01em; line-height: 1.3;
-    background: linear-gradient(135deg, #050f2c 0%, #0a1d4d 100%); border-radius: 14px;
-    padding: 16px 22px; margin-bottom: 8px; box-shadow: 0 2px 10px rgba(10,36,99,.18); }
+.mc-hero-t { color: #0a2463; font-family: 'Plus Jakarta Sans','Inter',sans-serif; font-size: 17px; font-weight: 800; letter-spacing: -.01em;
+    line-height: 1.3; background: linear-gradient(90deg, rgba(43,74,138,.09) 0%, rgba(43,74,138,.035) 55%, rgba(43,74,138,0) 100%);
+    border: 1px solid rgba(43,74,138,.08); border-radius: 12px; padding: 10px 16px; margin-bottom: 8px; }
 .st-key-mc_hero [data-testid="stVerticalBlock"]:has(> .st-key-mc_page) { align-items: flex-end; }
-.st-key-mc_hero div[role="radiogroup"] { background: rgba(255,255,255,.10) !important; }
-.st-key-mc_hero div[role="radiogroup"] label { padding: 4px 14px !important; }
-.st-key-mc_hero div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { color: #c9d3ea !important; font-size: 13px !important; }
-.st-key-mc_hero div[role="radiogroup"] label:has(input:checked) { background: #ffffff !important; }
-.st-key-mc_hero div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #0a2463 !important; font-weight: 700; }
+/* Filter bar: one wrapping row of glass dropdowns, no labels */
+.st-key-mc_bar { gap: 8px !important; flex-wrap: wrap; margin: 0 0 6px; }
+.st-key-mc_bar [data-baseweb="select"] > div { min-height: 32px !important; font-size: 12.5px; font-weight: 600; color: #0a2463 !important; }
+.st-key-mc_bar .st-key-mc_proj button, .st-key-mc_selall button { min-height: 32px !important; height: 32px; padding: 0 14px !important; }
+.st-key-mc_bar .st-key-mc_proj button p, .st-key-mc_selall button p { font-size: 12.5px !important; font-weight: 600; }
 /* Compact filter card */
 .st-key-mc_filters { padding: 8px 14px 4px !important; }
 .st-key-mc_filters [data-testid="stVerticalBlock"] { gap: 0.3rem; }
@@ -200,7 +201,7 @@ def style(fig, height=340, legend="bottom", months=None, unified=False, fmt=",.0
     elif legend == "top":                                          # one tight line just under the title
         leg.update(y=1.0, yanchor="bottom")
         margin["t"] = 30
-    fig.update_layout(template="plotly_white", height=height, paper_bgcolor="rgba(0,0,0,0)",
+    fig.update_layout(template="ice", height=height, paper_bgcolor="rgba(0,0,0,0)",
                       plot_bgcolor="rgba(0,0,0,0)", font=dict(color=INK), legend=leg, showlegend=legend is not None,
                       xaxis=xaxis, yaxis=yaxis, margin=margin, hovermode="x unified" if unified else "closest", **extra)
     return fig
@@ -279,9 +280,9 @@ def recrop(raw: pd.DataFrame, start: int) -> pd.DataFrame:
 
 
 # ── Page ──────────────────────────────────────────────────────────────────────
-def render():
+def render(head=None):
     st.markdown(CSS, unsafe_allow_html=True)
-    title = st.empty()                                             # navy header bar, filled by _views_body
+    title = (head or st).empty()                                   # header strip, filled by _views_body
     _views(title)
 
 
@@ -324,25 +325,27 @@ def _context(raw, gbe, comm, unit, span):
 
 
 def _views(title):
-    """The filters (Type, Crop year, Years, Unit, Projection, Origin) live in the sidebar and drive the charts and the
-    table. The crop-year start re-labels the data and rotates MONTHS for this view only."""
+    """The filters (Type, Crop year, Years, Unit, Projection, Origin) sit in one compact bar of glass dropdowns
+    ("Label · value") above the charts. The crop-year start re-labels the data and rotates MONTHS for this view only."""
     global MONTHS, START
-    with st.sidebar:
-        st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
-        comm = st.radio("Type", COMMS, horizontal=True, key="mc_ch_comm")
-        basis = st.radio("Crop year", list(CY_PRESETS), horizontal=True, key="mc_cy_basis")
-        seed("mc_ch_span", "Last 10")
-        span = st.radio("Years", ["Last 5", "Last 10", "All"], horizontal=True, key="mc_ch_span")
-        unit = st.radio("Unit", list(UNITS), horizontal=True, key="mc_ch_unit")
-        b3 = st.container()                                          # the Projection chip is drawn here once the data is in
+    seed("mc_ch_span", "Last 10")
+    lab = lambda name: (lambda v: f"{name} · {v}")                   # noqa: E731
+    with st.container(key="mc_bar", horizontal=True, vertical_alignment="center"):
+        comm = st.selectbox("Type", COMMS, key="mc_ch_comm", format_func=lab("Type"), label_visibility="collapsed", width=200)
+        basis = st.selectbox("Crop year", list(CY_PRESETS), key="mc_cy_basis", format_func=lab("Crop year"),
+                             label_visibility="collapsed", width=170)
+        span = st.selectbox("Years", ["Last 5", "Last 10", "All"], key="mc_ch_span", format_func=lab("Years"),
+                            label_visibility="collapsed", width=145)
+        unit = st.selectbox("Unit", list(UNITS), key="mc_ch_unit", format_func=lab("Unit"), label_visibility="collapsed", width=170)
+        b3 = st.container(width="content")                           # the Projection chip is drawn here once the data is in
         pool = [o["name"] for o in ORIGINS if o["type"] in TYPES[comm]]
         first = [n for n in pool if n in DEFAULT_ORIGINS]               # Brazil Arabica / Vietnam to start with
         okey = f"mc_origin_{comm}"
-        st.markdown("<div class='mc-lbl'>Origin</div>", unsafe_allow_html=True)
-        with st.container(key="mc_selall"):
-            st.button("Select all", key=f"mc_all_{comm}", on_click=lambda k=okey, p=pool: st.session_state.__setitem__(k, p))
-        picked = st.pills("Origin", pool, selection_mode="multi", default=None if okey in st.session_state else first,
-                          key=okey, label_visibility="collapsed")
+        if okey not in st.session_state:
+            st.session_state[okey] = first
+        picked = st.multiselect("Origin", pool, key=okey, placeholder="Origins", label_visibility="collapsed", width=420)
+        with st.container(key="mc_selall", width="content"):
+            st.button("All origins", key=f"mc_all_{comm}", on_click=lambda k=okey, p=pool: st.session_state.__setitem__(k, p))
     origins = tuple(n for n in pool if n in (picked or first))       # nothing picked = the starting origins
     start = CY_PRESETS[basis]
     saved = MONTHS, START
@@ -359,7 +362,6 @@ def _views_body(raw, gbe, title, comm, unit, span, b3):
         proj = {}
         if ctx is not None:
             with b3:
-                st.markdown("<div class='mc-lbl'>Projection</div>", unsafe_allow_html=True)
                 with st.container(key=f"mcproj_{'off' if st.session_state.get('mc_pj_method', 'Off') == 'Off' else 'on'}"):
                     proj = _projection(ctx["piv"], ctx["latest_cy"], ctx["prev_cy"], ctx["common"], ctx["ref"],
                                        unit, ctx["fmt"])
@@ -656,7 +658,7 @@ def _projection(piv, latest_cy, prev_cy, common, ref, unit, fmt):
     method = st.session_state[k_method]
     out = {}
     ks = f"mc_{piv.shape[0]}_{abs(hash((latest_cy, common, unit)) ) % 10**8}"      # new selection -> fresh defaults
-    with st.popover(f"{method}" if method != "Off" else "Off", key="mc_proj"):
+    with st.popover(f"Projection · {method}", key="mc_proj"):
         method = st.radio("Method", PROJ_METHODS, key=k_method)
         done = list(range(1, common + 1))
         ytd_now = float(piv.loc[latest_cy, done].sum())
@@ -871,18 +873,20 @@ def _save_share(origin: str, old: float, new: float):
     load.clear()
 
 
-def render_entry():
+def render_entry(head=None):
     st.markdown(CSS, unsafe_allow_html=True)
     if st.session_state.get("en_flash"):
         st.toast(st.session_state.pop("en_flash"))
-    st.markdown("<div class='page-title'>Entry</div>", unsafe_allow_html=True)
+    (head or st).markdown("<div class='mc-hero-t'>Exports · Edit Mode</div>", unsafe_allow_html=True)
     editable = gh.enabled()
-    origin = st.radio("Origin", NAMES, horizontal=True, label_visibility="collapsed", key="en_origin")
+    with st.container(key="mc_bar", horizontal=True, vertical_alignment="center"):
+        origin = st.selectbox("Origin", NAMES, key="en_origin", format_func=lambda v: f"Origin · {v}",
+                              label_visibility="collapsed", width=240)
+        show_n = st.selectbox("Years shown", ["Recent", f"All ({FIRST_YEAR}-{LAST_YEAR})"], key="en_years",
+                              format_func=lambda v: f"Years · {v}", label_visibility="collapsed", width=210)
     o = BY_NAME[origin]
     vals = _origin_values(origin)
     last_data = max((y for (y, _m) in vals), default=2026)
-    show_n = st.radio("Years shown", ["Recent", f"All ({FIRST_YEAR}-{LAST_YEAR})"], horizontal=True,
-                      label_visibility="collapsed", key="en_years")
     hi_y = min(LAST_YEAR, max(last_data, pd.Timestamp.today().year))
     yr_list = (list(range(FIRST_YEAR, LAST_YEAR + 1)) if show_n.startswith("All")
                else list(range(max(FIRST_YEAR, hi_y - 2), hi_y + 1)))                              # Recent = last 3 years

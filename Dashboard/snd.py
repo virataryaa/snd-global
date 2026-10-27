@@ -29,8 +29,8 @@ ORIGINS = {
     "Robusta": ["Vietnam", "Brazil", "Indonesia", "India", "Uganda", "Cote d'Ivoire", "Others"],
 }
 TZ = "Europe/Amsterdam"
-NAVY, TEAL, GREEN, RED, AMBER, GREY = "#1f3b73", "#2a8c8c", "#2e8b57", "#b0413e", "#c9973f", "#8a94a6"
-INK, AXIS, GRID = "#1d1d1f", "#86868b", "rgba(0,0,0,0.05)"
+NAVY, TEAL, GREEN, RED, AMBER, GREY = "#0a2463", "#1f8a9c", "#1f9d6f", "#c94a4a", "#c98a1f", "#8a94a8"   # COT_ALL ice palette
+INK, AXIS, GRID = "#1a1a2e", "#4a5578", "rgba(10,36,99,0.08)"
 
 CSS = """
 <style>
@@ -453,8 +453,8 @@ def snd_table(df, meta, notes, years, shown, comm_frames, glob, combo, edit=None
 
 # ── Charts ────────────────────────────────────────────────────────────────────
 def _style(fig, height=230, fmt=",.1f", legend=True):
-    fig.update_layout(template="plotly_white", height=height, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                      font=dict(color="#1d1d1f", size=11, family="-apple-system, BlinkMacSystemFont, Inter, Segoe UI, sans-serif"), margin=dict(t=4, b=24, l=8, r=8), hovermode="x unified",
+    fig.update_layout(template="ice", height=height, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                      font=dict(color="#1d1d1f", size=11), margin=dict(t=4, b=24, l=8, r=8), hovermode="x unified",
                       legend=dict(orientation="h", x=0, y=1.02, yanchor="bottom", bgcolor="rgba(0,0,0,0)", font=dict(size=10), itemwidth=30) if legend else None,
                       showlegend=legend, bargap=0.35,
                       xaxis=dict(color=AXIS, showgrid=False, type="category", tickfont=dict(size=10),
