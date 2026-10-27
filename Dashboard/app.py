@@ -1,9 +1,16 @@
+import sys
+from pathlib import Path
+
 import streamlit as st
 
 st.set_page_config(page_title="Coffee SnD", layout="wide", initial_sidebar_state="expanded")
 
+# Aggregated Exports (history + TDM + Entry) lives in its own folder; appended so SnD's own modules win on a name clash
+sys.path.append(str(Path(__file__).resolve().parent.parent / "Coffee Aggregated Tradeflows" / "Dashboard"))
+
 import analytics  # noqa: E402  (after set_page_config)
 import brazil  # noqa: E402
+import exports_view as ev  # noqa: E402
 import revisions  # noqa: E402
 import scenario  # noqa: E402
 import snd  # noqa: E402
@@ -19,7 +26,9 @@ theme.gate("Coffee SnD")
 # Widgets that are not drawn in a run lose their value (e.g. the Years filter while another tab is open): keep a copy.
 KEEP = (["snd_page", "snd_span", "snd_mode", "an_page", "an_view", "an_br_scope", "an_br_start", "br_span", "yrs_span", "lim_flags", "rows_only", "br_mode", "rv_set",
          "sc_bar_span", "sc_years", "sc_scope", "sn_origin", "sn_vs", "sn_yr", "sn_unit", "sn_step_m bags", "sn_step_%", "sn_n"]
-        + [scenario._skey(k, u) for k in scenario.ALL_KEYS for u in scenario.UNITS] + ["sc_unit"])
+        + [scenario._skey(k, u) for k in scenario.ALL_KEYS for u in scenario.UNITS] + ["sc_unit"]
+        + ["ex_page", "mc_ch_comm", "mc_ch_unit", "mc_ch_span", "mc_cy_basis", "mc_pj_method", "mc_view", "mc_cumview",
+           "mc_roll", "mc_stackview", "en_origin", "en_years"] + [f"mc_origin_{c}" for c in ev.COMMS])
 for _k in KEEP:
     if _k not in st.session_state and f"_keep_{_k}" in st.session_state:
         st.session_state[_k] = st.session_state[f"_keep_{_k}"]
@@ -27,12 +36,14 @@ for _k in KEEP:
 with st.sidebar:
     st.markdown("<div class='sb-title'>Coffee SnD</div>", unsafe_allow_html=True)
     st.markdown("<div class='sb-sep'></div><div class='sb-label'>Section</div>", unsafe_allow_html=True)
-    section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Sensitivity", "Revisions"],
-                       format_func=lambda s: {"Analysis": "Insights", "Scenarios": "What-if", "Sensitivity": "Stress test", "Revisions": "Change log"}.get(s, s), key="section", label_visibility="collapsed")
-    st.markdown("<div class='sb-sep'></div><div class='sb-label'>Crop years</div>", unsafe_allow_html=True)
-    st.radio("Crop years", ["Last 7", "All"], index=1, horizontal=True, key="yrs_span", label_visibility="collapsed")   # coffee: all by default
-    st.toggle("Record flags (10y)", value=True, key="lim_flags", help="Edit mode: red on cells past the 10-year high/low, outline near it")
-    st.toggle("Show only editable", key="rows_only", help="Edit mode: hide the calculated rows")
+    section = st.radio("Section", ["SnD", "Analysis", "Scenarios", "Sensitivity", "Revisions", "Exports"],
+                       format_func=lambda s: {"Analysis": "Insights", "Scenarios": "What-if", "Sensitivity": "Stress test", "Revisions": "Change log",
+                                              "Exports": "Aggregated Exports"}.get(s, s), key="section", label_visibility="collapsed")
+    if section != "Exports":   # SnD-only controls; Exports adds its own filters below
+        st.markdown("<div class='sb-sep'></div><div class='sb-label'>Crop years</div>", unsafe_allow_html=True)
+        st.radio("Crop years", ["Last 7", "All"], index=1, horizontal=True, key="yrs_span", label_visibility="collapsed")   # coffee: all by default
+        st.toggle("Record flags (10y)", value=True, key="lim_flags", help="Edit mode: red on cells past the 10-year high/low, outline near it")
+        st.toggle("Show only editable", key="rows_only", help="Edit mode: hide the calculated rows")
 
 
 def _snd():
@@ -49,9 +60,15 @@ def _snd():
         brazil.render("Brazil SnD")
 
 
+def _exports():
+    # charts (history + TDM + manual) or the Entry page that edits the manual months and TDM shares
+    page = st.radio("Page", ["Exports", "Entry"], horizontal=True, key="ex_page", label_visibility="collapsed")
+    ev.render() if page == "Exports" else ev.render_entry()
+
+
 # only the chosen section runs (its own sidebar controls are added below the section switch)
 {"SnD": _snd, "Analysis": analytics.render, "Scenarios": scenario.page,
- "Sensitivity": scenario.sensitivity_page, "Revisions": revisions.render}[section]()
+ "Sensitivity": scenario.sensitivity_page, "Revisions": revisions.render, "Exports": _exports}[section]()
 
 for _k in KEEP:
     if _k in st.session_state:
