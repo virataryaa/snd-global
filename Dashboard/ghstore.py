@@ -4,6 +4,7 @@ Used by the Entry page. Needs `github_token` in Streamlit Secrets (Contents: rea
 One keep-alive session, the last sha of every file is remembered, so a save is a single PUT (re-read once on a conflict).
 """
 import base64
+from urllib.parse import quote
 
 import requests
 import streamlit as st
@@ -40,7 +41,7 @@ def _state() -> dict:
 
 
 def _url(path: str) -> str:
-    return f"https://api.github.com/repos/{REPO}/contents/{path}"
+    return f"https://api.github.com/repos/{REPO}/contents/{quote(path)}"   # quoted: the exports folder name has spaces
 
 
 def _check(r):
@@ -64,12 +65,14 @@ def cached_text(path: str):
 def text_of(path: str, local) -> str:
     """Latest text of a data file: from the data branch when a token is set (kept in memory after the first read),
     else (or if GitHub fails) the local copy."""
-    if enabled():
+    if enabled() and not _state().get(f"missing:{path}"):
         try:
             return cached_text(path) if cached_text(path) is not None else read(path)[0]
-        except GitHubError:
-            pass
-    return open(local, encoding="utf-8").read()
+        except GitHubError as ex:
+            if ex.status == 404:                                  # not on the data branch yet: stop asking until a save creates it
+                _state()[f"missing:{path}"] = True
+    with open(local, encoding="utf-8") as fh:
+        return fh.read()
 
 
 def read(path: str) -> tuple[str, str]:
@@ -112,6 +115,7 @@ def commit(path: str, change, message: str, default=None):
             raise
     j = r.json()
     st_[path] = {"text": new_text, "sha": j["content"]["sha"]}
+    st_.pop(f"missing:{path}", None)
     hist = st_.get(f"history:{path}")
     if hist is not None:
         hist.insert(0, (j["commit"]["committer"]["date"], message))

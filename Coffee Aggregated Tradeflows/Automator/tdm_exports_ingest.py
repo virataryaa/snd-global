@@ -50,7 +50,7 @@ OUT_FILE = ROOT / "Database" / "tdm_exports.parquet"
 COLUMNS = ["REPORTER", "PARTNER", "COMMODITY", "YEAR", "MONTH", "QTY1", "UNIT1"]
 KEYS = ["REPORTER", "COMMODITY", "YEAR", "MONTH"]
 
-GBE_MULTIPLIER = {90112: 1.00, 90111: 1.05, 90121: 1.19, 90122: 1.25, 210111: 2.60, 210112: 2.60}
+GBE_MULTIPLIER = {90111: 1.00, 90112: 1.05, 90121: 1.19, 90122: 1.25, 210111: 2.60, 210112: 2.60}
 
 
 def fetch(period_begin: str) -> pd.DataFrame:

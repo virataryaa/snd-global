@@ -8,6 +8,7 @@
 Priority per origin and month: manual > history > TDM. TDM only fills origins whose source is "tdm" (origins.py),
 in months the other two do not have, as green-bean-equivalent tonnes (green + roasted, no soluble) / 0.06 x the origin's share.
 """
+import io
 import json
 from pathlib import Path
 
@@ -35,9 +36,13 @@ def shares() -> dict:
     return {o["name"]: float(over.get(o["name"], o.get("share", 1.0))) for o in ORIGINS if o["source"] == "tdm"}
 
 
+TEXT = None   # optional hook path -> text | None; the dashboard points it at the GitHub data branch for MANUAL
+
+
 def _read(path) -> pd.DataFrame:
     try:
-        d = pd.read_csv(path)
+        text = TEXT(path) if TEXT else None
+        d = pd.read_csv(io.StringIO(text)) if text is not None else pd.read_csv(path)
     except (OSError, ValueError, pd.errors.EmptyDataError):
         return pd.DataFrame(columns=COLS)
     d = d[COLS].dropna(subset=["bags"])

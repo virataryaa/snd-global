@@ -4,7 +4,7 @@ Charts and table are the Cecafe Daily monthly view (Monthly - Cumulative - Rolli
 optional projection), here on the sum of the chosen origins. Data = Dashboard/data.py (history + TDM + manual entries).
 """
 import io
-import json
+
 from pathlib import Path
 
 import numpy as np
@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import data as dx
-import exports_gh as gh
+import ghstore as gh   # the SnD store: saves go to the data branch, so a save never redeploys the app
 from origins import BY_NAME, NAMES, ORIGINS
 
 MONTHS = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"]   # crop month 1-12 (stored Jul-Jun)
@@ -28,6 +28,12 @@ COMMS = list(TYPES)
 BASE = ["Arabica", "Robusta"]
 TZ = "Europe/Amsterdam"
 UNITS = {"'000 bags": (1e-3, ",.0f"), "Bags": (1.0, ",.0f"), "Million bags": (1e-6, ",.2f")}
+def manual_text(path):
+    """data.py hook: manual entries come from the data branch (latest saves), everything else from disk."""
+    return gh.text_of(MANUAL_PATH, path) if Path(path) == dx.MANUAL else None
+
+
+dx.TEXT = manual_text
 TITLE = "{comm} {kind} Exports"   # chart titles; other pages (Colombia SnD) reuse the charts with their own wording
 PROJ_METHODS = ["Off", "YoY %", "Seasonal share", "Monthly value", "Full-year target"]
 
@@ -738,7 +744,6 @@ def _heatmap(piv, shown, latest_cy, common, ytd, yoy, ref, fmt, cut):
             avg = piv.loc[ref].mean()
             dev = [(s[m] / avg[m] - 1) * 100 if pd.notna(s[m]) and s[m] > 0 and avg[m] > 0 else np.nan
                    for m in range(1, 13)]
-            lim = max([abs(v) for v in dev if pd.notna(v)] or [20])
             dc = [t_cell("") if pd.isna(v) else t_cell(f"{v:+.0f}%", "up" if v > 0 else "down") for v in dev]
             rows.append(t_row(f"vs Avg L{len(ref)}Y", dc + [t_cell("", "x")] * 3 + [t_cell("")], "ref"))
 
@@ -835,7 +840,7 @@ def _save_manual(changes: list):
         d["bags"] = d["bags"].round().astype("int64")
         d[["year", "month"]] = d[["year", "month"]].astype(int)
         return d[dx.COLS].to_csv(index=False, lineterminator="\n"), None
-    new_text, _ = gh.commit(MANUAL_PATH, apply, msg)
+    new_text, _ = gh.commit(MANUAL_PATH, apply, msg, default=dx.MANUAL.read_text(encoding="utf-8"))
     with open(dx.MANUAL, "w", encoding="utf-8", newline="") as f:             # local copy, so the disc has it too
         f.write(new_text)
     load.clear()
@@ -865,19 +870,6 @@ def _sanity_notes(changes: list, vals: dict) -> list:
         if n < 1000:
             notes.append(f"{lab}: {n:,.0f} bags looks tiny. Typed in '000 bags?")
     return notes
-
-
-def _save_share(origin: str, old: float, new: float):
-    msg = f"Setting | {origin} TDM share: {old:g} -> {new:g}"
-
-    def apply(text):
-        d = json.loads(text) if text.strip() else {}
-        d.setdefault("tdm_share", {})[origin] = new
-        return json.dumps(d, indent=2) + "\n", None
-    text, _ = gh.commit(SETTINGS_PATH, apply, msg)
-    with open(dx.SETTINGS, "w", encoding="utf-8", newline="") as f:
-        f.write(text)
-    load.clear()
 
 
 def render_entry(head=None):
@@ -976,7 +968,7 @@ def _do_save(changes, key):
 
 def _history():
     try:
-        items = gh.history(MANUAL_PATH) + gh.history(SETTINGS_PATH)
+        items = gh.history(MANUAL_PATH)
     except Exception as ex:
         st.markdown(f"<div class='card-desc'>Not available: {ex}</div>", unsafe_allow_html=True)
         return

@@ -14,7 +14,6 @@ import analytics  # noqa: E402  (after set_page_config)
 import brazil  # noqa: E402
 import colombia  # noqa: E402
 import data as _ex_data  # noqa: E402
-import exports_gh as _ex_gh  # noqa: E402
 import exports_view as ev  # noqa: E402
 import origins as _ex_origins  # noqa: E402
 
@@ -29,8 +28,9 @@ def _fresh(mod):
     return mod
 
 
-_ex_origins, _ex_data, _ex_gh = _fresh(_ex_origins), _fresh(_ex_data), _fresh(_ex_gh)
+_ex_origins, _ex_data = _fresh(_ex_origins), _fresh(_ex_data)
 ev = _fresh(ev)
+_ex_data.TEXT = ev.manual_text   # a reloaded data.py loses the hook; put it back
 import revisions  # noqa: E402
 import scenario  # noqa: E402
 import snd  # noqa: E402
